@@ -1,2 +1,5 @@
-tensorflow==2.0.0-alpha0 
+python==3.6.8
+tensorflow==1.10.0
+tensorflow-gpu==1.10.0
+mkl==2019.3 
 pytest
