@@ -20,5 +20,6 @@ def test_read_files():
 
     inputImgs = dl.read_files(inputPath)
     outputImgs = dl.read_files(outputPath)
-    print(len(inputImgs))
     assert inputImgs[0].parts[-1] == r"ID_0000_Z_0142.tif" and outputImgs[0].parts[-1] == r"ID_0000_Z_0142.tif"
+
+def test_train_test_sep():
