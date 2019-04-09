@@ -8,5 +8,9 @@ class dataLoader:
 
     def load_folder(self, folderName):
         p = Path("../../data/{}/2d".format(folderName))
-        inputPath, outputPath = sorted([x for x in p.iterdir() if x.is_dir()])
+        inputPath, outputPath = sorted([x for x in p.iterdir()])
         return inputPath, outputPath
+
+    def read_files(self, path):
+        imgs = sorted([x for x in path.iterdir()])
+        return imgs
