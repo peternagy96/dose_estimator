@@ -1,4 +1,5 @@
 from pathlib import Path
+from random import shuffle
 
 class dataLoader:
 
@@ -14,3 +15,18 @@ class dataLoader:
     def read_files(self, path):
         imgs = sorted([x for x in path.iterdir()])
         return imgs
+
+    def data_split(self, input, output, trainPerc, shfl):
+        l = len(input)
+        if l != len(output):
+            raise TypeError("Input and output image lists are not the same size!")
+        if shfl:
+            shuffle(input)
+            shuffle(output)
+        split = round(trainPerc * l)
+        trainIn = input[:split]
+        trainOut = output[:split]
+        testIn = input[split:]
+        testOut = output[split:]
+        return trainIn, trainOut, testIn, testOut
+

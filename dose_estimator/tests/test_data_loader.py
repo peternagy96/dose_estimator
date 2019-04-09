@@ -22,4 +22,14 @@ def test_read_files():
     outputImgs = dl.read_files(outputPath)
     assert inputImgs[0].parts[-1] == r"ID_0000_Z_0142.tif" and outputImgs[0].parts[-1] == r"ID_0000_Z_0142.tif"
 
-def test_train_test_sep():
+def test_data_split():
+    dl = dataLoader()
+    folderName = "lungs"
+    inputPath, outputPath = dl.load_folder(folderName)
+    inputImgs = dl.read_files(inputPath)
+    outputImgs = dl.read_files(outputPath)
+
+    trainPerc = 0.8
+    shfl = True
+    trainIn, trainOut, testIn, testOut = dl.data_split(inputImgs, outputImgs, trainPerc, shfl)
+    assert len(trainIn) == 214 and len(testIn) == 53 and (trainIn[0].parts[-1] != r"ID_0000_Z_0142.tif" or (trainIn[1].parts[-1] != r"ID_0001_Z_0146.tif"))
