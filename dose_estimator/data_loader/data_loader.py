@@ -1,5 +1,6 @@
 from pathlib import Path
 from random import shuffle
+import cv2
 
 class dataLoader:
 
@@ -29,4 +30,10 @@ class dataLoader:
         testIn = input[split:]
         testOut = output[split:]
         return trainIn, trainOut, testIn, testOut
+
+    def load_images(self, imgs):
+        img_list = []
+        for img in imgs:
+            img_list.append(cv2.resize(cv2.imread(str(img)), (64, 64)))
+        return img_list
 
