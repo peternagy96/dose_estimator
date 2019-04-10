@@ -1,6 +1,5 @@
-python==3.6.8
-tensorflow==1.10.0
-tensorflow-gpu==1.10.0
-mkl==2019.3 
+python=>3.7.3
+tensorflow==1.13.1
+tensorflow-gpu==1.13.1
 pytest
 opencv
