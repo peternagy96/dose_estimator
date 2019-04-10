@@ -17,19 +17,30 @@ class dataLoader:
         imgs = sorted([x for x in path.iterdir()])
         return imgs
 
-    def data_split(self, input, output, trainPerc, shfl):
+    def data_split(self, input, output, trainPerc, shfl, testset):
         l = len(input)
         if l != len(output):
             raise TypeError("Input and output image lists are not the same size!")
         if shfl:
             shuffle(input)
             shuffle(output)
-        split = round(trainPerc * l)
-        trainIn = input[:split]
-        trainOut = output[:split]
-        testIn = input[split:]
-        testOut = output[split:]
-        return trainIn, trainOut, testIn, testOut
+        if testset:
+            split1 = round(trainPerc * l)
+            split2 = round((trainPerc+0.1) * l)
+            trainIn = input[:split1]
+            trainOut = output[:split1]
+            valIn = input[split1:split2]
+            valOut = output[split1:split2]
+            testIn = input[split2:]
+            testOut = output[split2:]
+            return trainIn, trainOut, valIn, valOut, testIn, testOut
+        else:
+            split = round(trainPerc * l)
+            trainIn = input[:split]
+            trainOut = output[:split]
+            valIn = input[split:]
+            valOut = output[split:]
+            return trainIn, trainOut, valIn, valOut
 
     def load_images(self, imgs):
         img_list = []

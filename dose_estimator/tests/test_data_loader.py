@@ -32,8 +32,9 @@ def test_data_split():
 
     trainPerc = 0.8
     shfl = True
-    trainIn, trainOut, testIn, testOut = dl.data_split(inputImgs, outputImgs, trainPerc, shfl)
-    assert len(trainIn) == 214 and len(testIn) == 53 and (trainIn[0].parts[-1] != r"ID_0000_Z_0142.tif" or (trainIn[1].parts[-1] != r"ID_0001_Z_0146.tif"))
+    testset = True
+    trainIn, trainOut, valIn, valOut, testIn, testOut = dl.data_split(inputImgs, outputImgs, trainPerc, shfl, testset)
+    assert len(trainIn) == 214 and len(valIn) == 26 and len(testIn) == 27 and (trainIn[0].parts[-1] != r"ID_0000_Z_0142.tif" or (trainIn[1].parts[-1] != r"ID_0001_Z_0146.tif"))
 
 def test_load_images():
     dl = dataLoader()
@@ -43,7 +44,8 @@ def test_load_images():
     outputImgs = dl.read_files(outputPath)
     trainPerc = 0.8
     shfl = True
-    trainIn, trainOut, testIn, testOut = dl.data_split(inputImgs, outputImgs, trainPerc, shfl)
+    testset = True
+    trainIn, trainOut, valIn, valOut, testIn, testOut = dl.data_split(inputImgs, outputImgs, trainPerc, shfl, testset)
 
     trainIn_imgs = dl.load_images(trainIn)
     assert trainIn_imgs[0].shape[0] == 64
