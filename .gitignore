@@ -1,7 +1,7 @@
 # Folders
 docs/
 data/
-models/
+model_weights/
 results/
 .idea/
 
