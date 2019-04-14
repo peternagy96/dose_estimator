@@ -1,11 +1,12 @@
+# !/usr/bin/env python3
+from train import Trainer
 import tensorflow as tf
 from pathlib import Path
 import numpy as np
 
 print(tf.__version__)
 
-#!/usr/bin/env python3
-from train import Trainer
+'''
 HEIGHT = 28
 WIDTH = 28
 CHANNEL = 1
@@ -23,3 +24,4 @@ batch=BATCH,\
 checkpoint=CHECKPOINT,
 model_type=MODEL_TYPE)
 trainer.train()
+'''
