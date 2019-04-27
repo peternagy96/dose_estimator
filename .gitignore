@@ -4,6 +4,7 @@ data/
 model_weights/
 results/
 .idea/
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
