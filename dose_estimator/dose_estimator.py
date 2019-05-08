@@ -1,10 +1,10 @@
 # !/usr/bin/env python3
 #from train import Trainer
 import tensorflow as tf
-from pathlib import Path
+#from pathlib import Path
 import numpy as np
-import pytest
-import cv2
+#import pytest
+#import cv2
 
 print(tf.__version__)
 
