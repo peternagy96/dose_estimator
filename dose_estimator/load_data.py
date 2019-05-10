@@ -5,11 +5,50 @@ from keras.utils import Sequence
 #from skimage.io import imread
 
 
-def load_data(nr_of_channels, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
+def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
+    # load files
+    trainA_images = np.load('/home/peter/Documents/data/pet_train.npy')
+    trainB_images = np.load('/home/peter/Documents/data/ct_train.npy')
+    testA_images = np.load('/home/peter/Documents/data/pet_test.npy')
+    testB_images = np.load('/home/peter/Documents/data/ct_test.npy')
+    train_file = open("/home/peter/Documents/data/train.txt", "r", encoding='utf8')
+    trainA_image_names = train_file.read().splitlines()
+    trainB_image_names = trainA_image_names
+    test_file = open("/home/peter/Documents/data/test.txt", "r", encoding='utf8')
+    testA_image_names = test_file.read().splitlines()
+    testB_image_names = testA_image_names
 
-    trainA_path = os.path.join('data', subfolder, 'trainA')
+    # add extra axis
+    if nr_of_channels == 1:
+        trainA_images = trainA_images[:, :, :, np.newaxis]
+        trainB_images = trainB_images[:, :, :, np.newaxis]
+        testA_images = testA_images[:, :, :, np.newaxis]
+        testB_images = testB_images[:, :, :, np.newaxis]
+
+    # normalize
+    trainA_images = normalize_array(trainA_images)
+    trainB_images = normalize_array(trainB_images)
+    testA_images = normalize_array(testA_images)
+    testB_images = normalize_array(testB_images)
+
+    # individually transform to 0 mean and std 1
+    trainA_images = convert_to_tf(trainA_images)
+    trainB_images = convert_to_tf(trainB_images)
+    testA_images = convert_to_tf(testA_images)
+    testB_images = convert_to_tf(testB_images)
+
+
+    return {"trainA_images": trainA_images, "trainB_images": trainB_images,
+            "testA_images": testA_images, "testB_images": testB_images,
+            "trainA_image_names": trainA_image_names,
+            "trainB_image_names": trainB_image_names,
+            "testA_image_names": testA_image_names,
+            "testB_image_names": testB_image_names}
+
+    """trainA_path = os.path.join('data', subfolder, 'trainA')
+    
     trainB_path = os.path.join('data', subfolder, 'trainB')
     testA_path = os.path.join('data', subfolder, 'testA')
     testB_path = os.path.join('data', subfolder, 'testB')
@@ -37,12 +76,8 @@ def load_data(nr_of_channels, batch_size=1, nr_A_train_imgs=None, nr_B_train_img
         trainB_images = create_image_array(trainB_image_names, trainB_path, nr_of_channels)
         testA_images = create_image_array(testA_image_names, testA_path, nr_of_channels)
         testB_images = create_image_array(testB_image_names, testB_path, nr_of_channels)
-        return {"trainA_images": trainA_images, "trainB_images": trainB_images,
-                "testA_images": testA_images, "testB_images": testB_images,
-                "trainA_image_names": trainA_image_names,
-                "trainB_image_names": trainB_image_names,
-                "testA_image_names": testA_image_names,
-                "testB_image_names": testB_image_names}
+        """
+
 
 
 def create_image_array(image_list, image_path, nr_of_channels):
@@ -58,6 +93,10 @@ def create_image_array(image_list, image_path, nr_of_channels):
             image_array.append(image)
 
     return np.array(image_array)
+
+
+def convert_to_tf(array):
+    return array
   
   
   # If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead
