@@ -1,18 +1,19 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
-from keras.utils.conv_utils import normalize_data_format
-from keras_contrib.layers.normalization import InstanceNormalization, InputSpec
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.core import Dense
-from keras.optimizers import Adam
-from keras.backend import mean
-from keras.models import Model, model_from_json
-from keras.utils import plot_model
-from keras.engine.topology import Container
+from tensorflow.keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
+#from keras.utils.conv_utils import normalize_data_format
+#from tensorflow.keras.backend.common import normalize_data_format
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
+from tensorflow.keras.layers import LeakyReLU
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.backend import mean
+from tensorflow.keras.models import Model, model_from_json
+from tensorflow.keras.utils import plot_model
+from keras.engine.topology import Network
 
 from collections import OrderedDict
-from scipy.misc import imsave, toimage  # has depricated
+#from scipy.misc import imsave, toimage  # has depricated
 import numpy as np
 import random
 import datetime
@@ -23,7 +24,7 @@ import csv
 import sys
 #import os
 
-import keras.backend as K
+import tensorflow.keras.backend as K
 import tensorflow as tf
 import load_data
 os.environ["CUDA_VISIBLE_DEVICES"]="1" 
@@ -114,8 +115,8 @@ class CycleGAN():
                          loss_weights=loss_weights_D)
 
         # Use containers to avoid falsy keras error about weight descripancies
-        self.D_A_static = Container(inputs=image_A, outputs=guess_A, name='D_A_static_model')
-        self.D_B_static = Container(inputs=image_B, outputs=guess_B, name='D_B_static_model')
+        self.D_A_static = Network(inputs=image_A, outputs=guess_A, name='D_A_static_model')
+        self.D_B_static = Network(inputs=image_B, outputs=guess_B, name='D_B_static_model')
 
 
 #######################################################################################################
@@ -252,20 +253,20 @@ class CycleGAN():
     def ck(self, x, k, use_normalization):
         x = Conv2D(filters=k, kernel_size=4, strides=2, padding='same')(x)
         # Normalization is not done on the first discriminator layer
-        if use_normalization:
-            x = self.normalization(axis=3, center=True, epsilon=1e-5)(x, training=True)
+        #if use_normalization:
+            #x = self.normalization(center=True, epsilon=1e-5)(x, training=True) #axis=3,
         x = LeakyReLU(alpha=0.2)(x)
         return x
 
     def c7Ak(self, x, k):
         x = Conv2D(filters=k, kernel_size=7, strides=1, padding='valid')(x)
-        x = self.normalization(axis=3, center=True, epsilon=1e-5)(x, training=True)
+        #x = self.normalization(center=True, epsilon=1e-5)(x, training=True) #axis=3,
         x = Activation('relu')(x)
         return x
 
     def dk(self, x, k):
         x = Conv2D(filters=k, kernel_size=3, strides=2, padding='same')(x)
-        x = self.normalization(axis=3, center=True, epsilon=1e-5)(x, training=True)
+        #x = self.normalization(center=True, epsilon=1e-5)(x, training=True) #axis=3,
         x = Activation('relu')(x)
         return x
 
@@ -273,11 +274,11 @@ class CycleGAN():
         k = int(x0.shape[-1])
         # first layer
         x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x0)
-        x = self.normalization(axis=3, center=True, epsilon=1e-5)(x, training=True)
+        #x = self.normalization(center=True, epsilon=1e-5)(x, training=True) #axis=3,
         x = Activation('relu')(x)
         # second layer
         x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x)
-        x = self.normalization(axis=3, center=True, epsilon=1e-5)(x, training=True)
+        #x = self.normalization(center=True, epsilon=1e-5)(x, training=True) #axis=3,
         # merge
         x = add([x, x0])
         return x
@@ -290,7 +291,7 @@ class CycleGAN():
             x = Conv2D(filters=k, kernel_size=3, strides=1, padding='valid')(x)
         else:
             x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same')(x)  # this matches fractionally stided with stride 1/2
-        x = self.normalization(axis=3, center=True, epsilon=1e-5)(x, training=True)
+        #x = self.normalization(center=True, epsilon=1e-5)(x, training=True) #axis=3,
         x = Activation('relu')(x)
         return x
 

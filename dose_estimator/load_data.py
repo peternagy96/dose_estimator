@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from PIL import Image
-from keras.utils import Sequence
+from tensorflow.keras.utils import Sequence
 #from skimage.io import imread
 
 
@@ -9,11 +9,11 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
     # load files
-    trainA_images = np.load('/home/peter/Documents/data/pet_train.npy')
-    trainB_images = np.load('/home/peter/Documents/data/ct_train.npy')
-    testA_images = np.load('/home/peter/Documents/data/pet_test.npy')
-    testB_images = np.load('/home/peter/Documents/data/ct_test.npy')
-    train_file = open("/home/peter/Documents/data/train.txt", "r", encoding='utf8')
+    trainA_images = np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
+    trainB_images = np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
+    testA_images = np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
+    testB_images = np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
+    train_file = open("/home/peter/Documents/dose_estimator/data/train.txt", "r", encoding='utf8')
     trainA_image_names = train_file.read().splitlines()
     trainB_image_names = trainA_image_names
     test_file = open("/home/peter/Documents/data/test.txt", "r", encoding='utf8')

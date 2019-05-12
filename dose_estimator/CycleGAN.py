@@ -1,18 +1,18 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
-from keras.utils.conv_utils import normalize_data_format
-from keras_contrib.layers.normalization import InstanceNormalization, InputSpec
+#from keras.utils.conv_utils import normalize_data_format
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.core import Dense
 from keras.optimizers import Adam
 from keras.backend import mean
 from keras.models import Model, model_from_json
 from keras.utils import plot_model
-from keras.engine.topology import Container
+from keras.engine.topology import Network
 
 from collections import OrderedDict
-from scipy.misc import imsave, toimage  # has depricated
+#from scipy.misc import imsave, toimage  # has depricated
 import numpy as np
 import random
 import datetime
@@ -114,8 +114,8 @@ class CycleGAN():
                          loss_weights=loss_weights_D)
 
         # Use containers to avoid falsy keras error about weight descripancies
-        self.D_A_static = Container(inputs=image_A, outputs=guess_A, name='D_A_static_model')
-        self.D_B_static = Container(inputs=image_B, outputs=guess_B, name='D_B_static_model')
+        self.D_A_static = Network(inputs=image_A, outputs=guess_A, name='D_A_static_model')
+        self.D_B_static = Network(inputs=image_B, outputs=guess_B, name='D_B_static_model')
 
 
 #######################################################################################################
