@@ -1,5 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["PATH"] = "/usr/local/cuda-9.0/bin${PATH:+:${PATH}}"
+os.environ["LD_LIBRARY_PATH"] = "/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
 #from keras.utils.conv_utils import normalize_data_format
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
@@ -22,16 +24,21 @@ import math
 import csv
 import sys
 #import os
+from PIL import Image
 
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="1" 
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 np.random.seed(seed=12345)
 
 
+# export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}
+# export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+
 class CycleGAN():
-    def __init__(self, lr_D=2e-4, lr_G=3e-4, image_shape=(240, 240, 1),
+    def __init__(self, lr_D=2e-4, lr_G=3e-4, image_shape=(200, 200, 1),
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -46,8 +53,8 @@ class CycleGAN():
         self.discriminator_iterations = 1  # Number of generator training iterations in each training loop
         self.beta_1 = 0.5
         self.beta_2 = 0.999
-        self.batch_size = 5
-        self.epochs = 100  # choose multiples of 25 since the models are save each 25th epoch
+        self.batch_size = 9
+        self.epochs = 25  # choose multiples of 25 since the models are save each 25th epoch
         self.save_interval = 1
         self.synthetic_pool_size = 25
 
@@ -645,6 +652,7 @@ class CycleGAN():
         return loss
 
     def truncateAndSave(self, real_, real, synthetic, reconstructed, path_name):
+
         if len(real.shape) > 3:
             real = real[0]
             synthetic = synthetic[0]
@@ -664,7 +672,10 @@ class CycleGAN():
         if self.channels == 1:
             image = image[:, :, 0]
 
-        toimage(image, cmin=0, cmax=1).save(path_name)
+        #toimage(image, cmin=0, cmax=1).save(path_name)
+        rescaled = (255.0 / (image.max() - image.min()) * (image - image.min())).astype(np.uint8)
+        im = Image.fromarray(rescaled)
+        im.save(path_name)
 
     def saveImages(self, epoch, real_image_A, real_image_B, num_saved_images=1):
         directory = os.path.join('images', self.date_time)
