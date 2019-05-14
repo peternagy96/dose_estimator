@@ -424,10 +424,10 @@ class CycleGAN():
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
 
             for _ in range(self.discriminator_iterations):
-                DA_loss_real = self.D_A.train_on_batch(x=real_images_A, y=ones)
-                DB_loss_real = self.D_B.train_on_batch(x=real_images_B, y=ones)
-                DA_loss_synthetic = self.D_A.train_on_batch(x=synthetic_images_A, y=zeros)
-                DB_loss_synthetic = self.D_B.train_on_batch(x=synthetic_images_B, y=zeros)
+                DA_loss_real = self.D_A.train_on_batch(x=real_images_A, y=ones_A)
+                DB_loss_real = self.D_B.train_on_batch(x=real_images_B, y=ones_B)
+                DA_loss_synthetic = self.D_A.train_on_batch(x=synthetic_images_A, y=zeros_B)
+                DB_loss_synthetic = self.D_B.train_on_batch(x=synthetic_images_B, y=zeros_A)
                 if self.use_multiscale_discriminator:
                     DA_loss = sum(DA_loss_real) + sum(DA_loss_synthetic)
                     DB_loss = sum(DB_loss_real) + sum(DB_loss_synthetic)
@@ -449,8 +449,8 @@ class CycleGAN():
                     target_data.append(ones[i])
                     target_data.append(ones[i])
             else:
-                target_data.append(ones)
-                target_data.append(ones)
+                target_data.append(ones_A)
+                target_data.append(ones_B)
 
             if self.use_supervised_learning:
                 target_data.append(real_images_A)
@@ -558,7 +558,7 @@ class CycleGAN():
                         # labels
                         if self.use_multiscale_discriminator:
                             label_shape1 = (len(real_images_A),) + self.D_A.output_shape[0][1:]
-                            label_shape2 = (len(real_images_A),) + self.D_A.output_shape[1][1:]
+                            label_shape2 = (len(real_images_B),) + self.D_B.output_shape[0][1:]
                             # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
                             ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
                             ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
@@ -569,9 +569,12 @@ class CycleGAN():
                             # zeros4 = ones4 * 0
                             zeros = [zeros1, zeros2]  # , zeros4]
                         else:
-                            label_shape = (len(real_images_A),) + self.D_A.output_shape[1:]
-                            ones = np.ones(shape=label_shape) * self.REAL_LABEL
-                            zeros = ones * 0
+                            label_shape_A = (len(real_images_A),) + self.D_A.output_shape[1:]
+                            label_shape_B = (len(real_images_B),) + self.D_B.output_shape[1:]
+                            ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
+                            ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
+                            zeros_A = ones_A * 0
+                            zeros_B = ones_B * 0
 
                     # Run all training steps
                     run_training_iteration(loop_index, self.data_generator.__len__())
@@ -606,9 +609,10 @@ class CycleGAN():
                         # If all images soon are used for one domain,
                         # randomly pick from this domain
                         if len(A_train) <= len(B_train):
-                            indexes_A = np.random.randint(len(A_train), size=batch_size)
-                            indexes_B = random_order_B[loop_index:
-                                                       loop_index + batch_size]
+                            #indexes_A = np.random.randint(len(A_train), size=batch_size)
+                            #indexes_B = random_order_B[loop_index:loop_index + batch_size]
+                            indexes_A = random_order_A[loop_index:]
+                            indexes_B = random_order_B[loop_index:]
                         else:
                             indexes_B = np.random.randint(len(B_train), size=batch_size)
                             indexes_A = random_order_A[loop_index:
@@ -626,7 +630,7 @@ class CycleGAN():
                     # labels
                     if self.use_multiscale_discriminator:
                         label_shape1 = (len(real_images_A),) + self.D_A.output_shape[0][1:]
-                        label_shape2 = (len(real_images_A),) + self.D_A.output_shape[1][1:]
+                        label_shape2 = (len(real_images_B),) + self.D_B.output_shape[0][1:]
                         # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
                         ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
                         ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
@@ -637,9 +641,12 @@ class CycleGAN():
                         # zeros4 = ones4 * 0
                         zeros = [zeros1, zeros2]  # , zeros4]
                     else:
-                        label_shape = (len(real_images_A),) + self.D_A.output_shape[1:]
-                        ones = np.ones(shape=label_shape) * self.REAL_LABEL
-                        zeros = ones * 0
+                        label_shape_A = (len(real_images_A),) + self.D_A.output_shape[1:]
+                        label_shape_B = (len(real_images_B),) + self.D_B.output_shape[1:]
+                        ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
+                        ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
+                        zeros_A = ones_A * 0
+                        zeros_B = ones_B * 0
 
                     # Run all training steps
                     run_training_iteration(loop_index, epoch_iterations)
