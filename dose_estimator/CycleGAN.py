@@ -38,7 +38,7 @@ np.random.seed(seed=12345)
 
 
 class CycleGAN():
-    def __init__(self, lr_D=2e-4, lr_G=3e-4, image_shape=(200, 200, 1),
+    def __init__(self, model_path=None, load_epoch=None, lr_D=2e-4, lr_G=4e-4, image_shape=(200, 200, 1), # orig: lr_G=3e-4
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -53,8 +53,13 @@ class CycleGAN():
         self.discriminator_iterations = 1  # Number of generator training iterations in each training loop
         self.beta_1 = 0.5
         self.beta_2 = 0.999
-        self.batch_size = 9
-        self.epochs = 25  # choose multiples of 25 since the models are save each 25th epoch
+        self.batch_size = 5
+        self.epochs = 80  # choose multiples of 25 since the models are save each 25th epoch
+        if load_epoch is not None:
+            self.init_epoch = int(load_epoch)
+            self.epochs = self.epochs + self.init_epoch
+        else:
+            self.init_epoch = 1
         self.save_interval = 1
         self.synthetic_pool_size = 25
 
@@ -237,6 +242,15 @@ class CycleGAN():
 
         # Create a session with the above options specified.
         K.tensorflow_backend.set_session(tf.Session(config=config))
+        K.tensorflow_backend.get_session().run(tf.global_variables_initializer())
+
+        # ======= Load model weights if model path is given ========
+        if model_path is not None:
+            # load model weights
+            self.load_model_from_files(model_path, load_epoch)
+            print('Model weights loaded from files')
+        else:
+            print('Model loaded with init weights')
 
         # ===== Tests ======
         # Simple Model
@@ -250,7 +264,7 @@ class CycleGAN():
         # ======= Initialize training ==========
         sys.stdout.flush()
         #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
-        self.train(epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
+        self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
 #        self.load_model_and_generate_synthetic_images()
 
 #===============================================================================
@@ -400,7 +414,7 @@ class CycleGAN():
 
 #===============================================================================
 # Training
-    def train(self, epochs, batch_size=1, save_interval=1):
+    def train(self, init_epoch, epochs, batch_size=1, save_interval=1):
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
@@ -524,24 +538,6 @@ class CycleGAN():
 
         # self.saveImages('(init)')
 
-        # labels
-        if self.use_multiscale_discriminator:
-            label_shape1 = (batch_size,) + self.D_A.output_shape[0][1:]
-            label_shape2 = (batch_size,) + self.D_A.output_shape[1][1:]
-            #label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
-            ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
-            ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
-            #ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
-            ones = [ones1, ones2]  # , ones4]
-            zeros1 = ones1 * 0
-            zeros2 = ones2 * 0
-            #zeros4 = ones4 * 0
-            zeros = [zeros1, zeros2]  # , zeros4]
-        else:
-            label_shape = (batch_size,) + self.D_A.output_shape[1:]
-            ones = np.ones(shape=label_shape) * self.REAL_LABEL
-            zeros = ones * 0
-
         # Linear decay
         if self.use_linear_decay:
             decay_D, decay_G = self.get_lr_linear_decay_rate()
@@ -549,7 +545,7 @@ class CycleGAN():
         # Start stopwatch for ETAs
         start_time = time.time()
 
-        for epoch in range(1, epochs + 1):
+        for epoch in range(init_epoch, epochs + 1):
             if self.use_data_generator:
                 loop_index = 1
                 for images in self.data_generator:
@@ -558,6 +554,24 @@ class CycleGAN():
                     if len(real_images_A.shape) == 3:
                         real_images_A = real_images_A[:, :, :, np.newaxis]
                         real_images_B = real_images_B[:, :, :, np.newaxis]
+
+                        # labels
+                        if self.use_multiscale_discriminator:
+                            label_shape1 = (len(real_images_A),) + self.D_A.output_shape[0][1:]
+                            label_shape2 = (len(real_images_A),) + self.D_A.output_shape[1][1:]
+                            # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
+                            ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
+                            ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
+                            # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
+                            ones = [ones1, ones2]  # , ones4]
+                            zeros1 = ones1 * 0
+                            zeros2 = ones2 * 0
+                            # zeros4 = ones4 * 0
+                            zeros = [zeros1, zeros2]  # , zeros4]
+                        else:
+                            label_shape = (len(real_images_A),) + self.D_A.output_shape[1:]
+                            ones = np.ones(shape=label_shape) * self.REAL_LABEL
+                            zeros = ones * 0
 
                     # Run all training steps
                     run_training_iteration(loop_index, self.data_generator.__len__())
@@ -608,6 +622,24 @@ class CycleGAN():
                     sys.stdout.flush()
                     real_images_A = A_train[indexes_A]
                     real_images_B = B_train[indexes_B]
+
+                    # labels
+                    if self.use_multiscale_discriminator:
+                        label_shape1 = (len(real_images_A),) + self.D_A.output_shape[0][1:]
+                        label_shape2 = (len(real_images_A),) + self.D_A.output_shape[1][1:]
+                        # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
+                        ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
+                        ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
+                        # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
+                        ones = [ones1, ones2]  # , ones4]
+                        zeros1 = ones1 * 0
+                        zeros2 = ones2 * 0
+                        # zeros4 = ones4 * 0
+                        zeros = [zeros1, zeros2]  # , zeros4]
+                    else:
+                        label_shape = (len(real_images_A),) + self.D_A.output_shape[1:]
+                        ones = np.ones(shape=label_shape) * self.REAL_LABEL
+                        zeros = ones * 0
 
                     # Run all training steps
                     run_training_iteration(loop_index, epoch_iterations)
@@ -840,8 +872,14 @@ class CycleGAN():
         with open('images/{}/meta_data.json'.format(self.date_time), 'w') as outfile:
             json.dump(data, outfile, sort_keys=True)
 
+    def load_model_from_files(self, path, epoch):
+        self.D_A.load_weights(os.path.join(path, f"D_A_model_weights_epoch_{epoch}.hdf5"))
+        self.D_B.load_weights(os.path.join(path, f"D_B_model_weights_epoch_{epoch}.hdf5"))
+        self.G_A2B.load_weights(os.path.join(path, f"G_A2B_model_weights_epoch_{epoch}.hdf5"))
+        self.G_B2A.load_weights(os.path.join(path, f"G_B2A_model_weights_epoch_{epoch}.hdf5"))
+
     def load_model_and_weights(self, model):
-        path_to_model = os.path.join('generate_images', 'models', '{}.json'.format(model.name))
+        #path_to_model = os.path.join('generate_images', 'models', '{}.json'.format(model.name))
         path_to_weights = os.path.join('generate_images', 'models', '{}.hdf5'.format(model.name))
         #model = model_from_json(path_to_model)
         model.load_weights(path_to_weights)
@@ -943,4 +981,9 @@ class ImagePool():
 
 
 if __name__ == '__main__':
-    GAN = CycleGAN()
+    if len(sys.argv) > 1:
+        model_path = str(sys.argv[1])
+        load_epoch = str(sys.argv[2])
+        GAN = CycleGAN(model_path, load_epoch)
+    else:
+        GAN = CycleGAN()

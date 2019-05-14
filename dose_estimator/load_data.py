@@ -101,11 +101,12 @@ def convert_to_tf(array):
 
 
   # If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead
+  # normalize between 0 and 1
 def normalize_array(inp, img_size=171):
     array = inp.copy()
     for i in range(array.shape[0]):
         pic = array[i:(i+1),:,:].squeeze()
-        pic = 2*((pic - pic.min()) / (pic.max() - pic.min())) - 1 #pic / np.linalg.norm(pic) -1
+        pic = ((pic - pic.min()) / (pic.max() - pic.min()))  #pic / np.linalg.norm(pic) -1
         array[i:(i+1),:,:] = pic
     return array
 
