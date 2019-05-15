@@ -25,6 +25,7 @@ import csv
 import sys
 #import os
 from PIL import Image
+import simpleITK as sitk
 
 import keras.backend as K
 import tensorflow as tf
@@ -38,7 +39,7 @@ np.random.seed(seed=12345)
 
 
 class CycleGAN():
-    def __init__(self, model_path=None, load_epoch=None, lr_D=2e-4, lr_G=4e-4, image_shape=(200, 200, 1), # orig: lr_G=3e-4
+    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=2e-4, lr_G=4e-4, image_shape=(200, 200, 1), # orig: lr_G=3e-4
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -262,10 +263,12 @@ class CycleGAN():
 #         self.load_model_and_generate_synthetic_images()
 
         # ======= Initialize training ==========
-        sys.stdout.flush()
-        #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
-        self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
-#        self.load_model_and_generate_synthetic_images()
+        if mode == 'train':
+            sys.stdout.flush()
+            #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
+            self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
+        elif mode == 'test':
+            self.test3D()
 
 #===============================================================================
 # Architecture functions
@@ -679,6 +682,45 @@ class CycleGAN():
             # Flush out prints each loop iteration
             sys.stdout.flush()
 
+
+# Test and return 3D NIFTI images ==============================================
+
+    def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 171):
+        def process_test_file(array: np.array, mod: str):
+            for idx, i in enumerate(indices):
+                nifti_in = sitk.ReadImage(os.path.join(test_path, i + f"_{mod}.nii.gz"))
+                pic = array[(idx * dim3):((idx + 1) * dim3)]
+                nifti_out = sitk.GetImageFromArray(pic, isVector=False)
+                for k in nifti_in.GetMetaDataKeys():
+                    nifti_out.SetMetaData(k, nifti_in.GetMetaData(k))
+
+                # save to new folder
+                filename = str(i) + f"_{mod}_pred.nii.gz"
+                sitk.WriteImage(nifti_out, os.path.join(path_out, filename), True)
+
+        # load txt file of test file names
+        test_file = open("/home/peter/pycharm_project_271/data/test.txt", "r", encoding='utf8')
+        indices = test_file.read().splitlines()
+        path_out = f"/test_results/{self.date_time}/"
+
+        # rescale test images
+        self.rescale_test_images()
+
+        # save arrays with original metadata
+        process_test_file(self.A_test, mod_A)
+        process_test_file(self.B_test, mod_B)
+
+
+    def rescale_test_images(self):
+        self.A_test = self.A_test.squeeze()
+        self.B_test = self.B_test.squeeze()
+        for i in range(self.A_test.shape[0]):
+            pic_A = self.A_test[i, :, :]
+            self.A_test[i, :, :] = (255.0 / (pic_A.max() - pic_A.min()) * (pic_A - pic_A.min())).astype(np.uint8)
+            pic_B = self.B_test[i, :, :]
+            self.B_test[i, :, :] = (255.0 / (pic_B.max() - pic_B.min()) * (pic_B - pic_B.min())).astype(np.uint8)
+
+
 #===============================================================================
 # Help functions
 
@@ -991,6 +1033,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         model_path = str(sys.argv[1])
         load_epoch = str(sys.argv[2])
-        GAN = CycleGAN(model_path, load_epoch)
+        if len(sys.args) == 4:
+            mode = str(sys.args[3])
+            GAN = CycleGAN(model_path, load_epoch, mode)
+        else:
+            GAN = CycleGAN(model_path, load_epoch)
     else:
         GAN = CycleGAN()
