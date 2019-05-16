@@ -11,9 +11,9 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
     # load files
     trainA_images = np.load('/home/peter/data/pet_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
-    trainB_images = np.load('/home/peter/data/ct_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
+    trainB_images = np.load('/home/peter/data/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
     testA_images = np.load('/home/peter/data/pet_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
-    testB_images = np.load('/home/peter/data/ct_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
+    testB_images = np.load('/home/peter/data/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
     train_file = open("/home/peter/data/train.txt", "r", encoding='utf8')
     trainA_image_names = train_file.read().splitlines()
     trainB_image_names = trainA_image_names
@@ -102,11 +102,13 @@ def convert_to_tf(array):
 
   # If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead
   # normalize between 0 and 1
-def normalize_array(inp, img_size=171):
+def normalize_array(inp, img_size=81):
     array = inp.copy()
     for i in range(array.shape[0]):
-        pic = array[i:(i+1),:,:].squeeze()
-        pic = ((pic - pic.min()) / (pic.max() - pic.min()))  #pic / np.linalg.norm(pic) -1
+        pic = array[i:(i+1),:,:]
+        mask = (pic != 0.0)
+        pic[mask] = 2*((pic[mask] - pic.min()) / (pic.max() - pic.min()))  -1  #pic / np.linalg.norm(pic) -1
+        #pic[mask] = (pic[mask] - pic.mean()) / pic.std()
         array[i:(i+1),:,:] = pic
     return array
 

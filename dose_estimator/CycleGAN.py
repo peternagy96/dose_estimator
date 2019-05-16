@@ -25,7 +25,7 @@ import csv
 import sys
 #import os
 from PIL import Image
-import simpleITK as sitk
+#import simpleITK as sitk
 
 import keras.backend as K
 import tensorflow as tf
@@ -39,7 +39,7 @@ np.random.seed(seed=12345)
 
 
 class CycleGAN():
-    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=2e-4, lr_G=4e-4, image_shape=(200, 200, 1), # orig: lr_G=3e-4
+    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=2e-5, lr_G=3e-5, image_shape=(128, 128, 1), # orig: lr_G=3e-4
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -55,7 +55,7 @@ class CycleGAN():
         self.beta_1 = 0.5
         self.beta_2 = 0.999
         self.batch_size = 5
-        self.epochs = 80  # choose multiples of 25 since the models are save each 25th epoch
+        self.epochs = 200  # choose multiples of 25 since the models are save each 25th epoch
         if load_epoch is not None:
             self.init_epoch = int(load_epoch)
             self.epochs = self.epochs + self.init_epoch
@@ -685,7 +685,7 @@ class CycleGAN():
 
 # Test and return 3D NIFTI images ==============================================
 
-    def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 171):
+    def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 81):
         def process_test_file(array: np.array, mod: str):
             for idx, i in enumerate(indices):
                 nifti_in = sitk.ReadImage(os.path.join(test_path, i + f"_{mod}.nii.gz"))
