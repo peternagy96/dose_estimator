@@ -2,6 +2,8 @@ import os
 import numpy as np
 from PIL import Image
 from tensorflow.keras.utils import Sequence
+import cv2
+import random
 #from sklearn.preprocessing import MinMaxScaler
 #from skimage.io import imread
 
@@ -22,10 +24,21 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     testB_image_names = testA_image_names
 
     # normalize
-    trainA_images = normalize_array(trainA_images)
-    trainB_images = normalize_array(trainB_images)
-    testA_images = normalize_array(testA_images)
-    testB_images = normalize_array(testB_images)
+    trainA_images = normalize_array(trainA_images, trainA_images.shape[0])
+    trainB_images = normalize_array(trainB_images, trainB_images.shape[0])
+    testA_images = normalize_array(testA_images, testA_images.shape[0])
+    testB_images = normalize_array(testB_images, testB_images.shape[0])
+
+    trainA_images = filter_zeros(trainA_images)
+    testA_images = filter_zeros(testA_images)
+
+    """
+    # rescale
+    trainA_images = upscale_array(trainA_images)
+    trainB_images = upscale_array(trainB_images)
+    testA_images = upscale_array(testA_images)
+    testB_images = upscale_array(testB_images)
+    """
 
     # add extra axis
     if nr_of_channels == 1:
@@ -107,9 +120,28 @@ def normalize_array(inp, img_size=81):
     for i in range(array.shape[0]):
         pic = array[i:(i+1),:,:]
         mask = (pic != 0.0)
-        pic[mask] = 2*((pic[mask] - pic.min()) / (pic.max() - pic.min()))  -1  #pic / np.linalg.norm(pic) -1
+        pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  #pic / np.linalg.norm(pic) -1
         #pic[mask] = (pic[mask] - pic.mean()) / pic.std()
         array[i:(i+1),:,:] = pic
+    return array
+
+def upscale_array(array):
+    out = np.empty((array.shape[0], 200, 200))
+    for i in range(array.shape[0]):
+        pic = array[i,:,:]
+        out[i,:,:] = cv2.resize(pic, dsize=(200, 200))
+    return out
+
+def filter_zeros(array):
+    bad_idx = []
+    for i in range(array.shape[0]):
+        if np.count_nonzero(array[i,:,:]) == 0:
+            bad_idx.append(i)
+    for idx in bad_idx:
+        while True:
+            rand_idx = random.choice(range(array.shape[0]))
+            if rand_idx not in bad_idx: break
+        array[idx] = array[rand_idx]
     return array
 
 class data_sequence(Sequence):

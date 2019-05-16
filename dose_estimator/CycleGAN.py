@@ -54,7 +54,7 @@ class CycleGAN():
         self.discriminator_iterations = 1  # Number of generator training iterations in each training loop
         self.beta_1 = 0.5
         self.beta_2 = 0.999
-        self.batch_size = 5
+        self.batch_size = 10
         self.epochs = 200  # choose multiples of 25 since the models are save each 25th epoch
         if load_epoch is not None:
             self.init_epoch = int(load_epoch)
