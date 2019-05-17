@@ -268,7 +268,8 @@ class CycleGAN():
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
             self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
         elif mode == 'test':
-            self.test3D()
+            test_path = '/home/peter/testdata'
+            self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
 
 #===============================================================================
 # Architecture functions
@@ -686,39 +687,74 @@ class CycleGAN():
 # Test and return 3D NIFTI images ==============================================
 
     def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 81):
-        def process_test_file(array: np.array, mod: str):
-            for idx, i in enumerate(indices):
-                nifti_in = sitk.ReadImage(os.path.join(test_path, i + f"_{mod}.nii.gz"))
-                pic = array[(idx * dim3):((idx + 1) * dim3)]
-                nifti_out = sitk.GetImageFromArray(pic, isVector=False)
-                for k in nifti_in.GetMetaDataKeys():
-                    nifti_out.SetMetaData(k, nifti_in.GetMetaData(k))
-
-                # save to new folder
-                filename = str(i) + f"_{mod}_pred.nii.gz"
-                sitk.WriteImage(nifti_out, os.path.join(path_out, filename), True)
-
         # load txt file of test file names
-        test_file = open("/home/peter/pycharm_project_271/data/test.txt", "r", encoding='utf8')
+        test_file = open("/home/peter/data/test.txt", "r", encoding='utf8')
         indices = test_file.read().splitlines()
-        path_out = f"/test_results/{self.date_time}/"
 
-        # rescale test images
-        self.rescale_test_images()
+        for idx, i in enumerate(indices):
+            print(f"Processing {i}...")
 
-        # save arrays with original metadata
-        process_test_file(self.A_test, mod_A)
-        process_test_file(self.B_test, mod_B)
+            # load NIFTI files
+            nifti_in_A = self.read_nifti(test_path, i, mod_A)
+            nifti_in_B = self.read_nifti(test_path, i, mod_B)
+
+             # predict output modality
+            pred_A = self.predict_nifti(nifti_in_B, direction='B2A')
+            pred_B = self.predict_nifti(nifti_in_A, direction='A2B')
+
+            # copy old NIFTI metadata
+            nifti_out_A = sitk.GetImageFromArray(pred_A, isVector=False)
+            nifti_out_B = sitk.GetImageFromArray(pred_B, isVector=False)
+            for k in nifti_in_A.GetMetaDataKeys():
+                nifti_out_A.SetMetaData(k, nifti_in_A.GetMetaData(k))
+            for k in nifti_in_B.GetMetaDataKeys():
+                nifti_out_B.SetMetaData(k, nifti_in_B.GetMetaData(k))
+
+            # save to new folder
+            path_out = '/home/peter/test_results'
+            self.write_nifti(nifti_out_A, path_out, i, mod_A)
+            self.write_nifti(nifti_out_B, path_out, i, mod_B)
 
 
-    def rescale_test_images(self):
-        self.A_test = self.A_test.squeeze()
-        self.B_test = self.B_test.squeeze()
-        for i in range(self.A_test.shape[0]):
-            pic_A = self.A_test[i, :, :]
-            self.A_test[i, :, :] = (255.0 / (pic_A.max() - pic_A.min()) * (pic_A - pic_A.min())).astype(np.uint8)
-            pic_B = self.B_test[i, :, :]
-            self.B_test[i, :, :] = (255.0 / (pic_B.max() - pic_B.min()) * (pic_B - pic_B.min())).astype(np.uint8)
+
+    def read_nifti(self, path: str, idx: str, mod: str):
+        if mod == 'dose':
+            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}.nii"))
+        else:
+            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}_{mod}.nii"))
+        return nifti_in
+
+    def predict_nifti(self, image, direction):
+        array = sitk.GetArrayFromImage(image)
+        array = self.normalize_array(array)
+        pred = np.empty(array.shape)
+        if direction == "A2B":
+            for i in range(array.shape[0]):
+                pred[i] = self.G_A2B.predict(array[np.newaxis, i,:,:,np.newaxis]).squeeze()
+                pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
+        else:
+            for i in range(array.shape[0]):
+                pred[i] = self.G_B2A.predict(array[np.newaxis, i,:,:,np.newaxis]).squeeze()
+                pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
+
+        return pred
+
+    def write_nifti(self, image, path_out: str, i: str, mod: str):
+        if mod == 'dose':
+            sitk.WriteImage(image, os.path.join(path_out, f"{i}_pred.nii"), True)
+        else:
+            sitk.WriteImage(image, os.path.join(path_out, f"{i}_{mod}_pred.nii"), True)
+
+    def normalize_array(self, inp, img_size=81):
+        array = inp.copy()
+        for i in range(array.shape[0]):
+            pic = array[i:(i + 1), :, :]
+            mask = (pic != 0.0)
+            pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  # pic / np.linalg.norm(pic) -1
+            # pic[mask] = (pic[mask] - pic.mean()) / pic.std()
+            array[i:(i + 1), :, :] = pic
+        return array
+
 
 
 #===============================================================================
@@ -1033,8 +1069,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         model_path = str(sys.argv[1])
         load_epoch = str(sys.argv[2])
-        if len(sys.args) == 4:
-            mode = str(sys.args[3])
+        if len(sys.argv) == 4:
+            mode = str(sys.argv[3])
             GAN = CycleGAN(model_path, load_epoch, mode)
         else:
             GAN = CycleGAN(model_path, load_epoch)
