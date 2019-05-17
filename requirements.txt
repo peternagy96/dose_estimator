@@ -1,5 +1,8 @@
-python=>3.6.8
-tensorflow>=1.13.1
-tensorflow-gpu>=1.13.1
+python=>3.6.7
+tensorflow>=1.9.0
+tensorflow-gpu>=1.9.0
 pytest
 opencv-contrib-python
+pillow
+SimpleITK
+scipy
