@@ -25,7 +25,7 @@ import csv
 import sys
 #import os
 from PIL import Image
-#import simpleITK as sitk
+import SimpleITK as sitk
 
 import keras.backend as K
 import tensorflow as tf
@@ -39,7 +39,7 @@ np.random.seed(seed=12345)
 
 
 class CycleGAN():
-    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=2e-5, lr_G=3e-5, image_shape=(128, 128, 1), # orig: lr_G=3e-4
+    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=2e-4, lr_G=3e-4, image_shape=(128, 128, 1), # orig: lr_G=3e-4
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
