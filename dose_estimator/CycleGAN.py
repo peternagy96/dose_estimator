@@ -731,11 +731,13 @@ class CycleGAN():
         if direction == "A2B":
             for i in range(array.shape[0]):
                 pred[i] = self.G_A2B.predict(array[np.newaxis, i,:,:,np.newaxis]).squeeze()
-                pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
+                #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
+                pred[i] = self.hist_match(pred[0], pred[i])
         else:
             for i in range(array.shape[0]):
                 pred[i] = self.G_B2A.predict(array[np.newaxis, i,:,:,np.newaxis]).squeeze()
-                pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
+                #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
+                pred[i] = self.hist_match(pred[0], pred[i])
 
         return pred
 
