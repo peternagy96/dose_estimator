@@ -26,11 +26,12 @@ import sys
 #import os
 from PIL import Image
 import SimpleITK as sitk
+import cv2
 
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 np.random.seed(seed=12345)
 
 
@@ -270,6 +271,9 @@ class CycleGAN():
         elif mode == 'test':
             test_path = '/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
+        elif mode == 'test_jpg':
+            test_path = '/home/peter/test_results/'
+            self.test_jpg(test_path)
 
 #===============================================================================
 # Architecture functions
@@ -684,6 +688,65 @@ class CycleGAN():
             sys.stdout.flush()
 
 
+# Return a generated slice from all train and test images 
+
+    def test_jpg(self, path_name: str, orig: str = 'A', index: int = 40, dim3: int = 81):
+
+        # create output folders
+        path_name = os.path.join(path_name, self.date_time)
+        if not os.path.exists(path_name):
+            os.makedirs(path_name)
+
+        if orig == 'A':
+            num_train_samples = self.A_train.shape[0]
+            num_test_samples = self.A_test.shape[0]
+            # process training images
+            for idx in np.arange(index, num_train_samples, dim3):
+                pred = self.G_A2B.predict(self.A_train[np.newaxis,idx,:,:]).squeeze()
+                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png")
+            # process test images
+            for idx in np.arange(index, num_test_samples, dim3):
+                pred = self.G_A2B.predict(self.A_test[np.newaxis,idx,:,:]).squeeze()
+                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png")
+
+        elif orig == 'B':
+            num_train_samples = self.B_train.shape[0]
+            num_test_samples = self.B_test.shape[0]
+            # process training images
+            for idx in np.arange(index, num_train_samples, dim3):
+                pred = self.G_B2A.predict(self.B_train[np.newaxis,idx,:,:]).squeeze()
+                self.save_basic_plot(self.B_train[idx], pred, self.A_train[idx], f"{path_name}/train_{idx}.png")
+            # process test images
+            for idx in np.arange(index, num_test_samples, dim3):
+                pred = self.G_B2A.predict(self.B_test[np.newaxis,idx,:,:]).squeeze()
+                self.save_basic_plot(self.B_test[idx], pred, self.A_test[idx], f"{path_name}/test_{idx}.png")
+
+    
+    def save_basic_plot(self, orig, pred, gt, path_name):
+        orig = self.rescale(orig.clip(min=0)).squeeze()
+        pred = self.rescale(pred.clip(min=0)).squeeze()
+        gt = self.rescale(gt.clip(min=0)).squeeze()
+        s = gt.shape[0]
+
+        border = np.ones((s, 20)) * 255
+        final_img = np.hstack((orig, border, pred, border, gt))
+        footer = np.ones((20, final_img.shape[1])) * 255
+        final_img = np.vstack((final_img, footer))
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        final_img = cv2.putText(final_img,'Original PET',(25,140), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Generated SPECT',(10+s+20,140), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Ground Truth SPECT',(10+2*(s+20),140), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+ 
+        im = Image.fromarray(final_img).convert("L")
+        im.save(path_name)
+
+    def rescale(self, image):
+        rescaled = (255.0 / (image.max() - image.min()) * (image - image.min())).astype(np.uint8)
+        return rescaled
+
+
+
 # Test and return 3D NIFTI images ==============================================
 
     def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 81):
@@ -1096,7 +1159,7 @@ if __name__ == '__main__':
         load_epoch = str(sys.argv[2])
         if len(sys.argv) == 4:
             mode = str(sys.argv[3])
-            GAN = CycleGAN(model_path, load_epoch, mode)
+            GAN = CycleGAN(model_path, load_epoch, mode) 
         else:
             GAN = CycleGAN(model_path, load_epoch)
     else:
