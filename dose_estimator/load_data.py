@@ -12,14 +12,14 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
     # load files
-    trainA_images = np.load('/home/peter/data/pet_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
-    trainB_images = np.load('/home/peter/data/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
-    testA_images = np.load('/home/peter/data/pet_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
-    testB_images = np.load('/home/peter/data/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
-    train_file = open("/home/peter/data/train.txt", "r", encoding='utf8')
+    trainA_images = np.load('/home/peter/data/numpy/pet_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
+    trainB_images = np.load('/home/peter/data/numpy/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
+    testA_images = np.load('/home/peter/data/numpy/pet_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
+    testB_images = np.load('/home/peter/data/numpy/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
+    train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
     trainA_image_names = train_file.read().splitlines()
     trainB_image_names = trainA_image_names
-    test_file = open("/home/peter/data/test.txt", "r", encoding='utf8')
+    test_file = open("/home/peter/data/numpy/test.txt", "r", encoding='utf8')
     testA_image_names = test_file.read().splitlines()
     testB_image_names = testA_image_names
 
