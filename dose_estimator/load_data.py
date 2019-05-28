@@ -7,7 +7,6 @@ import random
 #from sklearn.preprocessing import MinMaxScaler
 #from skimage.io import imread
 
-#hello
 
 def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
