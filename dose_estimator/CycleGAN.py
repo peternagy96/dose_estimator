@@ -30,7 +30,7 @@ import SimpleITK as sitk
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 np.random.seed(seed=12345)
 
 

@@ -31,6 +31,8 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
 
     trainA_images = filter_zeros(trainA_images)
     testA_images = filter_zeros(testA_images)
+    trainB_images = filter_zeros(trainB_images)
+    testB_images = filter_zeros(testB_images)
 
     """
     # rescale
