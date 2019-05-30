@@ -120,13 +120,15 @@ def convert_to_tf(array):
 def normalize_array(inp, img_size=81):
     array = inp.copy()
     for i in range(array.shape[0]):
-        pic = array[i:(i+1),:,:]
-        pic = pic + pic.min()
-        mask = (pic != 0.0)
-        pic[mask] = pic[mask] / pic.max()
+        pic = array[i,:,:]
+        pic -= pic.min()
+        pic /= pic.ptp()
+        pic = np.nan_to_num(pic)
+        #mask = (pic != 0.0)
+        #pic[mask] = pic[mask] / pic.max()
         #pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  # pic / np.linalg.norm(pic) -1 # 
         #pic[mask] = (pic[mask] - pic.mean()) / pic.std()
-        #pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))
+        #pic = ((pic - pic.min()) / (pic.max() - pic.min()))
         array[i:(i+1),:,:] = pic
     return array
 
