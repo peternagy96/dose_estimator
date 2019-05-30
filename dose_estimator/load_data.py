@@ -12,9 +12,9 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
     # load files
-    trainA_images = np.load('/home/peter/data/numpy/pet_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
+    trainA_images = np.load('/home/peter/data/numpy/ct_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
     trainB_images = np.load('/home/peter/data/numpy/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
-    testA_images = np.load('/home/peter/data/numpy/pet_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
+    testA_images = np.load('/home/peter/data/numpy/ct_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
     testB_images = np.load('/home/peter/data/numpy/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
     train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
     trainA_image_names = train_file.read().splitlines()
@@ -121,9 +121,12 @@ def normalize_array(inp, img_size=81):
     array = inp.copy()
     for i in range(array.shape[0]):
         pic = array[i:(i+1),:,:]
+        pic = pic + pic.min()
         mask = (pic != 0.0)
-        pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  #pic / np.linalg.norm(pic) -1
+        pic[mask] = pic[mask] / pic.max()
+        #pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  # pic / np.linalg.norm(pic) -1 # 
         #pic[mask] = (pic[mask] - pic.mean()) / pic.std()
+        #pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))
         array[i:(i+1),:,:] = pic
     return array
 
