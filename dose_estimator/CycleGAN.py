@@ -31,7 +31,7 @@ import cv2
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 np.random.seed(seed=12345)
 
 
@@ -40,7 +40,7 @@ np.random.seed(seed=12345)
 
 
 class CycleGAN():
-    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 1), # orig: lr_G=3e-4
+    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -723,10 +723,23 @@ class CycleGAN():
 
     
     def save_basic_plot(self, orig, pred, gt, path_name):
-        orig = self.rescale(orig.clip(min=0)).squeeze()
-        pred = self.rescale(pred.clip(min=0)).squeeze()
-        gt = self.rescale(gt.clip(min=0)).squeeze()
-        s = gt.shape[0]
+        channels = pred.shape[-1]
+        if channels == 1:
+            orig = self.rescale(orig.clip(min=0)).squeeze()
+            pred = self.rescale(pred.clip(min=0)).squeeze()
+            gt = self.rescale(gt.clip(min=0)).squeeze()
+            s = gt.shape[0]
+        elif channels == 2:
+            orig = self.rescale(orig.clip(min=0))
+            pred = self.rescale(pred.clip(min=0))
+            gt = self.rescale(gt.clip(min=0))
+            s = gt.shape[0] * 2
+
+            orig = np.vstack((orig[...,0], orig[...,1]))
+            pred = np.vstack((pred[...,0], pred[...,1]))
+            gt = np.vstack((gt[...,0], gt[...,1]))
+
+
 
         border = np.ones((s, 20)) * 255
         final_img = np.hstack((orig, border, pred, border, gt))
@@ -734,15 +747,19 @@ class CycleGAN():
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(final_img,'Original PET',(25,140), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Generated SPECT',(10+s+20,140), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Ground Truth SPECT',(10+2*(s+20),140), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Original PET',(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Generated SPECT',(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Ground Truth SPECT',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
 
     def rescale(self, image):
-        rescaled = (255.0 / (image.max() - image.min()) * (image - image.min())).astype(np.uint8)
+        if image.ndim > 2:
+            for i in range(image.shape[-1]):
+                rescaled[...,i] = (255.0 / (image[...,i].max() - image[...,i].min()) * (image[...,i] - image[...,i].min())).astype(np.uint8)
+        else:
+            rescaled = (255.0 / (image.max() - image.min()) * (image - image.min())).astype(np.uint8)
         return rescaled
 
 
