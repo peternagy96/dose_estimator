@@ -12,9 +12,11 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
     # load files
-    trainA_images = np.load('/home/peter/data/numpy/ct_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
+    trainA_images_ct = np.load('/home/peter/data/numpy/ct_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
+    trainA_images_pet = np.load('/home/peter/data/numpy/pet_train.npy')
     trainB_images = np.load('/home/peter/data/numpy/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
-    testA_images = np.load('/home/peter/data/numpy/ct_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
+    testA_images_ct = np.load('/home/peter/data/numpy/ct_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
+    testA_images_pet = np.load('/home/peter/data/numpy/ct_test.npy')
     testB_images = np.load('/home/peter/data/numpy/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
     train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
     trainA_image_names = train_file.read().splitlines()
@@ -24,13 +26,17 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     testB_image_names = testA_image_names
 
     # normalize
-    trainA_images = normalize_array(trainA_images, trainA_images.shape[0])
+    trainA_images_ct = normalize_array(trainA_images_ct, trainA_images_ct.shape[0])
+    trainA_images_pet = normalize_array(trainA_images_pet, trainA_images_pet.shape[0])
     trainB_images = normalize_array(trainB_images, trainB_images.shape[0])
-    testA_images = normalize_array(testA_images, testA_images.shape[0])
+    testA_images_ct = normalize_array(testA_images_ct, testA_images_ct.shape[0])
+    testA_images_pet = normalize_array(testA_images_pet, testA_images_pet.shape[0])
     testB_images = normalize_array(testB_images, testB_images.shape[0])
 
-    trainA_images = filter_zeros(trainA_images)
-    testA_images = filter_zeros(testA_images)
+    trainA_images_ct = filter_zeros(trainA_images_ct)
+    trainA_images_pet = filter_zeros(trainA_images_pet)
+    testA_images_ct = filter_zeros(testA_images_ct)
+    testA_images_pet = filter_zeros(testA_images_pet)
     trainB_images = filter_zeros(trainB_images)
     testB_images = filter_zeros(testB_images)
 
@@ -48,6 +54,11 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         trainB_images = trainB_images[:, :, :, np.newaxis]
         testA_images = testA_images[:, :, :, np.newaxis]
         testB_images = testB_images[:, :, :, np.newaxis]
+    elif nr_of_channels == 2:
+        trainA_images = np.stack((trainA_images_ct, trainA_images_pet), axis=-1)
+        trainB_images = np.stack((trainB_images, trainB_images), axis=-1)
+        testA_images = np.stack((testA_images_ct, testA_images_pet), axis=-1)
+        testB_images = np.stack((testB_images, testB_images), axis=-1)
 
     # individually transform to 0 mean and std 1
     """trainA_images = convert_to_tf(trainA_images)
