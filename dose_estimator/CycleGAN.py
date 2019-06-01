@@ -254,15 +254,6 @@ class CycleGAN():
         else:
             print('Model loaded with init weights')
 
-        # ===== Tests ======
-        # Simple Model
-#         self.G_A2B = self.modelSimple('simple_T1_2_T2_model')
-#         self.G_B2A = self.modelSimple('simple_T2_2_T1_model')
-#         self.G_A2B.compile(optimizer=Adam(), loss='MAE')
-#         self.G_B2A.compile(optimizer=Adam(), loss='MAE')
-#         # self.trainSimpleModel()
-#         self.load_model_and_generate_synthetic_images()
-
         # ======= Initialize training ==========
         if mode == 'train':
             sys.stdout.flush()
@@ -388,37 +379,6 @@ class CycleGAN():
         x = Conv2D(self.channels, kernel_size=7, strides=1)(x)
         x = Activation('tanh')(x)  # They say they use Relu but really they do not
         return Model(inputs=input_img, outputs=x, name=name)
-
-#===============================================================================
-# Test - simple model
-    def modelSimple(self, name=None):
-        inputImg = Input(shape=self.img_shape)
-        #x = Conv2D(1, kernel_size=5, strides=1, padding='same')(inputImg)
-        #x = Dense(self.channels)(x)
-        x = Conv2D(256, kernel_size=1, strides=1, padding='same')(inputImg)
-        x = Activation('relu')(x)
-        x = Conv2D(self.channels, kernel_size=1, strides=1, padding='same')(x)
-
-        return Model(input=inputImg, output=x, name=name)
-
-    def trainSimpleModel(self):
-        real_A = self.A_test[0]
-        real_B = self.B_test[0]
-        real_A = real_A[np.newaxis, :, :, :]
-        real_B = real_B[np.newaxis, :, :, :]
-        epochs = 200
-        for epoch in range(epochs):
-            print('Epoch {} started'.format(epoch))
-            self.G_A2B.fit(x=self.A_train, y=self.B_train, epochs=1, batch_size=1)
-            self.G_B2A.fit(x=self.B_train, y=self.A_train, epochs=1, batch_size=1)
-            #loss = self.G_A2B.train_on_batch(x=real_A, y=real_B)
-            #print('loss: ', loss)
-            synthetic_image_A = self.G_B2A.predict(real_B, batch_size=1)
-            synthetic_image_B = self.G_A2B.predict(real_A, batch_size=1)
-            self.save_tmp_images(real_A, real_B, synthetic_image_A, synthetic_image_B)
-
-        self.saveModel(self.G_A2B, 200)
-        self.saveModel(self.G_B2A, 200)
 
 #===============================================================================
 # Training
