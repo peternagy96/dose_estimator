@@ -6,24 +6,14 @@ import numpy as np
 #import pytest
 #import cv2
 
-print(tf.__version__)
-
-'''
-HEIGHT = 28
-WIDTH = 28
-CHANNEL = 1
-LATENT_SPACE_SIZE = 100
-EPOCHS = 50001
-BATCH = 32
-CHECKPOINT = 500
-MODEL_TYPE = -1
-trainer = Trainer(height=HEIGHT,\
-width=WIDTH,\
-channels=CHANNEL,\
-latent_size=LATENT_SPACE_SIZE,\
-epochs =EPOCHS,\
-batch=BATCH,\
-checkpoint=CHECKPOINT,
-model_type=MODEL_TYPE)
-trainer.train()
-'''
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        model_path = str(sys.argv[1])
+        load_epoch = str(sys.argv[2])
+        if len(sys.argv) == 4:
+            mode = str(sys.argv[3])
+            GAN = CycleGAN(model_path, load_epoch, mode) 
+        else:
+            GAN = CycleGAN(model_path, load_epoch)
+    else:
+        GAN = CycleGAN()
