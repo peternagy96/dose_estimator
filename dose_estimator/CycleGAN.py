@@ -31,7 +31,7 @@ import cv2
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 np.random.seed(seed=12345)
 
 
