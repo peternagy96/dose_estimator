@@ -31,7 +31,7 @@ import cv2
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 np.random.seed(seed=12345)
 
 
@@ -756,6 +756,7 @@ class CycleGAN():
 
     def rescale(self, image):
         if image.ndim > 2:
+            rescaled = np.empty((image.shape))
             for i in range(image.shape[-1]):
                 rescaled[...,i] = (255.0 / (image[...,i].max() - image[...,i].min()) * (image[...,i] - image[...,i].min())).astype(np.uint8)
         else:

@@ -16,7 +16,7 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     trainA_images_pet = np.load('/home/peter/data/numpy/pet_train.npy')
     trainB_images = np.load('/home/peter/data/numpy/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
     testA_images_ct = np.load('/home/peter/data/numpy/ct_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
-    testA_images_pet = np.load('/home/peter/data/numpy/ct_test.npy')
+    testA_images_pet = np.load('/home/peter/data/numpy/pet_test.npy')
     testB_images = np.load('/home/peter/data/numpy/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
     train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
     trainA_image_names = train_file.read().splitlines()
