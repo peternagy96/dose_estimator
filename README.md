@@ -1,4 +1,4 @@
-# Dose Prediction using GANs
+#  Predicting Post-therapeutic Voxel-Wise Dose Distribution for PSMA-directed Radioligand Therapy using Generative Adversarial Networks
 
 This is a master thesis project to estimate absorbed dose of nuclear isotopes during tumor tretment.
 
