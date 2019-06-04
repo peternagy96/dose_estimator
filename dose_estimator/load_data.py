@@ -13,7 +13,7 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
     # load files
-    if sys.platform[0] != 'w': # Ubuntu
+    if len(device_lib.list_local_devices()) == 3: # server
         trainA_images_ct = np.load('/home/peter/data/numpy/ct_train.npy')
         trainA_images_pet = np.load('/home/peter/data/numpy/pet_train.npy')
         trainB_images = np.load('/home/peter/data/numpy/dose_train.npy')
@@ -26,7 +26,7 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         test_file = open("/home/peter/data/numpy/test.txt", "r", encoding='utf8')
         testA_image_names = test_file.read().splitlines()
         testB_image_names = testA_image_names
-    else: # Win
+    elif sys.platform[0] == 'w': # Win
         trainA_images_ct = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\ct_train.npy") 
         trainA_images_pet = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\pet_train.npy")
         trainB_images = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\dose_train.npy") 
@@ -37,6 +37,19 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         trainA_image_names = train_file.read().splitlines()
         trainB_image_names = trainA_image_names
         test_file = open("C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\test.txt", "r", encoding='utf8')
+        testA_image_names = test_file.read().splitlines()
+        testB_image_names = testA_image_names
+    else: # VM
+        trainA_images_ct = np.load('/home/peter/data/numpy/ct_train.npy')
+        trainA_images_pet = np.load('/home/peter/data/numpy/pet_train.npy')
+        trainB_images = np.load('/home/peter/data/numpy/dose_train.npy')
+        testA_images_ct = np.load('/home/peter/data/numpy/ct_test.npy')
+        testA_images_pet = np.load('/home/peter/data/numpy/pet_test.npy')
+        testB_images = np.load('/home/peter/data/numpy/dose_test.npy')
+        train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
+        trainA_image_names = train_file.read().splitlines()
+        trainB_image_names = trainA_image_names
+        test_file = open("/home/peter/data/numpy/test.txt", "r", encoding='utf8')
         testA_image_names = test_file.read().splitlines()
         testB_image_names = testA_image_names
 

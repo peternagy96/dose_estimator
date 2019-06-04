@@ -1,7 +1,5 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ["PATH"] = "/usr/local/cuda-9.0/bin${PATH:+:${PATH}}"
-os.environ["LD_LIBRARY_PATH"] = "/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
 #from keras.utils.conv_utils import normalize_data_format
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
@@ -32,7 +30,13 @@ import keras.backend as K
 import tensorflow as tf
 import load_data
 
-if sys.platform[0] == 'w':
+from tensorflow.python.client import device_lib
+
+print()
+
+if len(device_lib.list_local_devices()) == 3:
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
