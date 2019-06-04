@@ -91,7 +91,10 @@ class CycleGAN():
         self.supervised_weight = 10.0
 
         # Fetch data during training instead of pre caching all images - might be necessary for large datasets
-        self.use_data_generator = False
+        if sys.platform[0] == 'w':
+            self.use_data_generator = True
+        else:
+            self.use_data_generator = False
 
         # Tweaks
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss

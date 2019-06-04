@@ -27,16 +27,16 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         testA_image_names = test_file.read().splitlines()
         testB_image_names = testA_image_names
     else: # Win
-        trainA_images_ct = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\ct_train.npy") 
-        trainA_images_pet = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\pet_train.npy")
-        trainB_images = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\dose_train.npy") 
-        testA_images_ct = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\ct_test.npy")
-        testA_images_pet = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\pet_test.npy")
-        testB_images = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\dose_test.npy")
-        train_file = open("C:\Users\peter\Documents\Thesis\dose_estimator-git\data\train.txt", "r", encoding='utf8')
+        trainA_images_ct = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\ct_train.npy") 
+        trainA_images_pet = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\pet_train.npy")
+        trainB_images = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\dose_train.npy") 
+        testA_images_ct = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\ct_test.npy")
+        testA_images_pet = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\pet_test.npy")
+        testB_images = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\dose_test.npy")
+        train_file = open("C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\train.txt", "r", encoding='utf8')
         trainA_image_names = train_file.read().splitlines()
         trainB_image_names = trainA_image_names
-        test_file = open("C:\Users\peter\Documents\Thesis\dose_estimator-git\data\test.txt", "r", encoding='utf8')
+        test_file = open("C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\test.txt", "r", encoding='utf8')
         testA_image_names = test_file.read().splitlines()
         testB_image_names = testA_image_names
 
