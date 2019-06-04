@@ -137,24 +137,18 @@ def create_image_array(image_list, image_path, nr_of_channels):
     return np.array(image_array)
 
 
-def convert_to_tf(array):
-    return array
-
-
   # If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead
   # normalize between 0 and 1
-def normalize_array(inp, img_size=81):
+def normalize_array(inp):
     array = inp.copy()
     for i in range(array.shape[0]):
         pic = array[i,:,:]
-        pic -= pic.min()
-        pic /= pic.ptp()
-        pic = np.nan_to_num(pic)
-        #mask = (pic != 0.0)
-        #pic[mask] = pic[mask] / pic.max()
-        #pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  # pic / np.linalg.norm(pic) -1 # 
-        #pic[mask] = (pic[mask] - pic.mean()) / pic.std()
-        #pic = ((pic - pic.min()) / (pic.max() - pic.min()))
+        if pic.min() != 0.0:
+            mask = (pic < 0.0)
+            pic[mask] = pic[mask] / np.abs(pic.min())
+        if pic.max() != 0.0:
+            mask = (pic > 0.0)
+            pic[mask] = pic[mask] / pic.max()
         array[i:(i+1),:,:] = pic
     return array
 
