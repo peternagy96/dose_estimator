@@ -3,6 +3,7 @@ import sys
 import numpy as np
 from PIL import Image
 from tensorflow.keras.utils import Sequence
+from tensorflow.python.client import device_lib
 import cv2
 import random
 #from sklearn.preprocessing import MinMaxScaler

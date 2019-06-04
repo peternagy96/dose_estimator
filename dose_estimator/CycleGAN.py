@@ -32,7 +32,6 @@ import load_data
 
 from tensorflow.python.client import device_lib
 
-print()
 
 if len(device_lib.list_local_devices()) == 3:
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
