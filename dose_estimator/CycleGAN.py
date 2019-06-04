@@ -94,8 +94,8 @@ class CycleGAN():
         self.supervised_weight = 10.0
 
         # Fetch data during training instead of pre caching all images - might be necessary for large datasets
-        if sys.platform[0] == 'w':
-            self.use_data_generator = True
+        if len(device_lib.list_local_devices()) == 3:
+            self.use_data_generator = False
         else:
             self.use_data_generator = False
 
