@@ -699,7 +699,7 @@ class CycleGAN():
 
 # Return a generated slice from all train and test images 
 
-    def test_jpg(self, epoch: int, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'SPECT']):
+    def test_jpg(self, epoch: int, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'SPECT']):
 
         # create output folders
         path_name = os.path.join(self.result_path, f"epoch_{epoch}")
@@ -712,11 +712,11 @@ class CycleGAN():
             # process training images
             for idx in np.arange(index, num_train_samples,pat_num):
                 pred = self.G_A2B.predict(self.A_train[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png", input_mod)
+                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png", mods)
             # process test images
             for idx in np.arange(index, num_test_samples, pat_num):
                 pred = self.G_A2B.predict(self.A_test[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png", input_mod)
+                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png", mods)
 
         elif mode == 'backward':
             num_train_samples = self.B_train.shape[0]
@@ -724,21 +724,20 @@ class CycleGAN():
             # process training images
             for idx in np.arange(index, num_train_samples, pat_num):
                 pred = self.G_B2A.predict(self.B_train[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.B_train[idx], pred, self.A_train[idx], f"{path_name}/train_{idx}.png")
+                self.save_basic_plot(self.B_train[idx], pred, self.A_train[idx], f"{path_name}/train_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
             # process test images
             for idx in np.arange(index, num_test_samples, pat_num):
                 pred = self.G_B2A.predict(self.B_test[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.B_test[idx], pred, self.A_test[idx], f"{path_name}/test_{idx}.png")
+                self.save_basic_plot(self.B_test[idx], pred, self.A_test[idx], f"{path_name}/test_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
 
     
-    def save_basic_plot(self, orig, pred, gt, path_name, input_mod):
-        channels = pred.shape[-1]
-        if channels == 1:
+    def save_basic_plot(self, orig, pred, gt, path_name, mods):
+        if len(mods) == 2:
             orig = self.rescale(orig.clip(min=0)).squeeze()
             pred = self.rescale(pred.clip(min=0)).squeeze()
             gt = self.rescale(gt.clip(min=0)).squeeze()
             s = gt.shape[0]
-        elif channels == 2:
+        elif len(mods) == 3:
             orig = self.rescale(orig.clip(min=0))
             pred = self.rescale(pred.clip(min=0))
             gt = self.rescale(gt.clip(min=0))
@@ -747,21 +746,21 @@ class CycleGAN():
             orig = np.vstack((orig[...,0], orig[...,1]))
             pred = np.vstack((pred[...,0], pred[...,1]))
             gt = np.vstack((gt[...,0], gt[...,1]))
-
-
+            error = np.abs(pred-gt)
 
         border = np.ones((s, 20)) * 255
-        final_img = np.hstack((orig, border, pred, border, gt))
+        final_img = np.hstack((orig, border, pred, border, gt, error))
         footer = np.ones((20, final_img.shape[1])) * 255
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        if channels == 2:
-            final_img = cv2.putText(final_img,'Input CT/PET',(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        elif channels == 1:
-            final_img = cv2.putText(final_img,f"Input {input_mod}",(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Generated Dose',(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Ground Truth Dose',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        if len(mods) == 2:
+            final_img = cv2.putText(final_img,f"Input {mods[0]}",(25,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        elif len(mods) == 3:
+            final_img = cv2.putText(final_img,f"Input {mods[0]} (top) and {mods[1]} (bottom)",(5,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Error Map',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
