@@ -42,13 +42,10 @@ else:
 np.random.seed(seed=12345)
 
 
-# export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}
-# export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-
-
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 date_time_string_addition='', image_folder='MR'):
+                 date_time_string_addition='', mods=['CT', 'PET', 'SPECT']):
+        self.mods = mods
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
         self.normalization = InstanceNormalization
@@ -69,7 +66,7 @@ class CycleGAN():
             self.epochs = self.epochs + self.init_epoch
         else:
             self.init_epoch = 1
-        self.save_interval = 1
+        self.save_interval = 10
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators
@@ -216,7 +213,7 @@ class CycleGAN():
 
         if self.use_data_generator:
             self.data_generator = load_data.load_data(
-                nr_of_channels=self.batch_size, generator=True, subfolder=image_folder)
+                nr_of_channels=self.batch_size, generator=True)
 
             # Only store test images
             nr_A_train_imgs = 0
@@ -227,8 +224,7 @@ class CycleGAN():
                                    nr_A_train_imgs=nr_A_train_imgs,
                                    nr_B_train_imgs=nr_B_train_imgs,
                                    nr_A_test_imgs=nr_A_test_imgs,
-                                   nr_B_test_imgs=nr_B_test_imgs,
-                                   subfolder=image_folder)
+                                   nr_B_test_imgs=nr_B_test_imgs)
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]
@@ -277,13 +273,14 @@ class CycleGAN():
         if mode == 'train':
             sys.stdout.flush()
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
+            test_path = getFolder('results')
             self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
         elif mode == 'test':
-            test_path = '/home/peter/testdata'
+            test_path = getFolder('testdata') #'/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
         elif mode == 'test_jpg':
-            test_path = '/home/peter/test_results/'
-            self.test_jpg(test_path)
+            test_path = getFolder('results') #'/home/peter/test_results/'
+            self.test_jpg(epoch=load_epoch, path_name=test_path, mode='forward', index=40, pat_num=[32,5], mods=mods)
 
 #===============================================================================
 # Architecture functions
@@ -529,7 +526,7 @@ class CycleGAN():
 
             if loop_index % 10 == 0:
                 # Save temporary images continously
-                self.save_tmp_images(real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
+                #self.save_tmp_images(real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
                 self.print_ETA(start_time, epoch, epoch_iterations, loop_index)
 
         # ======================================================================
@@ -673,7 +670,8 @@ class CycleGAN():
 
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch', epoch, '-------------------------', '\n', '\n')
-                self.saveImages(epoch, real_images_A, real_images_B)
+                #self.saveImages(epoch, real_images_A, real_images_B)
+                self.test_jpg(epoch=epoch, path_name=test_path, mode="forward", index=40, pat_num=[32,5], mods=mods)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -700,39 +698,39 @@ class CycleGAN():
 
 # Return a generated slice from all train and test images 
 
-    def test_jpg(self, path_name: str, orig: str = 'A', index: int = 40, dim3: int = 81):
+    def test_jpg(self, epoch: int, path_name: str, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'SPECT']):
 
         # create output folders
-        path_name = os.path.join(path_name, self.date_time)
+        path_name = os.path.join(path_name, self.date_time, f"epoch_{epoch}")
         if not os.path.exists(path_name):
             os.makedirs(path_name)
 
-        if orig == 'A':
+        if mode == 'forward':
             num_train_samples = self.A_train.shape[0]
             num_test_samples = self.A_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples, dim3):
+            for idx in np.arange(index, num_train_samples,pat_num):
                 pred = self.G_A2B.predict(self.A_train[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png")
+                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png", input_mod)
             # process test images
-            for idx in np.arange(index, num_test_samples, dim3):
+            for idx in np.arange(index, num_test_samples, pat_num):
                 pred = self.G_A2B.predict(self.A_test[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png")
+                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png", input_mod)
 
-        elif orig == 'B':
+        elif mode == 'backward':
             num_train_samples = self.B_train.shape[0]
             num_test_samples = self.B_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples, dim3):
+            for idx in np.arange(index, num_train_samples, pat_num):
                 pred = self.G_B2A.predict(self.B_train[np.newaxis,idx,:,:]).squeeze()
                 self.save_basic_plot(self.B_train[idx], pred, self.A_train[idx], f"{path_name}/train_{idx}.png")
             # process test images
-            for idx in np.arange(index, num_test_samples, dim3):
+            for idx in np.arange(index, num_test_samples, pat_num):
                 pred = self.G_B2A.predict(self.B_test[np.newaxis,idx,:,:]).squeeze()
                 self.save_basic_plot(self.B_test[idx], pred, self.A_test[idx], f"{path_name}/test_{idx}.png")
 
     
-    def save_basic_plot(self, orig, pred, gt, path_name):
+    def save_basic_plot(self, orig, pred, gt, path_name, input_mod):
         channels = pred.shape[-1]
         if channels == 1:
             orig = self.rescale(orig.clip(min=0)).squeeze()
@@ -757,9 +755,12 @@ class CycleGAN():
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(final_img,'Original PET',(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Generated SPECT',(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Ground Truth SPECT',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        if channels == 2:
+            final_img = cv2.putText(final_img,'Input CT/PET',(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        elif channels == 1:
+            final_img = cv2.putText(final_img,f"Input {input_mod}",(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Generated Dose',(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Ground Truth Dose',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
