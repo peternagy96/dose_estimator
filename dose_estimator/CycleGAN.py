@@ -44,11 +44,11 @@ np.random.seed(seed=12345)
 
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 result_name='', mods=['CT', 'PET', 'SPECT']):
+                 result_name='testtest', mods=['CT', 'PET', 'SPECT']):
         
         # Used as storage folder name
         self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
-        self.result_path = os.path.join(os.path.split(os.getcwd())[:-1][0],'results',self.date_time)
+        self.result_path = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0],'results',self.date_time)
 
         self.mods = mods
         self.img_shape = image_shape
@@ -1024,9 +1024,9 @@ class CycleGAN():
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        model_path_w = 'saved_models/{}_weights_epoch_{}.hdf5'.format( model.name, epoch)
+        model_path_w = 'saved_models/{}_weights_epoch_{}.hdf5'.format(model.name, epoch)
         model.save_weights(model_path_w)
-        model_path_m = 'saved_models/{}_model_epoch_{}.json'.format(, model.name, epoch)
+        model_path_m = 'saved_models/{}_model_epoch_{}.json'.format(model.name, epoch)
         model.save_weights(model_path_m)
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:

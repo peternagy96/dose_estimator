@@ -11,45 +11,24 @@ import random
 
 
 def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
-              nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
+              nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='data_filtered',
               generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0, mods=['CT', 'PET', 'SPECT']):
 
     # load files
     train_images = {}
     test_images = {}
-    if len(device_lib.list_local_devices()) == 3: # server
-        train_images['CT'] = np.load('/home/peter/data/numpy/ct_train.npy')
-        train_images['PET'] = np.load('/home/peter/data/numpy/pet_train.npy')
-        train_images['SPECT'] = np.load('/home/peter/data/numpy/dose_train.npy')
-        test_images['CT'] = np.load('/home/peter/data/numpy/ct_test.npy')
-        test_images['PET'] = np.load('/home/peter/data/numpy/pet_test.npy')
-        test_images['SPECT'] = np.load('/home/peter/data/numpy/dose_test.npy')
-        train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
-        train_image_names = train_file.read().splitlines()
-        test_file = open("/home/peter/data/numpy/test.txt", "r", encoding='utf8')
-        test_image_names = test_file.read().splitlines()
-    elif sys.platform[0] == 'w': # Win
-        train_images['CT'] = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\ct_train.npy") 
-        train_images['PET'] = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\pet_train.npy")
-        train_images['SPECT'] = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\dose_train.npy") 
-        test_images['CT'] = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\ct_test.npy")
-        test_images['PET'] = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\pet_test.npy")
-        test_images['SPECT'] = np.load(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\dose_test.npy")
-        train_file = open(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\train.txt", "r", encoding='utf8')
-        train_image_names = train_file.read().splitlines()
-        test_file = open(r"C:\Users\peter\Documents\Thesis\dose_estimator-git\data\data_filtered\numpy\test.txt", "r", encoding='utf8')
-        test_image_names = test_file.read().splitlines()
-    else: # VM
-        train_images['CT'] = np.load('/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/ct_train.npy')
-        train_images['PET'] = np.load('/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/pet_train.npy')
-        train_images['SPECT'] = np.load('/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/dose_train.npy')
-        test_images['CT'] = np.load('/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/ct_test.npy')
-        test_images['PET'] = np.load('/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/pet_test.npy')
-        test_images['SPECT'] = np.load('/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/dose_test.npy')
-        train_file = open("/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/train.txt", "r", encoding='utf8')
-        train_image_names = train_file.read().splitlines()
-        test_file = open("/home/peter/Documents/dose_estimator-git/data/data_filtered/numpy/test.txt", "r", encoding='utf8')
-        test_image_names = test_file.read().splitlines()
+    folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0],'data', subfolder, 'numpy')
+
+    train_images['CT'] = np.load(os.path.join(folder, 'ct_train.npy'))
+    train_images['PET'] = np.load(os.path.join(folder, 'pet_train.npy'))
+    train_images['SPECT'] = np.load(os.path.join(folder, 'dose_train.npy'))
+    test_images['CT'] = np.load(os.path.join(folder, 'ct_test.npy'))
+    test_images['PET'] = np.load(os.path.join(folder, 'pet_test.npy'))
+    test_images['SPECT'] = np.load(os.path.join(folder, 'dose_test.npy'))
+    train_file = open(os.path.join(folder, "train.txt"), "r", encoding='utf8')
+    train_image_names = train_file.read().splitlines()
+    test_file = open(os.path.join(folder, "test.txt"), "r", encoding='utf8')
+    test_image_names = test_file.read().splitlines()
 
     # normalize
     for key in train_images.items():
