@@ -1,7 +1,9 @@
 import os
+import sys
 import numpy as np
 from PIL import Image
 from tensorflow.keras.utils import Sequence
+from tensorflow.python.client import device_lib
 import cv2
 import random
 #from sklearn.preprocessing import MinMaxScaler
@@ -9,70 +11,58 @@ import random
 
 
 def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
-              nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='',
-              generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0):
+              nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='data_filtered',
+              generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0, mods=['CT', 'PET', 'SPECT']):
+
     # load files
-    trainA_images_ct = np.load('/home/peter/data/numpy/ct_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_train.npy')
-    trainA_images_pet = np.load('/home/peter/data/numpy/pet_train.npy')
-    trainB_images = np.load('/home/peter/data/numpy/dose_train.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_train.npy')
-    testA_images_ct = np.load('/home/peter/data/numpy/ct_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/pet_test.npy')
-    testA_images_pet = np.load('/home/peter/data/numpy/pet_test.npy')
-    testB_images = np.load('/home/peter/data/numpy/dose_test.npy') #np.load('/home/peter/Documents/dose_estimator/data/ct_test.npy')
-    train_file = open("/home/peter/data/numpy/train.txt", "r", encoding='utf8')
-    trainA_image_names = train_file.read().splitlines()
-    trainB_image_names = trainA_image_names
-    test_file = open("/home/peter/data/numpy/test.txt", "r", encoding='utf8')
-    testA_image_names = test_file.read().splitlines()
-    testB_image_names = testA_image_names
+    train_images = {}
+    test_images = {}
+    folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0],'data', subfolder, 'numpy')
+
+    train_images['CT'] = np.load(os.path.join(folder, 'ct_train.npy'))
+    train_images['PET'] = np.load(os.path.join(folder, 'pet_train.npy'))
+    train_images['SPECT'] = np.load(os.path.join(folder, 'dose_train.npy'))
+    test_images['CT'] = np.load(os.path.join(folder, 'ct_test.npy'))
+    test_images['PET'] = np.load(os.path.join(folder, 'pet_test.npy'))
+    test_images['SPECT'] = np.load(os.path.join(folder, 'dose_test.npy'))
+    train_file = open(os.path.join(folder, "train.txt"), "r", encoding='utf8')
+    train_image_names = train_file.read().splitlines()
+    test_file = open(os.path.join(folder, "test.txt"), "r", encoding='utf8')
+    test_image_names = test_file.read().splitlines()
 
     # normalize
-    trainA_images_ct = normalize_array(trainA_images_ct, trainA_images_ct.shape[0])
-    trainA_images_pet = normalize_array(trainA_images_pet, trainA_images_pet.shape[0])
-    trainB_images = normalize_array(trainB_images, trainB_images.shape[0])
-    testA_images_ct = normalize_array(testA_images_ct, testA_images_ct.shape[0])
-    testA_images_pet = normalize_array(testA_images_pet, testA_images_pet.shape[0])
-    testB_images = normalize_array(testB_images, testB_images.shape[0])
+    for key in train_images.items():
+        train_images[key[0]] = normalize_array(train_images[key[0]])
+        test_images[key[0]] = normalize_array(test_images[key[0]])
 
-    trainA_images_ct = filter_zeros(trainA_images_ct)
-    trainA_images_pet = filter_zeros(trainA_images_pet)
-    testA_images_ct = filter_zeros(testA_images_ct)
-    testA_images_pet = filter_zeros(testA_images_pet)
-    trainB_images = filter_zeros(trainB_images)
-    testB_images = filter_zeros(testB_images)
+    trainA_images = []
+    testA_images = []
+    trainB_images = []
+    testB_images = []
+    for mod in mods[:-1]:
+        trainA_images.append(train_images[mod])
+        testA_images.append(test_images[mod])
+        trainB_images.append(train_images[mods[-1]])
+        testB_images.append(test_images[mods[-1]])
+    if len(trainA_images) == 1:
+        trainA_images = trainA_images[:,:,:,np.newaxis]
+        testA_images = testA_images[:,:,:,np.newaxis]
+        trainB_images = trainB_images[:,:,:,np.newaxis]
+        testB_images = testB_images[:,:,:,np.newaxis]
+    else:
+        trainA_images = np.stack(trainA_images, axis=-1)
+        testA_images = np.stack(testA_images, axis=-1)
+        trainB_images = np.stack(trainB_images, axis=-1)
+        testB_images = np.stack(testB_images, axis=-1)
 
-    """
-    # rescale
-    trainA_images = upscale_array(trainA_images)
-    trainB_images = upscale_array(trainB_images)
-    testA_images = upscale_array(testA_images)
-    testB_images = upscale_array(testB_images)
-    """
-
-    # add extra axis
-    if nr_of_channels == 1:
-        trainA_images = trainA_images[:, :, :, np.newaxis]
-        trainB_images = trainB_images[:, :, :, np.newaxis]
-        testA_images = testA_images[:, :, :, np.newaxis]
-        testB_images = testB_images[:, :, :, np.newaxis]
-    elif nr_of_channels == 2:
-        trainA_images = np.stack((trainA_images_ct, trainA_images_pet), axis=-1)
-        trainB_images = np.stack((trainB_images, trainB_images), axis=-1)
-        testA_images = np.stack((testA_images_ct, testA_images_pet), axis=-1)
-        testB_images = np.stack((testB_images, testB_images), axis=-1)
-
-    # individually transform to 0 mean and std 1
-    """trainA_images = convert_to_tf(trainA_images)
-    trainB_images = convert_to_tf(trainB_images)
-    testA_images = convert_to_tf(testA_images)
-    testB_images = convert_to_tf(testB_images)"""
 
 
     return {"trainA_images": trainA_images, "trainB_images": trainB_images,
             "testA_images": testA_images, "testB_images": testB_images,
-            "trainA_image_names": trainA_image_names,
-            "trainB_image_names": trainB_image_names,
-            "testA_image_names": testA_image_names,
-            "testB_image_names": testB_image_names}
+            "trainA_image_names": train_image_names,
+            "trainB_image_names": train_image_names,
+            "testA_image_names": test_image_names,
+            "testB_image_names": test_image_names}
 
     """trainA_path = os.path.join('data', subfolder, 'trainA')
 
@@ -122,24 +112,18 @@ def create_image_array(image_list, image_path, nr_of_channels):
     return np.array(image_array)
 
 
-def convert_to_tf(array):
-    return array
-
-
   # If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead
   # normalize between 0 and 1
-def normalize_array(inp, img_size=81):
+def normalize_array(inp):
     array = inp.copy()
     for i in range(array.shape[0]):
         pic = array[i,:,:]
-        pic -= pic.min()
-        pic /= pic.ptp()
-        pic = np.nan_to_num(pic)
-        #mask = (pic != 0.0)
-        #pic[mask] = pic[mask] / pic.max()
-        #pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))  # pic / np.linalg.norm(pic) -1 # 
-        #pic[mask] = (pic[mask] - pic.mean()) / pic.std()
-        #pic = ((pic - pic.min()) / (pic.max() - pic.min()))
+        if pic.min() != 0.0:
+            mask = (pic < 0.0)
+            pic[mask] = pic[mask] / np.abs(pic.min())
+        if pic.max() != 0.0:
+            mask = (pic > 0.0)
+            pic[mask] = pic[mask] / pic.max()
         array[i:(i+1),:,:] = pic
     return array
 

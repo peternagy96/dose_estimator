@@ -1,7 +1,5 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ["PATH"] = "/usr/local/cuda-9.0/bin${PATH:+:${PATH}}"
-os.environ["LD_LIBRARY_PATH"] = "/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
 #from keras.utils.conv_utils import normalize_data_format
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
@@ -31,17 +29,28 @@ import cv2
 import keras.backend as K
 import tensorflow as tf
 import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
+from tensorflow.python.client import device_lib
+
+
+if len(device_lib.list_local_devices()) == 3:
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+elif sys.platform[0] == 'w':
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
 np.random.seed(seed=12345)
-
-
-# export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}
-# export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 date_time_string_addition='', image_folder='MR'):
+                 result_name='testtest', mods=['CT', 'PET', 'SPECT']):
+        
+        # Used as storage folder name
+        self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
+        self.result_path = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0],'results',self.date_time)
+
+        self.mods = mods
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
         self.normalization = InstanceNormalization
@@ -62,7 +71,7 @@ class CycleGAN():
             self.epochs = self.epochs + self.init_epoch
         else:
             self.init_epoch = 1
-        self.save_interval = 1
+        self.save_interval = 10
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators
@@ -87,13 +96,13 @@ class CycleGAN():
         self.supervised_weight = 10.0
 
         # Fetch data during training instead of pre caching all images - might be necessary for large datasets
-        self.use_data_generator = False
+        if len(device_lib.list_local_devices()) == 3:
+            self.use_data_generator = False
+        else:
+            self.use_data_generator = False
 
         # Tweaks
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
-
-        # Used as storage folder name
-        self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + date_time_string_addition
 
         # optimizer
         self.opt_D = Adam(self.learning_rate_D, self.beta_1, self.beta_2)
@@ -206,7 +215,7 @@ class CycleGAN():
 
         if self.use_data_generator:
             self.data_generator = load_data.load_data(
-                nr_of_channels=self.batch_size, generator=True, subfolder=image_folder)
+                nr_of_channels=self.batch_size, generator=True)
 
             # Only store test images
             nr_A_train_imgs = 0
@@ -217,8 +226,7 @@ class CycleGAN():
                                    nr_A_train_imgs=nr_A_train_imgs,
                                    nr_B_train_imgs=nr_B_train_imgs,
                                    nr_A_test_imgs=nr_A_test_imgs,
-                                   nr_B_test_imgs=nr_B_test_imgs,
-                                   subfolder=image_folder)
+                                   nr_B_test_imgs=nr_B_test_imgs)
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]
@@ -230,9 +238,8 @@ class CycleGAN():
             print('Data has been loaded')
 
         # ======= Create designated run folder and store meta data ==========
-        directory = os.path.join('images', self.date_time)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        if not os.path.exists(self.result_path):
+            os.makedirs(self.result_path)
         self.writeMetaDataToJSON()
 
         # ======= Avoid pre-allocating GPU memory ==========
@@ -254,17 +261,27 @@ class CycleGAN():
         else:
             print('Model loaded with init weights')
 
+        # ===== Tests ======
+        # Simple Model
+#         self.G_A2B = self.modelSimple('simple_T1_2_T2_model')
+#         self.G_B2A = self.modelSimple('simple_T2_2_T1_model')
+#         self.G_A2B.compile(optimizer=Adam(), loss='MAE')
+#         self.G_B2A.compile(optimizer=Adam(), loss='MAE')
+#         # self.trainSimpleModel()
+#         self.load_model_and_generate_synthetic_images()
+
         # ======= Initialize training ==========
         if mode == 'train':
             sys.stdout.flush()
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
+            #test_path = '/home/peter/test_results/'
             self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
         elif mode == 'test':
             test_path = '/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
         elif mode == 'test_jpg':
-            test_path = '/home/peter/test_results/'
-            self.test_jpg(test_path)
+            #test_path = '/home/peter/test_results/'
+            self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
 
 #===============================================================================
 # Architecture functions
@@ -381,6 +398,37 @@ class CycleGAN():
         return Model(inputs=input_img, outputs=x, name=name)
 
 #===============================================================================
+# Test - simple model
+    def modelSimple(self, name=None):
+        inputImg = Input(shape=self.img_shape)
+        #x = Conv2D(1, kernel_size=5, strides=1, padding='same')(inputImg)
+        #x = Dense(self.channels)(x)
+        x = Conv2D(256, kernel_size=1, strides=1, padding='same')(inputImg)
+        x = Activation('relu')(x)
+        x = Conv2D(self.channels, kernel_size=1, strides=1, padding='same')(x)
+
+        return Model(input=inputImg, output=x, name=name)
+
+    def trainSimpleModel(self):
+        real_A = self.A_test[0]
+        real_B = self.B_test[0]
+        real_A = real_A[np.newaxis, :, :, :]
+        real_B = real_B[np.newaxis, :, :, :]
+        epochs = 200
+        for epoch in range(epochs):
+            print('Epoch {} started'.format(epoch))
+            self.G_A2B.fit(x=self.A_train, y=self.B_train, epochs=1, batch_size=1)
+            self.G_B2A.fit(x=self.B_train, y=self.A_train, epochs=1, batch_size=1)
+            #loss = self.G_A2B.train_on_batch(x=real_A, y=real_B)
+            #print('loss: ', loss)
+            synthetic_image_A = self.G_B2A.predict(real_B, batch_size=1)
+            synthetic_image_B = self.G_A2B.predict(real_A, batch_size=1)
+            self.save_tmp_images(real_A, real_B, synthetic_image_A, synthetic_image_B)
+
+        self.saveModel(self.G_A2B, 200)
+        self.saveModel(self.G_B2A, 200)
+
+#===============================================================================
 # Training
     def train(self, init_epoch, epochs, batch_size=1, save_interval=1):
         def run_training_iteration(loop_index, epoch_iterations):
@@ -479,7 +527,7 @@ class CycleGAN():
 
             if loop_index % 10 == 0:
                 # Save temporary images continously
-                self.save_tmp_images(real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
+                #self.save_tmp_images(real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
                 self.print_ETA(start_time, epoch, epoch_iterations, loop_index)
 
         # ======================================================================
@@ -623,7 +671,8 @@ class CycleGAN():
 
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch', epoch, '-------------------------', '\n', '\n')
-                self.saveImages(epoch, real_images_A, real_images_B)
+                #self.saveImages(epoch, real_images_A, real_images_B)
+                self.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=mods)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -650,46 +699,45 @@ class CycleGAN():
 
 # Return a generated slice from all train and test images 
 
-    def test_jpg(self, path_name: str, orig: str = 'A', index: int = 40, dim3: int = 81):
+    def test_jpg(self, epoch: int, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'SPECT']):
 
         # create output folders
-        path_name = os.path.join(path_name, self.date_time)
+        path_name = os.path.join(self.result_path, f"epoch_{epoch}")
         if not os.path.exists(path_name):
             os.makedirs(path_name)
 
-        if orig == 'A':
+        if mode == 'forward':
             num_train_samples = self.A_train.shape[0]
             num_test_samples = self.A_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples, dim3):
+            for idx in np.arange(index, num_train_samples,pat_num):
                 pred = self.G_A2B.predict(self.A_train[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png")
+                self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png", mods)
             # process test images
-            for idx in np.arange(index, num_test_samples, dim3):
+            for idx in np.arange(index, num_test_samples, pat_num):
                 pred = self.G_A2B.predict(self.A_test[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png")
+                self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png", mods)
 
-        elif orig == 'B':
+        elif mode == 'backward':
             num_train_samples = self.B_train.shape[0]
             num_test_samples = self.B_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples, dim3):
+            for idx in np.arange(index, num_train_samples, pat_num):
                 pred = self.G_B2A.predict(self.B_train[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.B_train[idx], pred, self.A_train[idx], f"{path_name}/train_{idx}.png")
+                self.save_basic_plot(self.B_train[idx], pred, self.A_train[idx], f"{path_name}/train_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
             # process test images
-            for idx in np.arange(index, num_test_samples, dim3):
+            for idx in np.arange(index, num_test_samples, pat_num):
                 pred = self.G_B2A.predict(self.B_test[np.newaxis,idx,:,:]).squeeze()
-                self.save_basic_plot(self.B_test[idx], pred, self.A_test[idx], f"{path_name}/test_{idx}.png")
+                self.save_basic_plot(self.B_test[idx], pred, self.A_test[idx], f"{path_name}/test_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
 
     
-    def save_basic_plot(self, orig, pred, gt, path_name):
-        channels = pred.shape[-1]
-        if channels == 1:
+    def save_basic_plot(self, orig, pred, gt, path_name, mods):
+        if len(mods) == 2:
             orig = self.rescale(orig.clip(min=0)).squeeze()
             pred = self.rescale(pred.clip(min=0)).squeeze()
             gt = self.rescale(gt.clip(min=0)).squeeze()
             s = gt.shape[0]
-        elif channels == 2:
+        elif len(mods) == 3:
             orig = self.rescale(orig.clip(min=0))
             pred = self.rescale(pred.clip(min=0))
             gt = self.rescale(gt.clip(min=0))
@@ -698,18 +746,21 @@ class CycleGAN():
             orig = np.vstack((orig[...,0], orig[...,1]))
             pred = np.vstack((pred[...,0], pred[...,1]))
             gt = np.vstack((gt[...,0], gt[...,1]))
-
-
+            error = np.abs(pred-gt)
 
         border = np.ones((s, 20)) * 255
-        final_img = np.hstack((orig, border, pred, border, gt))
+        final_img = np.hstack((orig, border, pred, border, gt, error))
         footer = np.ones((20, final_img.shape[1])) * 255
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(final_img,'Original PET',(25,int(s/2)+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Generated SPECT',(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Ground Truth SPECT',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        if len(mods) == 2:
+            final_img = cv2.putText(final_img,f"Input {mods[0]}",(25,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        elif len(mods) == 3:
+            final_img = cv2.putText(final_img,f"Input {mods[0]} (top) and {mods[1]} (bottom)",(5,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Error Map',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
@@ -834,6 +885,7 @@ class CycleGAN():
         loss = tf.reduce_mean(tf.abs(y_pred - y_true))
         return loss
 
+    """
     def truncateAndSave(self, real_, real, synthetic, reconstructed, path_name):
 
         if len(real.shape) > 3:
@@ -922,6 +974,7 @@ class CycleGAN():
                                      self.date_time, 'tmp'))
         except: # Ignore if file is open
             pass
+    """
 
     def get_lr_linear_decay_rate(self):
         # Calculate decay rates
@@ -966,31 +1019,27 @@ class CycleGAN():
 
     def saveModel(self, model, epoch):
         # Create folder to save model architecture and weights
-        directory = os.path.join('saved_models', self.date_time)
+        directory = os.path.join(self.result_path, 'saved_models')
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        model_path_w = 'saved_models/{}/{}_weights_epoch_{}.hdf5'.format(self.date_time, model.name, epoch)
+        model_path_w = 'saved_models/{}_weights_epoch_{}.hdf5'.format(model.name, epoch)
         model.save_weights(model_path_w)
-        model_path_m = 'saved_models/{}/{}_model_epoch_{}.json'.format(self.date_time, model.name, epoch)
+        model_path_m = 'saved_models/{}_model_epoch_{}.json'.format(model.name, epoch)
         model.save_weights(model_path_m)
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:
             json.dump(json_string, outfile)
-        print('{} has been saved in saved_models/{}/'.format(model.name, self.date_time))
+        print('{} has been saved in {}/saved_models/'.format(model.name, self.result_folder))
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
-        with open('images/{}/loss_output.csv'.format(self.date_time), 'w') as csv_file:
+        with open('{}/loss_output.csv'.format(self.result_path), 'w') as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
             writer.writerow(keys)
             writer.writerows(zip(*[history[key] for key in keys]))
 
     def writeMetaDataToJSON(self):
-
-        directory = os.path.join('images', self.date_time)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
         # Save meta_data
         data = {}
         data['meta_data'] = []
@@ -1020,7 +1069,7 @@ class CycleGAN():
             'number of B test examples': len(self.B_test),
         })
 
-        with open('images/{}/meta_data.json'.format(self.date_time), 'w') as outfile:
+        with open('{}/meta_data.json'.format(self.result_path), 'w') as outfile:
             json.dump(data, outfile, sort_keys=True)
 
     def load_model_from_files(self, path, epoch):
