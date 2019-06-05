@@ -44,7 +44,12 @@ np.random.seed(seed=12345)
 
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 date_time_string_addition='', mods=['CT', 'PET', 'SPECT']):
+                 result_name='', mods=['CT', 'PET', 'SPECT']):
+        
+        # Used as storage folder name
+        self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
+        self.result_path = os.path.join(os.path.split(os.getcwd())[:-1][0],'results',self.date_time)
+
         self.mods = mods
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -98,9 +103,6 @@ class CycleGAN():
 
         # Tweaks
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
-
-        # Used as storage folder name
-        self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + date_time_string_addition
 
         # optimizer
         self.opt_D = Adam(self.learning_rate_D, self.beta_1, self.beta_2)
@@ -236,9 +238,8 @@ class CycleGAN():
             print('Data has been loaded')
 
         # ======= Create designated run folder and store meta data ==========
-        directory = os.path.join('images', self.date_time)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        if not os.path.exists(self.result_path):
+            os.makedirs(self.result_path)
         self.writeMetaDataToJSON()
 
         # ======= Avoid pre-allocating GPU memory ==========
@@ -273,14 +274,14 @@ class CycleGAN():
         if mode == 'train':
             sys.stdout.flush()
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
-            test_path = getFolder('results')
+            #test_path = '/home/peter/test_results/'
             self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
         elif mode == 'test':
-            test_path = getFolder('testdata') #'/home/peter/testdata'
+            test_path = '/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
         elif mode == 'test_jpg':
-            test_path = getFolder('results') #'/home/peter/test_results/'
-            self.test_jpg(epoch=load_epoch, path_name=test_path, mode='forward', index=40, pat_num=[32,5], mods=mods)
+            #test_path = '/home/peter/test_results/'
+            self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
 
 #===============================================================================
 # Architecture functions
@@ -671,7 +672,7 @@ class CycleGAN():
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch', epoch, '-------------------------', '\n', '\n')
                 #self.saveImages(epoch, real_images_A, real_images_B)
-                self.test_jpg(epoch=epoch, path_name=test_path, mode="forward", index=40, pat_num=[32,5], mods=mods)
+                self.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=mods)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -698,10 +699,10 @@ class CycleGAN():
 
 # Return a generated slice from all train and test images 
 
-    def test_jpg(self, epoch: int, path_name: str, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'SPECT']):
+    def test_jpg(self, epoch: int, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'SPECT']):
 
         # create output folders
-        path_name = os.path.join(path_name, self.date_time, f"epoch_{epoch}")
+        path_name = os.path.join(self.result_path, f"epoch_{epoch}")
         if not os.path.exists(path_name):
             os.makedirs(path_name)
 
@@ -885,6 +886,7 @@ class CycleGAN():
         loss = tf.reduce_mean(tf.abs(y_pred - y_true))
         return loss
 
+    """
     def truncateAndSave(self, real_, real, synthetic, reconstructed, path_name):
 
         if len(real.shape) > 3:
@@ -973,6 +975,7 @@ class CycleGAN():
                                      self.date_time, 'tmp'))
         except: # Ignore if file is open
             pass
+    """
 
     def get_lr_linear_decay_rate(self):
         # Calculate decay rates
@@ -1017,31 +1020,27 @@ class CycleGAN():
 
     def saveModel(self, model, epoch):
         # Create folder to save model architecture and weights
-        directory = os.path.join('saved_models', self.date_time)
+        directory = os.path.join(self.result_path, 'saved_models')
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        model_path_w = 'saved_models/{}/{}_weights_epoch_{}.hdf5'.format(self.date_time, model.name, epoch)
+        model_path_w = 'saved_models/{}_weights_epoch_{}.hdf5'.format( model.name, epoch)
         model.save_weights(model_path_w)
-        model_path_m = 'saved_models/{}/{}_model_epoch_{}.json'.format(self.date_time, model.name, epoch)
+        model_path_m = 'saved_models/{}_model_epoch_{}.json'.format(, model.name, epoch)
         model.save_weights(model_path_m)
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:
             json.dump(json_string, outfile)
-        print('{} has been saved in saved_models/{}/'.format(model.name, self.date_time))
+        print('{} has been saved in {}/saved_models/'.format(model.name, self.result_folder))
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
-        with open('images/{}/loss_output.csv'.format(self.date_time), 'w') as csv_file:
+        with open('{}/loss_output.csv'.format(self.result_path), 'w') as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
             writer.writerow(keys)
             writer.writerows(zip(*[history[key] for key in keys]))
 
     def writeMetaDataToJSON(self):
-
-        directory = os.path.join('images', self.date_time)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
         # Save meta_data
         data = {}
         data['meta_data'] = []
@@ -1071,7 +1070,7 @@ class CycleGAN():
             'number of B test examples': len(self.B_test),
         })
 
-        with open('images/{}/meta_data.json'.format(self.date_time), 'w') as outfile:
+        with open('{}/meta_data.json'.format(self.result_path), 'w') as outfile:
             json.dump(data, outfile, sort_keys=True)
 
     def load_model_from_files(self, path, epoch):
