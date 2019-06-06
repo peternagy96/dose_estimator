@@ -200,6 +200,8 @@ class CycleGAN():
                              loss_weights=compile_weights)
         # self.G_A2B.summary()
 
+
+
         # ======= Data ==========
         # Use 'None' to fetch all available images
         nr_A_train_imgs = None
