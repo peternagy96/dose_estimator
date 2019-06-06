@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
-from models.gan import GAN
+import os
+import load_data
+import tensorflow as tf
+import keras.backend as K
+import cv2
+import SimpleITK as sitk
+from PIL import Image
+import sys
+import csv
+import math
+import json
+import time
+import datetime
+import random
+from collections import OrderedDict
+from keras.engine.topology import Network
+from keras.utils import plot_model
+from keras.models import Model, model_from_json
+from keras.backend import mean
+from keras.optimizers import Adam
+from keras.layers.core import Dense
+from keras.layers.advanced_activations import LeakyReLU
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
+from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
+from models.gan import cycleGAN
 from models.generator import Generator
 from models.discriminator import Discriminator
 from data_loader.data_loader import dataLoader
@@ -10,8 +34,8 @@ import matplotlib.pyplot as plt
 
 
 class Trainer:
-    def __init__(self, width = 28, height= 28, channels = 1, latent_size=100, epochs =50000,
-                 batch=32, checkpoint=50,model_type=-1):
+    def __init__(self, width=128, height=128, epochs=200,
+                 batch=32, checkpoint=50, model_type=-1, mods = ['CT', 'PET', 'SPECT']):
         self.W = width
         self.H = height
         self.C = channels
@@ -21,47 +45,25 @@ class Trainer:
         self.model_type = model_type
         self.LATENT_SPACE_SIZE = latent_size
 
-        self.generator = Generator(height=self.H, width=self.W, channels=self.C, latent_size=self.LATENT_SPACE_SIZE)
-        self.discriminator = Discriminator(height=self.H, width=self.W, channels=self.C)
-        self.gan = GAN(generator=self.generator.Generator, discriminator=self.discriminator.Discriminator)
+        self.generator = Generator(
+            height=self.H, width=self.W, channels=self.C, latent_size=self.LATENT_SPACE_SIZE)
+        self.discriminator = Discriminator(
+            height=self.H, width=self.W, channels=self.C)
+        self.gan = GAN(generator=self.generator.Generator,
+                       discriminator=self.discriminator.Discriminator)
 
         # LOAD DATASET
 
-import os
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
-from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.core import Dense
-from keras.optimizers import Adam
-from keras.backend import mean
-from keras.models import Model, model_from_json
-from keras.utils import plot_model
-from keras.engine.topology import Network
 
-from collections import OrderedDict
-import numpy as np
-import random
-import datetime
-import time
-import json
-import math
-import csv
-import sys
-from PIL import Image
-import SimpleITK as sitk
-import cv2
-
-import keras.backend as K
-import tensorflow as tf
-import load_data
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 np.random.seed(seed=12345)
 
 
 class CycleGANTrainer():
-    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
+    def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2),  # orig: lr_G=3e-4
                  date_time_string_addition='', image_folder='MR'):
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -72,8 +74,10 @@ class CycleGANTrainer():
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
-        self.generator_iterations = 1  # Number of generator training iterations in each training loop
-        self.discriminator_iterations = 1  # Number of generator training iterations in each training loop
+        # Number of generator training iterations in each training loop
+        self.generator_iterations = 1
+        # Number of generator training iterations in each training loop
+        self.discriminator_iterations = 1
         self.beta_1 = 0.5
         self.beta_2 = 0.999
         self.batch_size = 10
@@ -92,7 +96,8 @@ class CycleGANTrainer():
 
         # Identity loss - sometimes send images from B to G_A2B (and the opposite) to teach identity mappings
         self.use_identity_learning = True
-        self.identity_mapping_modulus = 10  # Identity mapping will be done each time the iteration number is divisable with this number
+        # Identity mapping will be done each time the iteration number is divisable with this number
+        self.identity_mapping_modulus = 10
 
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True
@@ -114,7 +119,8 @@ class CycleGANTrainer():
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
 
         # Used as storage folder name
-        self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + date_time_string_addition
+        self.date_time = time.strftime(
+            '%Y%m%d-%H%M%S', time.localtime()) + date_time_string_addition
 
         # optimizer
         self.opt_D = Adam(self.learning_rate_D, self.beta_1, self.beta_2)
@@ -187,7 +193,8 @@ class CycleGANTrainer():
         if mode == 'train':
             sys.stdout.flush()
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
-            self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
+            self.train(init_epoch=self.init_epoch, epochs=self.epochs,
+                       batch_size=self.batch_size, save_interval=self.save_interval)
         elif mode == 'test':
             test_path = '/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
@@ -196,8 +203,9 @@ class CycleGANTrainer():
             self.test_jpg(test_path)
 
 
-#===============================================================================
+# ===============================================================================
 # Training
+
     def train(self, init_epoch, epochs, batch_size=1, save_interval=1):
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
@@ -208,15 +216,21 @@ class CycleGANTrainer():
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
 
             for _ in range(self.discriminator_iterations):
-                DA_loss_real = self.D_A.train_on_batch(x=real_images_A, y=ones_A)
-                DB_loss_real = self.D_B.train_on_batch(x=real_images_B, y=ones_B)
-                DA_loss_synthetic = self.D_A.train_on_batch(x=synthetic_images_A, y=zeros_B)
-                DB_loss_synthetic = self.D_B.train_on_batch(x=synthetic_images_B, y=zeros_A)
+                DA_loss_real = self.D_A.train_on_batch(
+                    x=real_images_A, y=ones_A)
+                DB_loss_real = self.D_B.train_on_batch(
+                    x=real_images_B, y=ones_B)
+                DA_loss_synthetic = self.D_A.train_on_batch(
+                    x=synthetic_images_A, y=zeros_B)
+                DB_loss_synthetic = self.D_B.train_on_batch(
+                    x=synthetic_images_B, y=zeros_A)
                 if self.use_multiscale_discriminator:
                     DA_loss = sum(DA_loss_real) + sum(DA_loss_synthetic)
                     DB_loss = sum(DB_loss_real) + sum(DB_loss_synthetic)
-                    print('DA_losses: ', np.add(DA_loss_real, DA_loss_synthetic))
-                    print('DB_losses: ', np.add(DB_loss_real, DB_loss_synthetic))
+                    print('DA_losses: ', np.add(
+                        DA_loss_real, DA_loss_synthetic))
+                    print('DB_losses: ', np.add(
+                        DB_loss_real, DB_loss_synthetic))
                 else:
                     DA_loss = DA_loss_real + DA_loss_synthetic
                     DB_loss = DB_loss_real + DB_loss_synthetic
@@ -227,7 +241,8 @@ class CycleGANTrainer():
                     sys.stdout.flush()
 
             # ======= Generator training ==========
-            target_data = [real_images_A, real_images_B]  # Compare reconstructed images to real images
+            # Compare reconstructed images to real images
+            target_data = [real_images_A, real_images_B]
             if self.use_multiscale_discriminator:
                 for i in range(2):
                     target_data.append(ones[i])
@@ -286,7 +301,8 @@ class CycleGANTrainer():
 
             print('\n')
             print('Epoch----------------', epoch, '/', epochs)
-            print('Loop index----------------', loop_index + 1, '/', epoch_iterations)
+            print('Loop index----------------',
+                  loop_index + 1, '/', epoch_iterations)
             print('D_loss: ', D_loss)
             print('G_loss: ', G_loss[0])
             print('reconstruction_loss: ', reconstruction_loss)
@@ -295,7 +311,8 @@ class CycleGANTrainer():
 
             if loop_index % 10 == 0:
                 # Save temporary images continously
-                self.save_tmp_images(real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
+                self.save_tmp_images(
+                    real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
                 self.print_ETA(start_time, epoch, epoch_iterations, loop_index)
 
         # ======================================================================
@@ -341,11 +358,15 @@ class CycleGANTrainer():
 
                         # labels
                         if self.use_multiscale_discriminator:
-                            label_shape1 = (len(real_images_A),) + self.D_A.output_shape[0][1:]
-                            label_shape2 = (len(real_images_B),) + self.D_B.output_shape[0][1:]
+                            label_shape1 = (len(real_images_A),) + \
+                                self.D_A.output_shape[0][1:]
+                            label_shape2 = (len(real_images_B),) + \
+                                self.D_B.output_shape[0][1:]
                             # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
-                            ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
-                            ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
+                            ones1 = np.ones(
+                                shape=label_shape1) * self.REAL_LABEL
+                            ones2 = np.ones(
+                                shape=label_shape2) * self.REAL_LABEL
                             # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
                             ones = [ones1, ones2]  # , ones4]
                             zeros1 = ones1 * 0
@@ -353,15 +374,20 @@ class CycleGANTrainer():
                             # zeros4 = ones4 * 0
                             zeros = [zeros1, zeros2]  # , zeros4]
                         else:
-                            label_shape_A = (len(real_images_A),) + self.D_A.output_shape[1:]
-                            label_shape_B = (len(real_images_B),) + self.D_B.output_shape[1:]
-                            ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
-                            ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
+                            label_shape_A = (len(real_images_A),) + \
+                                self.D_A.output_shape[1:]
+                            label_shape_B = (len(real_images_B),) + \
+                                self.D_B.output_shape[1:]
+                            ones_A = np.ones(
+                                shape=label_shape_A) * self.REAL_LABEL
+                            ones_B = np.ones(
+                                shape=label_shape_B) * self.REAL_LABEL
                             zeros_A = ones_A * 0
                             zeros_B = ones_B * 0
 
                     # Run all training steps
-                    run_training_iteration(loop_index, self.data_generator.__len__())
+                    run_training_iteration(
+                        loop_index, self.data_generator.__len__())
 
                     # Store models
                     if loop_index % 20000 == 0:
@@ -379,9 +405,12 @@ class CycleGANTrainer():
             else:  # Train with all data in cache
                 A_train = self.A_train
                 B_train = self.B_train
-                random_order_A = np.random.randint(len(A_train), size=len(A_train))
-                random_order_B = np.random.randint(len(B_train), size=len(B_train))
-                epoch_iterations = max(len(random_order_A), len(random_order_B))
+                random_order_A = np.random.randint(
+                    len(A_train), size=len(A_train))
+                random_order_B = np.random.randint(
+                    len(B_train), size=len(B_train))
+                epoch_iterations = max(
+                    len(random_order_A), len(random_order_B))
                 min_nr_imgs = min(len(random_order_A), len(random_order_B))
 
                 # If we want supervised learning the same images form
@@ -398,7 +427,8 @@ class CycleGANTrainer():
                             indexes_A = random_order_A[loop_index:]
                             indexes_B = random_order_B[loop_index:]
                         else:
-                            indexes_B = np.random.randint(len(B_train), size=batch_size)
+                            indexes_B = np.random.randint(
+                                len(B_train), size=batch_size)
                             indexes_A = random_order_A[loop_index:
                                                        loop_index + batch_size]
                     else:
@@ -413,8 +443,10 @@ class CycleGANTrainer():
 
                     # labels
                     if self.use_multiscale_discriminator:
-                        label_shape1 = (len(real_images_A),) + self.D_A.output_shape[0][1:]
-                        label_shape2 = (len(real_images_B),) + self.D_B.output_shape[0][1:]
+                        label_shape1 = (len(real_images_A),) + \
+                            self.D_A.output_shape[0][1:]
+                        label_shape2 = (len(real_images_B),) + \
+                            self.D_B.output_shape[0][1:]
                         # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
                         ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
                         ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
@@ -425,8 +457,10 @@ class CycleGANTrainer():
                         # zeros4 = ones4 * 0
                         zeros = [zeros1, zeros2]  # , zeros4]
                     else:
-                        label_shape_A = (len(real_images_A),) + self.D_A.output_shape[1:]
-                        label_shape_B = (len(real_images_B),) + self.D_B.output_shape[1:]
+                        label_shape_A = (len(real_images_A),) + \
+                            self.D_A.output_shape[1:]
+                        label_shape_B = (len(real_images_B),) + \
+                            self.D_B.output_shape[1:]
                         ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
                         ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
                         zeros_A = ones_A * 0
@@ -435,10 +469,11 @@ class CycleGANTrainer():
                     # Run all training steps
                     run_training_iteration(loop_index, epoch_iterations)
 
-            #================== within epoch loop end ==========================
+            # ================== within epoch loop end ==========================
 
             if epoch % save_interval == 0:
-                print('\n', '\n', '-------------------------Saving images for epoch', epoch, '-------------------------', '\n', '\n')
+                print('\n', '\n', '-------------------------Saving images for epoch',
+                      epoch, '-------------------------', '\n', '\n')
                 self.saveImages(epoch, real_images_A, real_images_B)
 
             if epoch % 20 == 0:
@@ -464,10 +499,9 @@ class CycleGANTrainer():
             sys.stdout.flush()
 
 
-#===============================================================================
+# ===============================================================================
 # Help functions
 
-    
     def get_lr_linear_decay_rate(self):
         # Calculate decay rates
         if self.use_data_generator:
@@ -496,18 +530,21 @@ class CycleGANTrainer():
     def print_ETA(self, start_time, epoch, epoch_iterations, loop_index):
         passed_time = time.time() - start_time
 
-        iterations_so_far = ((epoch - 1) * epoch_iterations + loop_index) / self.batch_size
+        iterations_so_far = (
+            (epoch - 1) * epoch_iterations + loop_index) / self.batch_size
         iterations_total = self.epochs * epoch_iterations / self.batch_size
         iterations_left = iterations_total - iterations_so_far
         eta = round(passed_time / (iterations_so_far + 1e-5) * iterations_left)
 
-        passed_time_string = str(datetime.timedelta(seconds=round(passed_time)))
+        passed_time_string = str(
+            datetime.timedelta(seconds=round(passed_time)))
         eta_string = str(datetime.timedelta(seconds=eta))
         print('Time passed', passed_time_string, ': ETA in', eta_string)
 
 
-#===============================================================================
+# ===============================================================================
 # Save and load
+
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())

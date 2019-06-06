@@ -17,8 +17,8 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     # load files
     train_images = {}
     test_images = {}
-    folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0],'data', subfolder, 'numpy')
-
+    folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[
+                          :-1][0], 'data', subfolder, 'numpy')
     train_images['CT'] = np.load(os.path.join(folder, 'ct_train.npy'))
     train_images['PET'] = np.load(os.path.join(folder, 'pet_train.npy'))
     train_images['SPECT'] = np.load(os.path.join(folder, 'dose_train.npy'))
@@ -45,17 +45,15 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         trainB_images.append(train_images[mods[-1]])
         testB_images.append(test_images[mods[-1]])
     if len(trainA_images) == 1:
-        trainA_images = trainA_images[:,:,:,np.newaxis]
-        testA_images = testA_images[:,:,:,np.newaxis]
-        trainB_images = trainB_images[:,:,:,np.newaxis]
-        testB_images = testB_images[:,:,:,np.newaxis]
+        trainA_images = trainA_images[:, :, :, np.newaxis]
+        testA_images = testA_images[:, :, :, np.newaxis]
+        trainB_images = trainB_images[:, :, :, np.newaxis]
+        testB_images = testB_images[:, :, :, np.newaxis]
     else:
         trainA_images = np.stack(trainA_images, axis=-1)
         testA_images = np.stack(testA_images, axis=-1)
         trainB_images = np.stack(trainB_images, axis=-1)
         testB_images = np.stack(testB_images, axis=-1)
-
-
 
     return {"trainA_images": trainA_images, "trainB_images": trainB_images,
             "testA_images": testA_images, "testB_images": testB_images,
@@ -96,59 +94,66 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         """
 
 
-
 def create_image_array(image_list, image_path, nr_of_channels):
     image_array = []
     for image_name in image_list:
         if image_name[-1].lower() == 'g':  # to avoid e.g. thumbs.db files
             if nr_of_channels == 1:  # Gray scale image -> MR image
-                image = np.array(Image.open(os.path.join(image_path, image_name)))
+                image = np.array(Image.open(
+                    os.path.join(image_path, image_name)))
                 image = image[:, :, np.newaxis]
             else:                   # RGB image -> 3 channels
-                image = np.array(Image.open(os.path.join(image_path, image_name)))
+                image = np.array(Image.open(
+                    os.path.join(image_path, image_name)))
             image = normalize_array(image)
             image_array.append(image)
 
     return np.array(image_array)
 
-
   # If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead
   # normalize between 0 and 1
+
+
 def normalize_array(inp):
     array = inp.copy()
     for i in range(array.shape[0]):
-        pic = array[i,:,:]
+        pic = array[i, :, :]
         if pic.min() != 0.0:
             mask = (pic < 0.0)
             pic[mask] = pic[mask] / np.abs(pic.min())
         if pic.max() != 0.0:
             mask = (pic > 0.0)
             pic[mask] = pic[mask] / pic.max()
-        array[i:(i+1),:,:] = pic
+        array[i:(i+1), :, :] = pic
     return array
+
 
 def upscale_array(array):
     out = np.empty((array.shape[0], 200, 200))
     for i in range(array.shape[0]):
-        pic = array[i,:,:]
-        out[i,:,:] = cv2.resize(pic, dsize=(200, 200))
+        pic = array[i, :, :]
+        out[i, :, :] = cv2.resize(pic, dsize=(200, 200))
     return out
+
 
 def filter_zeros(array):
     bad_idx = []
     for i in range(array.shape[0]):
-        if np.count_nonzero(array[i,:,:]) == 0:
+        if np.count_nonzero(array[i, :, :]) == 0:
             bad_idx.append(i)
     for idx in bad_idx:
         while True:
             rand_idx = random.choice(range(array.shape[0]))
-            if rand_idx not in bad_idx: break
+            if rand_idx not in bad_idx:
+                break
         array[idx] = array[rand_idx]
     return array
 
+
 class data_sequence(Sequence):
 
-    def __init__(self, trainA_path, trainB_path, image_list_A, image_list_B, batch_size=1):  # , D_model, use_multiscale_discriminator, use_supervised_learning, REAL_LABEL):
+    # , D_model, use_multiscale_discriminator, use_supervised_learning, REAL_LABEL):
+    def __init__(self, trainA_path, trainB_path, image_list_A, image_list_B, batch_size=1):
         self.batch_size = batch_size
         self.train_A = []
         self.train_B = []
@@ -162,25 +167,32 @@ class data_sequence(Sequence):
     def __len__(self):
         return int(max(len(self.train_A), len(self.train_B)) / float(self.batch_size))
 
-    def __getitem__(self, idx):  # , use_multiscale_discriminator, use_supervised_learning):if loop_index + batch_size >= min_nr_imgs:
+    # , use_multiscale_discriminator, use_supervised_learning):if loop_index + batch_size >= min_nr_imgs:
+    def __getitem__(self, idx):
         if idx >= min(len(self.train_A), len(self.train_B)):
             # If all images soon are used for one domain,
             # randomly pick from this domain
             if len(self.train_A) <= len(self.train_B):
-                indexes_A = np.random.randint(len(self.train_A), size=self.batch_size)
+                indexes_A = np.random.randint(
+                    len(self.train_A), size=self.batch_size)
                 batch_A = []
                 for i in indexes_A:
                     batch_A.append(self.train_A[i])
-                batch_B = self.train_B[idx * self.batch_size:(idx + 1) * self.batch_size]
+                batch_B = self.train_B[idx *
+                                       self.batch_size:(idx + 1) * self.batch_size]
             else:
-                indexes_B = np.random.randint(len(self.train_B), size=self.batch_size)
+                indexes_B = np.random.randint(
+                    len(self.train_B), size=self.batch_size)
                 batch_B = []
                 for i in indexes_B:
                     batch_B.append(self.train_B[i])
-                batch_A = self.train_A[idx * self.batch_size:(idx + 1) * self.batch_size]
+                batch_A = self.train_A[idx *
+                                       self.batch_size:(idx + 1) * self.batch_size]
         else:
-            batch_A = self.train_A[idx * self.batch_size:(idx + 1) * self.batch_size]
-            batch_B = self.train_B[idx * self.batch_size:(idx + 1) * self.batch_size]
+            batch_A = self.train_A[idx *
+                                   self.batch_size:(idx + 1) * self.batch_size]
+            batch_B = self.train_B[idx *
+                                   self.batch_size:(idx + 1) * self.batch_size]
 
         real_images_A = create_image_array(batch_A, '', 3)
         real_images_B = create_image_array(batch_B, '', 3)
