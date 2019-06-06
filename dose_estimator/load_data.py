@@ -19,7 +19,6 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     test_images = {}
     folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[
                           :-1][0], 'data', subfolder, 'numpy')
-
     train_images['CT'] = np.load(os.path.join(folder, 'ct_train.npy'))
     train_images['PET'] = np.load(os.path.join(folder, 'pet_train.npy'))
     train_images['SPECT'] = np.load(os.path.join(folder, 'dose_train.npy'))
