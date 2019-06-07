@@ -1,25 +1,55 @@
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers.advanced_activations import LeakyReLU
-from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
+
+from discriminator import Discriminator
+from generator import Generator
 
 
 class cycleGAN(object):
-    def __init__(self, discriminator, generator):
-        self.OPTIMIZER = Adam(lr=0.0002, decay=8e-9)
-        self.Generator = generator
-        self.Discriminator = discriminator
-        self.Discriminator.trainable = False
-        self.gan_model = self.model()
-        self.gan_model.compile(loss='binary_crossentropy',
-                               optimizer=self.OPTIMIZER)
-        self.gan_model.summary()
+    def __init__(self, model_path: str = None, lr_D: int = 3e-4, lr_G: int = 3e-4, image_shape: tuple = (128, 128, 2), ):
+        self.img_shape = image_shape
+        self.channels = self.img_shape[-1]
+        self.normalization = InstanceNormalization
 
-    def model(self):
-        model = Sequential()
-        model.add(self.Generator)
-        model.add(self.Discriminator)
-        return model
+        # Hyper parameters
+        self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
+        self.lambda_2 = 8.0  # Cyclic loss weight B_2_A
+        self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
+        self.learning_rate_D = lr_D
+        self.learning_rate_G = lr_G
+        # Number of generator training iterations in each training loop
+        self.generator_iterations = 1
+        # Number of generator training iterations in each training loop
+        self.discriminator_iterations = 1
+        self.beta_1 = 0.5
+        self.beta_2 = 0.999
+
+        # Identity loss - sometimes send images from B to G_A2B (and the opposite) to teach identity mappings
+        self.use_identity_learning = True
+        # Identity mapping will be done each time the iteration number is divisable with this number
+        self.identity_mapping_modulus = 10
+
+        # PatchGAN - if false the discriminator learning rate should be decreased
+        self.use_patchgan = True
+
+        # Multi scale discriminator - if True the generator have an extra encoding/decoding step to match discriminator information access
+        self.use_multiscale_discriminator = False
+
+        # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
+        self.use_resize_convolution = False
+
+        # Supervised learning part - for MR images - comparison
+        self.use_supervised_learning = False
+        self.supervised_weight = 10.0
+
+        basicmodel()
+
+    def basicModel(self):
+        self.D_A = Discriminator(
+            name='A', use_multiscale_discriminator=False, use_patchgan=True, img_shape=(128, 128, 2))
+        self.D_B = Discriminator(
+            name='A', use_multiscale_discriminator=False, use_patchgan=True, img_shape=(128, 128, 2))
+        self.G_A2B
+        self.G_B2A
 
     def saveModel(self, model, epoch):
         # Create folder to save model architecture and weights

@@ -11,21 +11,11 @@ import layers
 
 
 class Generator(object):
-    def __init__(self, img_shape=(128,128,2)):
+    def __init__(self, name, use_identity_learning=True, img_shape=(128, 128, 2)):
         self.img_shape = img_shape
+        self.use_identity_learning = use_identity_learning
 
-        # Do not update discriminator weights during generator training
-        self.D_A_static.trainable = False
-        self.D_B_static.trainable = False
-
-        # Generators
-        self.G_A2B = self.modelGenerator(name='G_A2B_model')
-        self.G_B2A = self.modelGenerator(name='G_B2A_model')
-        # self.G_A2B.summary()
-
-        if self.use_identity_learning:
-            self.G_A2B.compile(optimizer=self.opt_G, loss='MAE')
-            self.G_B2A.compile(optimizer=self.opt_G, loss='MAE')
+        self.model = self.basicGenerator(name=name)
 
         # Generator builds
         real_A = Input(shape=self.img_shape, name='real_A')
@@ -46,7 +36,8 @@ class Generator(object):
         if self.use_multiscale_discriminator:
             for _ in range(2):
                 compile_losses.append(self.lse)
-                compile_weights.append(self.lambda_D)  # * 1e-3)  # Lower weight to regularize the model
+                # * 1e-3)  # Lower weight to regularize the model
+                compile_weights.append(self.lambda_D)
             for i in range(2):
                 model_outputs.append(dA_guess_synthetic[i])
                 model_outputs.append(dB_guess_synthetic[i])
@@ -100,9 +91,9 @@ class Generator(object):
         x = self.uk(x, 48)
         x = layers.ReflectionPadding2D((3, 3))(x)
         x = Conv2D(self.channels, kernel_size=7, strides=1)(x)
-        x = Activation('tanh')(x)  # They say they use Relu but really they do not
+        # They say they use Relu but really they do not
+        x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=name)
 
     def summary(self):
         return self.Generator.summary()
-
