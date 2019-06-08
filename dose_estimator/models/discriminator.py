@@ -8,19 +8,14 @@ import layers
 
 
 class Discriminator(object):
-    def __init__(self, name, use_multiscale_discriminator=False, use_patchgan=True, img_shape=(128, 128, 2)):
+    def __init__(self, name, mode='basic',
+                 use_patchgan=True, img_shape=(128, 128, 2)):
         self.img_shape = img_shape
-        self.use_multiscale_discriminator = use_multiscale_discriminator
+        self.name = name
+        self.mode = mode
         self.use_patchgan = use_patchgan
 
-        if use_multiscale_discriminator:
-            D = self.modelMultiScaleDiscriminator()
-            # 0.5 since we train on real and synthetic images
-            self.loss_weights = [0.5, 0.5]
-        else:
-            D = self.basicDiscriminator()
-            # 0.5 since we train on real and synthetic images
-            self.loss_weights = [0.5]
+        D = self.getModel(mode)
 
         # Discriminator builds
         image = Input(shape=self.img_shape)
@@ -32,6 +27,17 @@ class Discriminator(object):
             inputs=image, outputs=guess, name=f"{name}_static")
 
         self.model_static.trainable = False
+
+    def getModel(self, mode):
+        if mode == 'basic':
+            # 0.5 since we train on real and synthetic images
+            self.loss_weights = [0.5]
+            return self.basicDiscriminator()
+
+        elif mode == 'multiscale':
+            # 0.5 since we train on real and synthetic images
+            self.loss_weights = [0.5, 0.5]
+            return self.modelMultiScaleDiscriminator()
 
     def modelMultiScaleDiscriminator(self, name=None):
         x1 = Input(shape=self.img_shape)

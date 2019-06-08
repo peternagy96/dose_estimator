@@ -41,15 +41,60 @@ class cycleGAN(object):
         self.use_supervised_learning = False
         self.supervised_weight = 10.0
 
-        basicmodel()
+        self.basicmodel()
+
+        real_A = Input(shape=self.img_shape, name='real_A')
+        real_B = Input(shape=self.img_shape, name='real_B')
+        synthetic_B = self.G_A2B(real_A)
+        synthetic_A = self.G_B2A(real_B)
+        dA_guess_synthetic = self.D_A_static(synthetic_A)
+        dB_guess_synthetic = self.D_B_static(synthetic_B)
+        reconstructed_A = self.G_B2A(synthetic_B)
+        reconstructed_B = self.G_A2B(synthetic_A)
+
+        model_outputs = [reconstructed_A, reconstructed_B]
+        compile_losses = [self.cycle_loss, self.cycle_loss,
+                          self.lse, self.lse]
+        compile_weights = [self.lambda_1, self.lambda_2,
+                           self.lambda_D, self.lambda_D]
+
+        if self.use_supervised_learning:
+            model_outputs.append(synthetic_A)
+            model_outputs.append(synthetic_B)
+            compile_losses.append('MAE')
+            compile_losses.append('MAE')
+            compile_weights.append(self.supervised_weight)
+            compile_weights.append(self.supervised_weight)
+
+        self.G_model = Model(inputs=[real_A, real_B],
+                             outputs=model_outputs,
+                             name='G_model')
+
+        self.G_model.compile(optimizer=self.opt_G,
+                             loss=compile_losses,
+                             loss_weights=compile_weights)
+
+        if self.use_multiscale_discriminator:
+            for _ in range(2):
+                compile_losses.append(self.lse)
+                # * 1e-3)  # Lower weight to regularize the model
+                compile_weights.append(self.lambda_D)
+            for i in range(2):
+                model_outputs.append(dA_guess_synthetic[i])
+                model_outputs.append(dB_guess_synthetic[i])
+        else:
+            model_outputs.append(dA_guess_synthetic)
+            model_outputs.append(dB_guess_synthetic)
 
     def basicModel(self):
-        self.D_A = Discriminator(
-            name='A', use_multiscale_discriminator=False, use_patchgan=True, img_shape=(128, 128, 2))
-        self.D_B = Discriminator(
-            name='A', use_multiscale_discriminator=False, use_patchgan=True, img_shape=(128, 128, 2))
-        self.G_A2B
-        self.G_B2A
+        self.D_A = Discriminator(name='A', use_patchgan=True,
+                                 img_shape=(128, 128, 2))
+        self.D_B = Discriminator(name='A', use_patchgan=True,
+                                 img_shape=(128, 128, 2))
+        self.G_A2B = Generator(name='A2B', mode='basic', use_identity_learning=True,
+                               img_shape=(128, 128, 2))
+        self.G_B2A = Generator(name='A2B', mode='basic', use_identity_learning=True,
+                               img_shape=(128, 128, 2))
 
     def saveModel(self, model, epoch):
         # Create folder to save model architecture and weights
