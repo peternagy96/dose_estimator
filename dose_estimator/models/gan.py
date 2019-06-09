@@ -1,14 +1,26 @@
-from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
+from keras.layers import Input
+from keras.models import Model
 
-from discriminator import Discriminator
-from generator import Generator
+import os
+import json
+import time
+
+from .discriminator import Discriminator
+from .generator import Generator
+from .losses import lse, cycle_loss
 
 
 class cycleGAN(object):
-    def __init__(self, model_path: str = None, lr_D: int = 3e-4, lr_G: int = 3e-4, image_shape: tuple = (128, 128, 2), ):
+    def __init__(self, result_name, mode_G='basic', mode_D='basic', model_path: str = None,
+                 lr_D: int = 3e-4, lr_G: int = 3e-4, image_shape: tuple = (128, 128, 2)):
+        # Used as storage folder name
+        self.date_time = time.strftime(
+            '%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
+        self.result_path = os.path.join(os.path.split(os.path.dirname(
+            os.path.realpath(__file__)))[:-1][0], 'results', self.date_time)
+
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
-        self.normalization = InstanceNormalization
 
         # Hyper parameters
         self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
@@ -41,22 +53,52 @@ class cycleGAN(object):
         self.use_supervised_learning = False
         self.supervised_weight = 10.0
 
-        self.basicmodel()
+        self.basicModel(mode_G=mode_G, mode_D=mode_D)
+
+    def basicModel(self, mode_G, mode_D):
+        self.D_A = Discriminator(name='A', mode=mode_D, use_patchgan=True,
+                                 img_shape=(128, 128, 2))
+        self.D_B = Discriminator(name='A', mode=mode_D, use_patchgan=True,
+                                 img_shape=(128, 128, 2))
+        self.G_A2B = Generator(name='A2B', mode=mode_G, use_resize_convolution=False,
+                               use_identity_learning=True, img_shape=(128, 128, 2))
+        self.G_B2A = Generator(name='A2B', mode=mode_G, use_resize_convolution=False,
+                               use_identity_learning=True, img_shape=(128, 128, 2))
+
+    def compileModel(self, opt_G, opt_D):
+        self.D_A.model.compile(optimizer=opt_D,
+                               loss=lse,
+                               loss_weights=self.D_A.loss_weights)
+        self.D_B.model.compile(optimizer=opt_D,
+                               loss=lse,
+                               loss_weights=self.D_B.loss_weights)
 
         real_A = Input(shape=self.img_shape, name='real_A')
         real_B = Input(shape=self.img_shape, name='real_B')
-        synthetic_B = self.G_A2B(real_A)
-        synthetic_A = self.G_B2A(real_B)
-        dA_guess_synthetic = self.D_A_static(synthetic_A)
-        dB_guess_synthetic = self.D_B_static(synthetic_B)
-        reconstructed_A = self.G_B2A(synthetic_B)
-        reconstructed_B = self.G_A2B(synthetic_A)
+        synthetic_B = self.G_A2B.model(real_A)
+        synthetic_A = self.G_B2A.model(real_B)
+        dA_guess_synthetic = self.D_A.model_static(synthetic_A)
+        dB_guess_synthetic = self.D_B.model_static(synthetic_B)
+        reconstructed_A = self.G_B2A.model(synthetic_B)
+        reconstructed_B = self.G_A2B.model(synthetic_A)
 
         model_outputs = [reconstructed_A, reconstructed_B]
-        compile_losses = [self.cycle_loss, self.cycle_loss,
-                          self.lse, self.lse]
+        compile_losses = [cycle_loss, cycle_loss,
+                          lse, lse]
         compile_weights = [self.lambda_1, self.lambda_2,
                            self.lambda_D, self.lambda_D]
+
+        if self.use_multiscale_discriminator:
+            for _ in range(2):
+                compile_losses.append(lse)
+                # * 1e-3)  # Lower weight to regularize the model
+                compile_weights.append(self.lambda_D)
+            for i in range(2):
+                model_outputs.append(dA_guess_synthetic[i])
+                model_outputs.append(dB_guess_synthetic[i])
+        else:
+            model_outputs.append(dA_guess_synthetic)
+            model_outputs.append(dB_guess_synthetic)
 
         if self.use_supervised_learning:
             model_outputs.append(synthetic_A)
@@ -70,31 +112,9 @@ class cycleGAN(object):
                              outputs=model_outputs,
                              name='G_model')
 
-        self.G_model.compile(optimizer=self.opt_G,
+        self.G_model.compile(optimizer=opt_G,
                              loss=compile_losses,
                              loss_weights=compile_weights)
-
-        if self.use_multiscale_discriminator:
-            for _ in range(2):
-                compile_losses.append(self.lse)
-                # * 1e-3)  # Lower weight to regularize the model
-                compile_weights.append(self.lambda_D)
-            for i in range(2):
-                model_outputs.append(dA_guess_synthetic[i])
-                model_outputs.append(dB_guess_synthetic[i])
-        else:
-            model_outputs.append(dA_guess_synthetic)
-            model_outputs.append(dB_guess_synthetic)
-
-    def basicModel(self):
-        self.D_A = Discriminator(name='A', use_patchgan=True,
-                                 img_shape=(128, 128, 2))
-        self.D_B = Discriminator(name='A', use_patchgan=True,
-                                 img_shape=(128, 128, 2))
-        self.G_A2B = Generator(name='A2B', mode='basic', use_identity_learning=True,
-                               img_shape=(128, 128, 2))
-        self.G_B2A = Generator(name='A2B', mode='basic', use_identity_learning=True,
-                               img_shape=(128, 128, 2))
 
     def saveModel(self, model, epoch):
         # Create folder to save model architecture and weights
@@ -114,13 +134,13 @@ class cycleGAN(object):
         print('{} has been saved in saved_models/{}/'.format(model.name, self.date_time))
 
     def load_model_from_files(self, path, epoch):
-        self.D_A.load_weights(os.path.join(
+        self.D_A.model.load_weights(os.path.join(
             path, f"D_A_model_weights_epoch_{epoch}.hdf5"))
-        self.D_B.load_weights(os.path.join(
+        self.D_B.model.load_weights(os.path.join(
             path, f"D_B_model_weights_epoch_{epoch}.hdf5"))
-        self.G_A2B.load_weights(os.path.join(
+        self.G_A2B.model.load_weights(os.path.join(
             path, f"G_A2B_model_weights_epoch_{epoch}.hdf5"))
-        self.G_B2A.load_weights(os.path.join(
+        self.G_B2A.model.load_weights(os.path.join(
             path, f"G_B2A_model_weights_epoch_{epoch}.hdf5"))
 
     def load_model_and_weights(self, model):
@@ -129,6 +149,3 @@ class cycleGAN(object):
             'generate_images', 'models', '{}.hdf5'.format(model.name))
         #model = model_from_json(path_to_model)
         model.load_weights(path_to_weights)
-
-    def summary(self):
-        return self.gan_model.summary()

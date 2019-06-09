@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from keras.layers import Input, Conv2D, Activation, Flatten, AveragePooling2D
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.engine.topology import Network
 from keras.layers.core import Dense
 from keras.models import Model
 
-import layers
+from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D
 
 
 class Discriminator(object):
@@ -14,6 +15,7 @@ class Discriminator(object):
         self.name = name
         self.mode = mode
         self.use_patchgan = use_patchgan
+        self.normalization = InstanceNormalization
 
         D = self.getModel(mode)
 
@@ -54,13 +56,13 @@ class Discriminator(object):
         # Specify input
         input_img = Input(shape=self.img_shape)
         # Layer 1 (#Instance normalization is not used for this layer)
-        x = layers.ck(input_img, 64, False)
+        x = ck(self.normalization, input_img, 64, False)
         # Layer 2
-        x = layers.ck(x, 128, True)
+        x = ck(self.normalization, x, 128, True)
         # Layer 3
-        x = layers.ck(x, 256, True)
+        x = ck(self.normalization, x, 256, True)
         # Layer 4
-        x = layers.ck(x, 512, True)
+        x = ck(self.normalization, x, 512, True)
         # Output layer
         if self.use_patchgan:
             x = Conv2D(filters=1, kernel_size=4, strides=1, padding='same')(x)
