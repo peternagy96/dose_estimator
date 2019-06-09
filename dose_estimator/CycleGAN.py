@@ -33,8 +33,8 @@ import load_data
 from tensorflow.python.client import device_lib
 
 
-if len(device_lib.list_local_devices()) == 3:
-    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+if len(device_lib.list_local_devices()) == 4:
+    os.environ["CUDA_VISIBLE_DEVICES"]="2"
 elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
@@ -44,7 +44,7 @@ np.random.seed(seed=12345)
 
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 result_name='testtest', mods=['CT', 'PET', 'SPECT']):
+                 result_name='new_filtered_details', mods=['CT', 'PET', 'SPECT']):
         
         # Used as storage folder name
         self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
@@ -96,7 +96,7 @@ class CycleGAN():
         self.supervised_weight = 10.0
 
         # Fetch data during training instead of pre caching all images - might be necessary for large datasets
-        if len(device_lib.list_local_devices()) == 3:
+        if len(device_lib.list_local_devices()) == 4:
             self.use_data_generator = False
         else:
             self.use_data_generator = False
@@ -228,7 +228,8 @@ class CycleGAN():
                                    nr_A_train_imgs=nr_A_train_imgs,
                                    nr_B_train_imgs=nr_B_train_imgs,
                                    nr_A_test_imgs=nr_A_test_imgs,
-                                   nr_B_test_imgs=nr_B_test_imgs)
+                                   nr_B_test_imgs=nr_B_test_imgs,
+                                   subfolder='data_filtered')
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]
@@ -712,11 +713,11 @@ class CycleGAN():
             num_train_samples = self.A_train.shape[0]
             num_test_samples = self.A_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples,pat_num):
+            for idx in np.arange(index, num_train_samples,pat_num[0]):
                 pred = self.G_A2B.predict(self.A_train[np.newaxis,idx,:,:]).squeeze()
                 self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png", mods)
             # process test images
-            for idx in np.arange(index, num_test_samples, pat_num):
+            for idx in np.arange(index, num_test_samples, pat_num[1]):
                 pred = self.G_A2B.predict(self.A_test[np.newaxis,idx,:,:]).squeeze()
                 self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png", mods)
 
@@ -750,19 +751,16 @@ class CycleGAN():
             gt = np.vstack((gt[...,0], gt[...,1]))
             error = np.abs(pred-gt)
 
-        border = np.ones((s, 20)) * 255
-        final_img = np.hstack((orig, border, pred, border, gt, error))
+        border = np.ones((s, 10)) * 255
+        final_img = np.hstack((orig, border, pred, border, gt, border, error))
         footer = np.ones((20, final_img.shape[1])) * 255
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        if len(mods) == 2:
-            final_img = cv2.putText(final_img,f"Input {mods[0]}",(25,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        elif len(mods) == 3:
-            final_img = cv2.putText(final_img,f"Input {mods[0]} (top) and {mods[1]} (bottom)",(5,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Error Map',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Input",(40,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(2*(int(s/2)+15),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Error Map',(10+3*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
