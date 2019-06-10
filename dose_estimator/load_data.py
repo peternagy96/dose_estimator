@@ -17,7 +17,7 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     # load files
     train_images = {}
     test_images = {}
-    if len(device_lib.list_local_devices()) == 4:
+    if len(device_lib.list_local_devices()) > 1:
         folder = os.path.join('/home/peter/data', subfolder, 'numpy')
     else:
         folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0], 'data', subfolder, 'numpy')

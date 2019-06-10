@@ -32,13 +32,14 @@ import load_data
 
 from tensorflow.python.client import device_lib
 
-
+"""
 if len(device_lib.list_local_devices()) == 4:
     os.environ["CUDA_VISIBLE_DEVICES"]="2"
 elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
-    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+    """
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 np.random.seed(seed=12345)
 
 
@@ -278,7 +279,7 @@ class CycleGAN():
             sys.stdout.flush()
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
             #test_path = '/home/peter/test_results/'
-            self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
+            self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval, mods=mods)
         elif mode == 'test':
             test_path = '/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
@@ -433,7 +434,7 @@ class CycleGAN():
 
 #===============================================================================
 # Training
-    def train(self, init_epoch, epochs, batch_size=1, save_interval=1):
+    def train(self, init_epoch, epochs, batch_size=1, save_interval=1, mods=['CT', 'PET', 'SPECT']):
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
