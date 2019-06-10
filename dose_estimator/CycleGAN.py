@@ -1024,14 +1024,14 @@ class CycleGAN():
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        model_path_w = 'saved_models/{}_weights_epoch_{}.hdf5'.format(model.name, epoch)
+        model_path_w = '{}/saved_models/{}_weights_epoch_{}.hdf5'.format(self.result_path, model.name, epoch)
         model.save_weights(model_path_w)
-        model_path_m = 'saved_models/{}_model_epoch_{}.json'.format(model.name, epoch)
+        model_path_m = '{}/saved_models/{}_model_epoch_{}.json'.format(self.result_path, model.name, epoch)
         model.save_weights(model_path_m)
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:
             json.dump(json_string, outfile)
-        print('{} has been saved in {}/saved_models/'.format(model.name, self.result_folder))
+        print('{} has been saved in {}/saved_models/'.format(model.name, self.result_path))
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
