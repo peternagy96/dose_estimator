@@ -39,13 +39,13 @@ elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
     """
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 np.random.seed(seed=12345)
 
 
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 result_name='new_filtered_details', mods=['CT', 'PET', 'SPECT']):
+                 result_name='CTPET', mods=['CT', 'PET', 'SPECT']):
         
         # Used as storage folder name
         self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
@@ -230,7 +230,8 @@ class CycleGAN():
                                    nr_B_train_imgs=nr_B_train_imgs,
                                    nr_A_test_imgs=nr_A_test_imgs,
                                    nr_B_test_imgs=nr_B_test_imgs,
-                                   subfolder='data_filtered')
+                                   subfolder='data_filtered',
+                                   mods=mods)
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]

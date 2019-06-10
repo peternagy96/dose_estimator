@@ -46,16 +46,18 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         testA_images.append(test_images[mod])
         trainB_images.append(train_images[mods[-1]])
         testB_images.append(test_images[mods[-1]])
+    """
     if len(trainA_images) == 1:
-        trainA_images = trainA_images[:, :, :, np.newaxis]
-        testA_images = testA_images[:, :, :, np.newaxis]
-        trainB_images = trainB_images[:, :, :, np.newaxis]
-        testB_images = testB_images[:, :, :, np.newaxis]
+        trainA_images = np.array(trainA_images)[:, :, :, np.newaxis]
+        testA_images = np.array(testA_images)[:, :, :, np.newaxis]
+        trainB_images = np.array(trainB_images)[:, :, :, np.newaxis]
+        testB_images = np.array(testB_images)[:, :, :, np.newaxis]
     else:
-        trainA_images = np.stack(trainA_images, axis=-1)
-        testA_images = np.stack(testA_images, axis=-1)
-        trainB_images = np.stack(trainB_images, axis=-1)
-        testB_images = np.stack(testB_images, axis=-1)
+    """
+    trainA_images = np.stack(trainA_images, axis=-1)
+    testA_images = np.stack(testA_images, axis=-1)
+    trainB_images = np.stack(trainB_images, axis=-1)
+    testB_images = np.stack(testB_images, axis=-1)
 
     return {"trainA_images": trainA_images, "trainB_images": trainB_images,
             "testA_images": testA_images, "testB_images": testB_images,
@@ -119,14 +121,11 @@ def create_image_array(image_list, image_path, nr_of_channels):
 def normalize_array(inp):
     array = inp.copy()
     for i in range(array.shape[0]):
-        pic = array[i, :, :]
-        if pic.min() != 0.0:
-            mask = (pic < 0.0)
-            pic[mask] = pic[mask] / np.abs(pic.min())
-        if pic.max() != 0.0:
-            mask = (pic > 0.0)
-            pic[mask] = pic[mask] / pic.max()
-        array[i:(i+1), :, :] = pic
+        pic = array[i,:,:]
+        mi = pic.min()
+        ma = pic.max()
+        pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+        array[i:(i+1),:,:] = pic
     return array
 
 
