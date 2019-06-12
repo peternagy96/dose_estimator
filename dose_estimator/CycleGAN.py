@@ -287,6 +287,10 @@ class CycleGAN():
         elif mode == 'test_jpg':
             #test_path = '/home/peter/test_results/'
             self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
+        elif mode == 'mip':
+            #test_path = '/home/peter/Documents/dose_estimator-git/data/data_filtered/'
+            test_path = '/home/peter/data/data_filtered/'
+            self.testMIP(test_path=test_path, mod_A=['CT', 'PET'], mod_B='dose')
 
 #===============================================================================
 # Architecture functions
@@ -771,16 +775,89 @@ class CycleGAN():
         if image.ndim > 2:
             rescaled = np.empty((image.shape))
             for i in range(image.shape[-1]):
-                rescaled[...,i] = (255.0 / (image[...,i].max() - image[...,i].min()) * (image[...,i] - image[...,i].min())).astype(np.uint8)
+                mi = image[...,i].min()
+                ma = image[...,i].max()
+                rescaled[...,i] = (255.0 / (ma - mi) * (image[...,i] - mi)).astype(np.uint8)
         else:
-            rescaled = (255.0 / (image.max() - image.min()) * (image - image.min())).astype(np.uint8)
+            mi = image.min()
+            ma = image.max()
+            rescaled = (255.0 / (ma - mi) * (image - mi)).astype(np.uint8)
         return rescaled
 
+    def normalize(self, inp):
+        array = inp.copy()
+        for i in range(array.shape[0]):
+            pic = array[i,:,:]
+            mi = pic.min()
+            ma = pic.max()
+            pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+            array[i:(i+1),:,:] = pic
+        return array
+
+# Create MIP of prediction and ground truth for all patients from NIFTI
+
+    def testMIP(self, test_path: str, mod_A, mod_B: str):
+     # load txt file of test file names
+        test_file = open(f"{test_path}/numpy/test.txt", "r", encoding='utf8')
+        train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
+        indices = test_file.read().splitlines()
+        #indices.append(train_file.read().splitlines())
+
+        if not os.path.exists(os.path.join(os.path.join(test_path, f"{self.date_time}_MIP"))):
+            os.makedirs(os.path.join(test_path, f"{self.date_time}_MIP"))
+
+        for idx, i in enumerate(indices):
+            print(f"Processing {i}...")
+
+            # load NIFTI files
+            if len(mod_A) == 2:
+                in1 = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_A[0])))
+                in2 = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_A[1])))
+                nifti_in_A = np.concatenate((in1, in2), axis=1)
+            else:
+                nifti_in_A = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_A[0])))
+
+            nifti_in_B = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_B)))
+
+             # predict output modality
+            print("    files loaded")
+            pred_B = np.empty(in1.shape)
+            for j in range(nifti_in_A.shape[0]):
+                pred_B[j] = self.G_A2B.predict(np.stack((in1[j], in2[j]), axis=2)[np.newaxis,:,:,:]).squeeze()[:,:,0]#.reshape((256,128))
+                #pred_B[j] = (255.0 / (pred_B[j].max() - pred_B[j].min()) * (pred_B[j] - pred_B[j].min())).astype(np.uint8)
+                #pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+
+            # create MIP for all images
+            print("    predictions done")
+            mip_ct = self.rescale(np.max(in1, axis=1))
+            mip_pet = self.rescale(np.max(in2, axis=1))
+            mip_orig = self.rescale(np.max(nifti_in_B, axis=1))
+            mip_pred = self.rescale(np.max(pred_B, axis=1))
+            error = np.abs(mip_pred - mip_orig)
+
+            # create plot
+            s = error.shape[0]
+            s2 = error.shape[1] + 10
+            border = np.ones((s, 10)) * 255
+            final_img = np.hstack((mip_ct, border, mip_pet, border, mip_orig, border, mip_pred, border, error))
+            footer = np.ones((20, final_img.shape[1])) * 255
+            final_img = np.vstack((final_img, footer))
+
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            final_img = cv2.putText(final_img,f"CT",(70,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,f"PET",(s2+60,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,f"GT SPECT",(2*s2+40,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,f"Gen SPECT",(3*s2+40,s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,'Error Map',(4*s2+40,s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+            path_out = f"{test_path}/{self.date_time}_MIP/{i}.png"
+            im = Image.fromarray(final_img).convert("L")
+            im.save(path_out)
+            
 
 
 # Test and return 3D NIFTI images ==============================================
 
-    def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 81):
+    def test3D(self, test_path: str, mod_A: str, mod_B: str):
         # load txt file of test file names
         test_file = open("/home/peter/data/test.txt", "r", encoding='utf8')
         indices = test_file.read().splitlines()
@@ -813,9 +890,9 @@ class CycleGAN():
 
     def read_nifti(self, path: str, idx: str, mod: str):
         if mod == 'dose':
-            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}.nii"))
+            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}.nii.gz"))
         else:
-            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}_{mod}.nii"))
+            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}_{mod.lower()}.nii.gz"))
         return nifti_in
 
     def predict_nifti(self, image, direction):
