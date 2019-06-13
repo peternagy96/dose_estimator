@@ -742,15 +742,15 @@ class CycleGAN():
     
     def save_basic_plot(self, orig, pred, gt, path_name, mods):
         if len(mods) == 2:
-            orig = self.rescale(orig.clip(min=0)).squeeze()
-            pred = self.rescale(pred.clip(min=0)).squeeze()
-            gt = self.rescale(gt.clip(min=0)).squeeze()
+            orig = self.rescale(orig).squeeze()
+            pred = self.rescale(pred).squeeze()
+            gt = self.rescale(gt).squeeze()
             s = gt.shape[0]
             error = np.abs(pred-gt)
         elif len(mods) == 3:
-            orig = self.rescale(orig.clip(min=0))
-            pred = self.rescale(pred.clip(min=0))
-            gt = self.rescale(gt.clip(min=0))
+            orig = self.rescale(orig)
+            pred = self.rescale(pred)
+            gt = self.rescale(gt)
             s = gt.shape[0] * 2
 
             orig = np.vstack((orig[...,0], orig[...,1]))
