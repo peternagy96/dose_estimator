@@ -6,6 +6,10 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.python.client import device_lib
 import cv2
 import random
+from scipy import ndarray
+import skimage as sk
+from skimage import transform
+from skimage import util
 #from sklearn.preprocessing import MinMaxScaler
 #from skimage.io import imread
 
@@ -36,6 +40,9 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
     for key in train_images.items():
         train_images[key[0]] = normalize_array(train_images[key[0]])
         test_images[key[0]] = normalize_array(test_images[key[0]])
+
+    # augment
+    train_images = augment(train_images)
 
     trainA_images = []
     testA_images = []
@@ -127,6 +134,20 @@ def normalize_array(inp):
         pic = ((2 * (pic - mi)) / (ma - mi)) - 1
         array[i:(i+1),:,:] = pic
     return array
+
+
+def augment(images):
+    out = {}
+    out.update(images)
+    for i in images.keys():       
+        out[i] = np.empty(images[i].shape)
+    for j in range(images[list(images.keys())[0]].shape[0]):
+        random_degree = random.uniform(-25, 25)
+        for i in images.keys(): 
+            out[i][j] = sk.transform.rotate(images[i][j], random_degree, mode='constant', cval=out[i][j].min())           
+    for i in images.keys(): 
+        out[i] = np.concatenate((images[i], out[i]), axis=0)
+    return out
 
 
 def upscale_array(array):

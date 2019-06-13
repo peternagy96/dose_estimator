@@ -39,7 +39,7 @@ elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
     """
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 np.random.seed(seed=12345)
 
 
@@ -61,7 +61,7 @@ class CycleGAN():
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
-        self.generator_iterations = 1  # Number of generator training iterations in each training loop
+        self.generator_iterations = 2  # Number of generator training iterations in each training loop
         self.discriminator_iterations = 1  # Number of generator training iterations in each training loop
         self.beta_1 = 0.5
         self.beta_2 = 0.999
@@ -289,7 +289,7 @@ class CycleGAN():
             self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
         elif mode == 'mip':
             #test_path = '/home/peter/Documents/dose_estimator-git/data/data_filtered/'
-            test_path = '/home/peter/data/data_filtered/'
+            test_path = '/home/peter/data/data_corrected/'
             self.testMIP(test_path=test_path, mod_A=['CT', 'PET'], mod_B='dose')
 
 #===============================================================================
@@ -758,16 +758,18 @@ class CycleGAN():
             gt = np.vstack((gt[...,0], gt[...,1]))
             error = np.abs(pred-gt)
 
+        s2 = gt.shape[0] * 2
+
         border = np.ones((s, 10)) * 255
         final_img = np.hstack((orig, border, pred, border, gt, border, error))
         footer = np.ones((20, final_img.shape[1])) * 255
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(final_img,f"Input",(40,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(2*(int(s/2)+15),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Error Map',(10+3*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Input",(40,s2+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(int(s2/2)+20,s2+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(2*(int(s2/2)+15),s2+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Error Map',(10+3*(int(s2/2)+20),s2+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
