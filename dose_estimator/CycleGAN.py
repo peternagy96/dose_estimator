@@ -224,6 +224,11 @@ class CycleGAN():
             nr_A_train_imgs = 0
             nr_B_train_imgs = 0
 
+        if mode == 'train':
+            augment = True
+        else:
+            augment = False
+
         data = load_data.load_data(nr_of_channels=self.channels,
                                    batch_size=self.batch_size,
                                    nr_A_train_imgs=nr_A_train_imgs,
@@ -231,7 +236,8 @@ class CycleGAN():
                                    nr_A_test_imgs=nr_A_test_imgs,
                                    nr_B_test_imgs=nr_B_test_imgs,
                                    subfolder='data_corrected',
-                                   mods=mods)
+                                   mods=mods,
+                                   augment=augment)
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]
@@ -288,8 +294,8 @@ class CycleGAN():
             #test_path = '/home/peter/test_results/'
             self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
         elif mode == 'mip':
-            #test_path = '/home/peter/Documents/dose_estimator-git/data/data_filtered/'
-            test_path = '/home/peter/data/data_corrected/'
+            test_path = '/home/peter/Documents/dose_estimator-git/data/data_corrected/'
+            #test_path = '/home/peter/data/data_corrected/'
             self.testMIP(test_path=test_path, mod_A=['CT', 'PET'], mod_B='dose')
 
 #===============================================================================
@@ -787,6 +793,16 @@ class CycleGAN():
             rescaled = (255.0 / (ma - mi) * (image - mi)).astype(np.uint8)
         return rescaled
 
+    def rescale_mip(self, image):
+        array = image.copy()
+        for i in range(array.shape[0]):
+            pic = array[i,:,:]
+            mi = pic.min()
+            ma = pic.max()
+            pic= (255.0 / (ma - mi) * (pic - mi))#.astype(np.uint8)
+            array[i:(i+1),:,:] = pic
+        return array
+
     def normalize(self, inp):
         array = inp.copy()
         for i in range(array.shape[0]):
@@ -829,13 +845,14 @@ class CycleGAN():
                 pred_B[j] = self.G_A2B.predict(np.stack((in1[j], in2[j]), axis=2)[np.newaxis,:,:,:]).squeeze()[:,:,0]#.reshape((256,128))
                 #pred_B[j] = (255.0 / (pred_B[j].max() - pred_B[j].min()) * (pred_B[j] - pred_B[j].min())).astype(np.uint8)
                 #pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+            pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
 
             # create MIP for all images
             print("    predictions done")
-            mip_ct = self.rescale(np.max(in1, axis=1))
-            mip_pet = self.rescale(np.max(in2, axis=1))
-            mip_orig = self.rescale(np.max(nifti_in_B, axis=1))
-            mip_pred = self.rescale(np.max(pred_B, axis=1))
+            mip_ct = np.max(self.rescale_mip(in1), axis=1)
+            mip_pet = np.max(self.rescale_mip(in2), axis=1)
+            mip_orig = np.max(self.rescale_mip(nifti_in_B), axis=1)
+            mip_pred = np.max(self.rescale_mip(pred_B), axis=1)
             error = np.abs(mip_pred - mip_orig)
 
             # create plot

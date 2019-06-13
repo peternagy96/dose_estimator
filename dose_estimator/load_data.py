@@ -16,7 +16,7 @@ from skimage import util
 
 def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
               nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='data_corrected',
-              generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0, mods=['CT', 'PET', 'SPECT']):
+              generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0, mods=['CT', 'PET', 'SPECT'], augment=False):
 
     # load files
     train_images = {}
@@ -42,7 +42,9 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         test_images[key[0]] = normalize_array(test_images[key[0]])
 
     # augment
-    train_images = augment(train_images)
+    if augment:
+        print("Augmenting training data...")
+        train_images = augment(train_images)
 
     trainA_images = []
     testA_images = []
