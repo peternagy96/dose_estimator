@@ -39,7 +39,7 @@ elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
     """
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 np.random.seed(seed=12345)
 
 
@@ -61,7 +61,7 @@ class CycleGAN():
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
-        self.generator_iterations = 2  # Number of generator training iterations in each training loop
+        self.generator_iterations = 1  # Number of generator training iterations in each training loop
         self.discriminator_iterations = 1  # Number of generator training iterations in each training loop
         self.beta_1 = 0.5
         self.beta_2 = 0.999
@@ -237,7 +237,7 @@ class CycleGAN():
                                    nr_B_test_imgs=nr_B_test_imgs,
                                    subfolder='data_corrected',
                                    mods=mods,
-                                   augment=augment)
+                                   aug=augment)
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]
@@ -294,8 +294,8 @@ class CycleGAN():
             #test_path = '/home/peter/test_results/'
             self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
         elif mode == 'mip':
-            test_path = '/home/peter/Documents/dose_estimator-git/data/data_corrected/'
-            #test_path = '/home/peter/data/data_corrected/'
+            #test_path = '/home/peter/Documents/dose_estimator-git/data/data_corrected/'
+            test_path = '/home/peter/data/data_corrected/'
             self.testMIP(test_path=test_path, mod_A=['CT', 'PET'], mod_B='dose')
 
 #===============================================================================
