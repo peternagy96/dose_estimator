@@ -1,9 +1,12 @@
 # !/usr/bin/env python3
 from models.gan import cycleGAN
 #from trainer import Trainer
+from settings import getSettings
 
 if __name__ == '__main__':
     # import settings from file
+    settingsPath = r"C:\Users\peter\Documents\Thesis\dose_estimator-git\dose_estimator\settings.csv"
+    settings = getSettings(settingsPath)
 
     # import data
 
