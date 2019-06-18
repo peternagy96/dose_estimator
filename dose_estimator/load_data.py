@@ -6,25 +6,31 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.python.client import device_lib
 import cv2
 import random
+from scipy import ndarray
+import skimage as sk
+from skimage import transform
+from skimage import util
 #from sklearn.preprocessing import MinMaxScaler
 #from skimage.io import imread
 
 
 def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_imgs=None,
-              nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='data_filtered',
-              generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0, mods=['CT', 'PET', 'SPECT']):
+              nr_A_test_imgs=None, nr_B_test_imgs=None, subfolder='data_corrected',
+              generator=False, D_model=None, use_multiscale_discriminator=False, use_supervised_learning=False, REAL_LABEL=1.0, mods=['CT', 'PET', 'SPECT'], aug=False):
 
     # load files
     train_images = {}
     test_images = {}
-    folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[
-                          :-1][0], 'data', subfolder, 'numpy')
-    train_images['CT'] = np.load(os.path.join(folder, 'ct_train.npy'))
-    train_images['PET'] = np.load(os.path.join(folder, 'pet_train.npy'))
-    train_images['SPECT'] = np.load(os.path.join(folder, 'dose_train.npy'))
-    test_images['CT'] = np.load(os.path.join(folder, 'ct_test.npy'))
-    test_images['PET'] = np.load(os.path.join(folder, 'pet_test.npy'))
-    test_images['SPECT'] = np.load(os.path.join(folder, 'dose_test.npy'))
+    if len(device_lib.list_local_devices()) > 1:
+        folder = os.path.join('/home/peter/data', subfolder, 'numpy')
+    else:
+        folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[:-1][0], 'data', subfolder, 'numpy')
+    train_images['CT'] = np.load(os.path.join(folder, 'ct_train.npy')).reshape((-1,128,128))
+    train_images['PET'] = np.load(os.path.join(folder, 'pet_train.npy')).reshape((-1,128,128))
+    train_images['SPECT'] = np.load(os.path.join(folder, 'dose_train.npy')).reshape((-1,128,128))
+    test_images['CT'] = np.load(os.path.join(folder, 'ct_test.npy')).reshape((-1,128,128))
+    test_images['PET'] = np.load(os.path.join(folder, 'pet_test.npy')).reshape((-1,128,128))
+    test_images['SPECT'] = np.load(os.path.join(folder, 'dose_test.npy')).reshape((-1,128,128))
     train_file = open(os.path.join(folder, "train.txt"), "r", encoding='utf8')
     train_image_names = train_file.read().splitlines()
     test_file = open(os.path.join(folder, "test.txt"), "r", encoding='utf8')
@@ -35,6 +41,11 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         train_images[key[0]] = normalize_array(train_images[key[0]])
         test_images[key[0]] = normalize_array(test_images[key[0]])
 
+    # augment
+    if aug:
+        print("Augmenting training data...")
+        train_images = augment(train_images)
+
     trainA_images = []
     testA_images = []
     trainB_images = []
@@ -44,16 +55,18 @@ def load_data(nr_of_channels=1, batch_size=1, nr_A_train_imgs=None, nr_B_train_i
         testA_images.append(test_images[mod])
         trainB_images.append(train_images[mods[-1]])
         testB_images.append(test_images[mods[-1]])
+    """
     if len(trainA_images) == 1:
-        trainA_images = trainA_images[:, :, :, np.newaxis]
-        testA_images = testA_images[:, :, :, np.newaxis]
-        trainB_images = trainB_images[:, :, :, np.newaxis]
-        testB_images = testB_images[:, :, :, np.newaxis]
+        trainA_images = np.array(trainA_images)[:, :, :, np.newaxis]
+        testA_images = np.array(testA_images)[:, :, :, np.newaxis]
+        trainB_images = np.array(trainB_images)[:, :, :, np.newaxis]
+        testB_images = np.array(testB_images)[:, :, :, np.newaxis]
     else:
-        trainA_images = np.stack(trainA_images, axis=-1)
-        testA_images = np.stack(testA_images, axis=-1)
-        trainB_images = np.stack(trainB_images, axis=-1)
-        testB_images = np.stack(testB_images, axis=-1)
+    """
+    trainA_images = np.stack(trainA_images, axis=-1)
+    testA_images = np.stack(testA_images, axis=-1)
+    trainB_images = np.stack(trainB_images, axis=-1)
+    testB_images = np.stack(testB_images, axis=-1)
 
     return {"trainA_images": trainA_images, "trainB_images": trainB_images,
             "testA_images": testA_images, "testB_images": testB_images,
@@ -117,15 +130,26 @@ def create_image_array(image_list, image_path, nr_of_channels):
 def normalize_array(inp):
     array = inp.copy()
     for i in range(array.shape[0]):
-        pic = array[i, :, :]
-        if pic.min() != 0.0:
-            mask = (pic < 0.0)
-            pic[mask] = pic[mask] / np.abs(pic.min())
-        if pic.max() != 0.0:
-            mask = (pic > 0.0)
-            pic[mask] = pic[mask] / pic.max()
-        array[i:(i+1), :, :] = pic
+        pic = array[i,:,:]
+        mi = pic.min()
+        ma = pic.max()
+        pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+        array[i:(i+1),:,:] = pic
     return array
+
+
+def augment(images):
+    out = {}
+    out.update(images)
+    for i in images.keys():       
+        out[i] = np.empty(images[i].shape)
+    for j in range(images[list(images.keys())[0]].shape[0]):
+        random_degree = random.uniform(-25, 25)
+        for i in images.keys(): 
+            out[i][j] = sk.transform.rotate(images[i][j], random_degree, mode='constant', cval=out[i][j].min())           
+    for i in images.keys(): 
+        out[i] = np.concatenate((images[i], out[i]), axis=0)
+    return out
 
 
 def upscale_array(array):
