@@ -1,3 +1,0 @@
-Nr.,Mode,Generator,G LR,D LR,Epochs,Mods,Norm,Augment,Resize Conv
-1,3D,basic,3.00E-04,3.00E-04,200,"CT, PET, SPECT",Y,Y,N
-2,2D,basic,3.00E-04,3.00E-04,200,"CT, PET, SPECT",N,Y,N
