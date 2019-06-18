@@ -32,19 +32,20 @@ import load_data
 
 from tensorflow.python.client import device_lib
 
-
-if len(device_lib.list_local_devices()) == 3:
-    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+"""
+if len(device_lib.list_local_devices()) == 4:
+    os.environ["CUDA_VISIBLE_DEVICES"]="2"
 elif sys.platform[0] == 'w':
     os.environ["CUDA_VISIBLE_DEVICES"]="0"
 else:
-    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+    """
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 np.random.seed(seed=12345)
 
 
 class CycleGAN():
     def __init__(self, model_path=None, load_epoch=None, mode='train', lr_D=3e-4, lr_G=3e-4, image_shape=(128, 128, 2), # orig: lr_G=3e-4
-                 result_name='testtest', mods=['CT', 'PET', 'SPECT']):
+                 result_name='CTPET', mods=['CT', 'PET', 'SPECT']):
         
         # Used as storage folder name
         self.date_time = time.strftime('%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
@@ -96,7 +97,7 @@ class CycleGAN():
         self.supervised_weight = 10.0
 
         # Fetch data during training instead of pre caching all images - might be necessary for large datasets
-        if len(device_lib.list_local_devices()) == 3:
+        if len(device_lib.list_local_devices()) == 4:
             self.use_data_generator = False
         else:
             self.use_data_generator = False
@@ -200,6 +201,8 @@ class CycleGAN():
                              loss_weights=compile_weights)
         # self.G_A2B.summary()
 
+
+
         # ======= Data ==========
         # Use 'None' to fetch all available images
         nr_A_train_imgs = None
@@ -221,12 +224,20 @@ class CycleGAN():
             nr_A_train_imgs = 0
             nr_B_train_imgs = 0
 
+        if mode == 'train':
+            augment = True
+        else:
+            augment = False
+
         data = load_data.load_data(nr_of_channels=self.channels,
                                    batch_size=self.batch_size,
                                    nr_A_train_imgs=nr_A_train_imgs,
                                    nr_B_train_imgs=nr_B_train_imgs,
                                    nr_A_test_imgs=nr_A_test_imgs,
-                                   nr_B_test_imgs=nr_B_test_imgs)
+                                   nr_B_test_imgs=nr_B_test_imgs,
+                                   subfolder='data_corrected',
+                                   mods=mods,
+                                   aug=augment)
 
         self.A_train = data["trainA_images"]
         self.B_train = data["trainB_images"]
@@ -275,13 +286,17 @@ class CycleGAN():
             sys.stdout.flush()
             #plot_model(self.G_A2B, to_file='GA2B_expanded_model_new.png', show_shapes=True)
             #test_path = '/home/peter/test_results/'
-            self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval)
+            self.train(init_epoch=self.init_epoch, epochs=self.epochs, batch_size=self.batch_size, save_interval=self.save_interval, mods=mods)
         elif mode == 'test':
             test_path = '/home/peter/testdata'
             self.test3D(test_path=test_path, mod_A='PET', mod_B='dose')
         elif mode == 'test_jpg':
             #test_path = '/home/peter/test_results/'
             self.test_jpg(epoch=load_epoch, mode='forward', index=40, pat_num=[32,5], mods=mods)
+        elif mode == 'mip':
+            #test_path = '/home/peter/Documents/dose_estimator-git/data/data_corrected/'
+            test_path = '/home/peter/data/data_corrected/'
+            self.testMIP(test_path=test_path, mod_A=['CT', 'PET'], mod_B='dose')
 
 #===============================================================================
 # Architecture functions
@@ -430,7 +445,7 @@ class CycleGAN():
 
 #===============================================================================
 # Training
-    def train(self, init_epoch, epochs, batch_size=1, save_interval=1):
+    def train(self, init_epoch, epochs, batch_size=1, save_interval=1, mods=['CT', 'PET', 'SPECT']):
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
@@ -710,11 +725,11 @@ class CycleGAN():
             num_train_samples = self.A_train.shape[0]
             num_test_samples = self.A_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples,pat_num):
+            for idx in np.arange(index, num_train_samples,pat_num[0]):
                 pred = self.G_A2B.predict(self.A_train[np.newaxis,idx,:,:]).squeeze()
                 self.save_basic_plot(self.A_train[idx], pred, self.B_train[idx], f"{path_name}/train_{idx}.png", mods)
             # process test images
-            for idx in np.arange(index, num_test_samples, pat_num):
+            for idx in np.arange(index, num_test_samples, pat_num[1]):
                 pred = self.G_A2B.predict(self.A_test[np.newaxis,idx,:,:]).squeeze()
                 self.save_basic_plot(self.A_test[idx], pred, self.B_test[idx], f"{path_name}/test_{idx}.png", mods)
 
@@ -733,14 +748,15 @@ class CycleGAN():
     
     def save_basic_plot(self, orig, pred, gt, path_name, mods):
         if len(mods) == 2:
-            orig = self.rescale(orig.clip(min=0)).squeeze()
-            pred = self.rescale(pred.clip(min=0)).squeeze()
-            gt = self.rescale(gt.clip(min=0)).squeeze()
+            orig = self.rescale(orig).squeeze()
+            pred = self.rescale(pred).squeeze()
+            gt = self.rescale(gt).squeeze()
             s = gt.shape[0]
+            error = np.abs(pred-gt)
         elif len(mods) == 3:
-            orig = self.rescale(orig.clip(min=0))
-            pred = self.rescale(pred.clip(min=0))
-            gt = self.rescale(gt.clip(min=0))
+            orig = self.rescale(orig)
+            pred = self.rescale(pred)
+            gt = self.rescale(gt)
             s = gt.shape[0] * 2
 
             orig = np.vstack((orig[...,0], orig[...,1]))
@@ -748,19 +764,18 @@ class CycleGAN():
             gt = np.vstack((gt[...,0], gt[...,1]))
             error = np.abs(pred-gt)
 
-        border = np.ones((s, 20)) * 255
-        final_img = np.hstack((orig, border, pred, border, gt, error))
+        s2 = gt.shape[0] * 2
+
+        border = np.ones((s, 10)) * 255
+        final_img = np.hstack((orig, border, pred, border, gt, border, error))
         footer = np.ones((20, final_img.shape[1])) * 255
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        if len(mods) == 2:
-            final_img = cv2.putText(final_img,f"Input {mods[0]}",(25,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        elif len(mods) == 3:
-            final_img = cv2.putText(final_img,f"Input {mods[0]} (top) and {mods[1]} (bottom)",(5,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(10+int(s/2)+20,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img,'Error Map',(10+2*(int(s/2)+20),s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Input",(40,s2+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Generated {mods[-1]}",(int(s2/2)+20,s2+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,f"Ground Truth {mods[-1]}",(2*(int(s2/2)+15),s2+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img,'Error Map',(10+3*(int(s2/2)+20),s2+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
  
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
@@ -769,16 +784,100 @@ class CycleGAN():
         if image.ndim > 2:
             rescaled = np.empty((image.shape))
             for i in range(image.shape[-1]):
-                rescaled[...,i] = (255.0 / (image[...,i].max() - image[...,i].min()) * (image[...,i] - image[...,i].min())).astype(np.uint8)
+                mi = image[...,i].min()
+                ma = image[...,i].max()
+                rescaled[...,i] = (255.0 / (ma - mi) * (image[...,i] - mi)).astype(np.uint8)
         else:
-            rescaled = (255.0 / (image.max() - image.min()) * (image - image.min())).astype(np.uint8)
+            mi = image.min()
+            ma = image.max()
+            rescaled = (255.0 / (ma - mi) * (image - mi)).astype(np.uint8)
         return rescaled
 
+    def rescale_mip(self, image):
+        array = image.copy()
+        for i in range(array.shape[0]):
+            pic = array[i,:,:]
+            mi = pic.min()
+            ma = pic.max()
+            pic= (255.0 / (ma - mi) * (pic - mi))#.astype(np.uint8)
+            array[i:(i+1),:,:] = pic
+        return array
+
+    def normalize(self, inp):
+        array = inp.copy()
+        for i in range(array.shape[0]):
+            pic = array[i,:,:]
+            mi = pic.min()
+            ma = pic.max()
+            pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+            array[i:(i+1),:,:] = pic
+        return array
+
+# Create MIP of prediction and ground truth for all patients from NIFTI
+
+    def testMIP(self, test_path: str, mod_A, mod_B: str):
+     # load txt file of test file names
+        test_file = open(f"{test_path}/numpy/test.txt", "r", encoding='utf8')
+        train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
+        indices = test_file.read().splitlines()
+        #indices.append(train_file.read().splitlines())
+
+        if not os.path.exists(os.path.join(os.path.join(test_path, f"{self.date_time}_MIP"))):
+            os.makedirs(os.path.join(test_path, f"{self.date_time}_MIP"))
+
+        for idx, i in enumerate(indices):
+            print(f"Processing {i}...")
+
+            # load NIFTI files
+            if len(mod_A) == 2:
+                in1 = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_A[0])))
+                in2 = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_A[1])))
+                nifti_in_A = np.concatenate((in1, in2), axis=1)
+            else:
+                nifti_in_A = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_A[0])))
+
+            nifti_in_B = self.normalize(sitk.GetArrayFromImage(self.read_nifti(test_path, i, mod_B)))
+
+             # predict output modality
+            print("    files loaded")
+            pred_B = np.empty(in1.shape)
+            for j in range(nifti_in_A.shape[0]):
+                pred_B[j] = self.G_A2B.predict(np.stack((in1[j], in2[j]), axis=2)[np.newaxis,:,:,:]).squeeze()[:,:,0]#.reshape((256,128))
+                #pred_B[j] = (255.0 / (pred_B[j].max() - pred_B[j].min()) * (pred_B[j] - pred_B[j].min())).astype(np.uint8)
+                #pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+            pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+
+            # create MIP for all images
+            print("    predictions done")
+            mip_ct = np.max(self.rescale_mip(in1), axis=1)
+            mip_pet = np.max(self.rescale_mip(in2), axis=1)
+            mip_orig = np.max(self.rescale_mip(nifti_in_B), axis=1)
+            mip_pred = np.max(self.rescale_mip(pred_B), axis=1)
+            error = np.abs(mip_pred - mip_orig)
+
+            # create plot
+            s = error.shape[0]
+            s2 = error.shape[1] + 10
+            border = np.ones((s, 10)) * 255
+            final_img = np.hstack((mip_ct, border, mip_pet, border, mip_orig, border, mip_pred, border, error))
+            footer = np.ones((20, final_img.shape[1])) * 255
+            final_img = np.vstack((final_img, footer))
+
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            final_img = cv2.putText(final_img,f"CT",(70,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,f"PET",(s2+60,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,f"GT SPECT",(2*s2+40,s+14), font, 0.4, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,f"Gen SPECT",(3*s2+40,s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(final_img,'Error Map',(4*s2+40,s+14), font, 0.35, (0,0,0), 1, cv2.LINE_AA)
+            path_out = f"{test_path}/{self.date_time}_MIP/{i}.png"
+            im = Image.fromarray(final_img).convert("L")
+            im.save(path_out)
+            
 
 
 # Test and return 3D NIFTI images ==============================================
 
-    def test3D(self, test_path: str, mod_A: str, mod_B: str, dim3: int = 81):
+    def test3D(self, test_path: str, mod_A: str, mod_B: str):
         # load txt file of test file names
         test_file = open("/home/peter/data/test.txt", "r", encoding='utf8')
         indices = test_file.read().splitlines()
@@ -811,9 +910,9 @@ class CycleGAN():
 
     def read_nifti(self, path: str, idx: str, mod: str):
         if mod == 'dose':
-            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}.nii"))
+            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}.nii.gz"))
         else:
-            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}_{mod}.nii"))
+            nifti_in = sitk.ReadImage(os.path.join(path, f"{idx}_{mod.lower()}.nii.gz"))
         return nifti_in
 
     def predict_nifti(self, image, direction):
@@ -1023,14 +1122,14 @@ class CycleGAN():
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        model_path_w = 'saved_models/{}_weights_epoch_{}.hdf5'.format(model.name, epoch)
+        model_path_w = '{}/saved_models/{}_weights_epoch_{}.hdf5'.format(self.result_path, model.name, epoch)
         model.save_weights(model_path_w)
-        model_path_m = 'saved_models/{}_model_epoch_{}.json'.format(model.name, epoch)
+        model_path_m = '{}/saved_models/{}_model_epoch_{}.json'.format(self.result_path, model.name, epoch)
         model.save_weights(model_path_m)
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:
             json.dump(json_string, outfile)
-        print('{} has been saved in {}/saved_models/'.format(model.name, self.result_folder))
+        print('{} has been saved in {}/saved_models/'.format(model.name, self.result_path))
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
