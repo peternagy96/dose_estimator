@@ -11,13 +11,15 @@ from .losses import lse, cycle_loss
 
 
 class cycleGAN(object):
-    def __init__(self, result_name, mode_G='basic', mode_D='basic', model_path: str = None,
-                 lr_D: int = 3e-4, lr_G: int = 3e-4, image_shape: tuple = (128, 128, 2)):
+    def __init__(self, result_name, dim, mode_G='basic', mode_D='basic',
+                 model_path: str = None, image_shape: tuple = (128, 128, 2)):
         # Used as storage folder name
         self.date_time = time.strftime(
             '%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
         self.result_path = os.path.join(os.path.split(os.path.dirname(
             os.path.realpath(__file__)))[:-1][0], 'results', self.date_time)
+
+        self.model_path = model_path
 
         self.img_shape = image_shape
         self.channels = self.img_shape[-1]
@@ -26,14 +28,6 @@ class cycleGAN(object):
         self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
         self.lambda_2 = 8.0  # Cyclic loss weight B_2_A
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
-        self.learning_rate_D = lr_D
-        self.learning_rate_G = lr_G
-        # Number of generator training iterations in each training loop
-        self.generator_iterations = 1
-        # Number of generator training iterations in each training loop
-        self.discriminator_iterations = 1
-        self.beta_1 = 0.5
-        self.beta_2 = 0.999
 
         # Identity loss - sometimes send images from B to G_A2B (and the opposite) to teach identity mappings
         self.use_identity_learning = True
@@ -133,7 +127,8 @@ class cycleGAN(object):
             json.dump(json_string, outfile)
         print('{} has been saved in saved_models/{}/'.format(model.name, self.date_time))
 
-    def load_model_from_files(self, path, epoch):
+    def load_model_from_files(self, epoch):
+        path = self.model_path
         self.D_A.model.load_weights(os.path.join(
             path, f"D_A_model_weights_epoch_{epoch}.hdf5"))
         self.D_B.model.load_weights(os.path.join(
@@ -142,10 +137,3 @@ class cycleGAN(object):
             path, f"G_A2B_model_weights_epoch_{epoch}.hdf5"))
         self.G_B2A.model.load_weights(os.path.join(
             path, f"G_B2A_model_weights_epoch_{epoch}.hdf5"))
-
-    def load_model_and_weights(self, model):
-        #path_to_model = os.path.join('generate_images', 'models', '{}.json'.format(model.name))
-        path_to_weights = os.path.join(
-            'generate_images', 'models', '{}.hdf5'.format(model.name))
-        #model = model_from_json(path_to_model)
-        model.load_weights(path_to_weights)

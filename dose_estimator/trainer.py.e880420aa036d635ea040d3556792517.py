@@ -32,7 +32,6 @@ from random import randint
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 class Trainer(object):
     def __init__(self, model, init_epoch=0, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10):
         self.learning_rate_D = lr_D
@@ -147,6 +146,7 @@ class Trainer(object):
 
 # ===============================================================================
 # Training
+
 
     def train(self, init_epoch, epochs, model, data):
         batch_size = self.batch_size
@@ -447,6 +447,7 @@ class Trainer(object):
 # ===============================================================================
 # Help functions
 
+
     def get_lr_linear_decay_rate(self):
         # Calculate decay rates
         if self.use_data_generator:
@@ -489,7 +490,6 @@ class Trainer(object):
 
 # ===============================================================================
 # Save and load
-
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
