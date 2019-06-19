@@ -11,13 +11,8 @@ from .losses import lse, cycle_loss
 
 
 class cycleGAN(object):
-    def __init__(self, result_name, dim, mode_G='basic', mode_D='basic',
+    def __init__(self, dim, mode_G='basic', mode_D='basic',
                  model_path: str = None, image_shape: tuple = (128, 128, 2)):
-        # Used as storage folder name
-        self.date_time = time.strftime(
-            '%Y%m%d-%H%M%S', time.localtime()) + '_' + result_name
-        self.result_path = os.path.join(os.path.split(os.path.dirname(
-            os.path.realpath(__file__)))[:-1][0], 'results', self.date_time)
 
         self.model_path = model_path
 
@@ -42,20 +37,24 @@ class cycleGAN(object):
     def buildBasic(self, mode_G, mode_D):
         self.D_A = Discriminator(name='A', mode=mode_D, use_patchgan=True,
                                  img_shape=(128, 128, 2))
-        self.D_B = Discriminator(name='A', mode=mode_D, use_patchgan=True,
+        self.D_B = Discriminator(name='B', mode=mode_D, use_patchgan=True,
                                  img_shape=(128, 128, 2))
         self.G_A2B = Generator(name='A2B', mode=mode_G, use_resize_convolution=False,
                                use_identity_learning=True, img_shape=(128, 128, 2))
-        self.G_B2A = Generator(name='A2B', mode=mode_G, use_resize_convolution=False,
+        self.G_B2A = Generator(name='B2A', mode=mode_G, use_resize_convolution=False,
                                use_identity_learning=True, img_shape=(128, 128, 2))
 
-    def compile(self, opt_G, opt_D):
+    def compile(self, opt_G, opt_D, use_identity_learning):
         self.D_A.model.compile(optimizer=opt_D,
                                loss=lse,
                                loss_weights=self.D_A.loss_weights)
         self.D_B.model.compile(optimizer=opt_D,
                                loss=lse,
                                loss_weights=self.D_B.loss_weights)
+
+        if use_identity_learning:
+            self.G_A2B.model.compile(optimizer=opt_G, loss='MAE')
+            self.G_B2A.model.compile(optimizer=opt_G, loss='MAE')
 
         real_A = Input(shape=self.img_shape, name='real_A')
         real_B = Input(shape=self.img_shape, name='real_B')

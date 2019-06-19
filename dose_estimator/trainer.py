@@ -7,6 +7,7 @@ import csv
 import json
 import time
 import datetime
+import math
 from collections import OrderedDict
 from keras.optimizers import Adam
 
@@ -17,7 +18,7 @@ from helpers.image_pool import ImagePool
 
 
 class Trainer(object):
-    def __init__(self, model, init_epoch=None, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10):
+    def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10):
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
         # Number of generator training iterations in each training loop
@@ -28,7 +29,7 @@ class Trainer(object):
         self.beta_2 = 0.999
         self.batch_size = batch_size
         self.epochs = epochs  # choose multiples of 25 since the models are save each 25th epoch
-        if init_epoch is not None:
+        if not math.isnan(init_epoch):
             self.init_epoch = int(init_epoch)
             self.epochs = self.epochs + self.init_epoch
         else:
@@ -49,18 +50,15 @@ class Trainer(object):
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
 
         # Used as storage folder name
-        self.date_time = time.strftime(
-            '%Y%m%d-%H%M%S', time.localtime()) + date_time_string_addition
+        self.result_name = result_name + '_' + time.strftime('%Y%m%d-%H%M%S', time.localtime()) 
+        self.result_path = os.path.join(os.getcwd(), 'results', self.result_name)
 
         # optimizer
         self.opt_D = Adam(self.learning_rate_D, self.beta_1, self.beta_2)
         self.opt_G = Adam(self.learning_rate_G, self.beta_1, self.beta_2)
 
-        # ======= Create designated run folder and store meta data ==========
-        directory = os.path.join('images', self.date_time)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        self.writeMetaDataToJSON()
+        #compile model
+        model.compile(self.opt_G, self.opt_D, self.use_identity_learning)
 
         # ======= Avoid pre-allocating GPU memory ==========
         # TensorFlow wizardry
@@ -73,26 +71,33 @@ class Trainer(object):
         K.tensorflow_backend.set_session(tf.Session(config=config))
         K.tensorflow_backend.get_session().run(tf.global_variables_initializer())
 
-    def train(self, init_epoch, epochs, model, data):
+    def train(self, data, model):
         batch_size = self.batch_size
         save_interval = self.save_interval
+        epochs = self.epochs
+        init_epoch = self.init_epoch
+
+        # ======= Create designated run folder and store meta data ==========
+        if not os.path.exists(self.result_path):
+            os.makedirs(self.result_path)
+        self.writeMetaDataToJSON(model, data)
 
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
-            synthetic_images_B = model.G_A2B.predict(real_images_A)
-            synthetic_images_A = model.G_B2A.predict(real_images_B)
+            synthetic_images_B = model.G_A2B.model.predict(real_images_A)
+            synthetic_images_A = model.G_B2A.model.predict(real_images_B)
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
 
             for _ in range(self.discriminator_iterations):
-                DA_loss_real = model.D_A.train_on_batch(
+                DA_loss_real = model.D_A.model.train_on_batch(
                     x=real_images_A, y=ones_A)
-                DB_loss_real = model.D_B.train_on_batch(
+                DB_loss_real = model.D_B.model.train_on_batch(
                     x=real_images_B, y=ones_B)
-                DA_loss_synthetic = model.D_A.train_on_batch(
+                DA_loss_synthetic = model.D_A.model.train_on_batch(
                     x=synthetic_images_A, y=zeros_B)
-                DB_loss_synthetic = model.D_B.train_on_batch(
+                DB_loss_synthetic = model.D_B.model.train_on_batch(
                     x=synthetic_images_B, y=zeros_A)
                 if model.use_multiscale_discriminator:
                     DA_loss = sum(DA_loss_real) + sum(DA_loss_synthetic)
@@ -135,17 +140,17 @@ class Trainer(object):
 
             # Identity training
             if self.use_identity_learning and loop_index % self.identity_mapping_modulus == 0:
-                G_A2B_identity_loss = model.G_A2B.train_on_batch(
+                G_A2B_identity_loss = model.G_A2B.model.train_on_batch(
                     x=real_images_B, y=real_images_B)
-                G_B2A_identity_loss = model.G_B2A.train_on_batch(
+                G_B2A_identity_loss = model.G_B2A.model.train_on_batch(
                     x=real_images_A, y=real_images_A)
                 print('G_A2B_identity_loss:', G_A2B_identity_loss)
                 print('G_B2A_identity_loss:', G_B2A_identity_loss)
 
             # Update learning rates
             if self.use_linear_decay and epoch > self.decay_epoch:
-                self.update_lr(model.D_A, decay_D)
-                self.update_lr(model.D_B, decay_D)
+                self.update_lr(model.D_A.model, decay_D)
+                self.update_lr(model.D_B.model, decay_D)
                 self.update_lr(model.G_model, decay_G)
 
             # Store training data
@@ -248,9 +253,9 @@ class Trainer(object):
                 # labels
                 if model.use_multiscale_discriminator:
                     label_shape1 = (len(real_images_A),) + \
-                        model.D_A.output_shape[0][1:]
+                        model.D_A.model.output_shape[0][1:]
                     label_shape2 = (len(real_images_B),) + \
-                        model.D_B.output_shape[0][1:]
+                        model.D_B.model.output_shape[0][1:]
                     # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
                     ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
                     ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
@@ -262,9 +267,9 @@ class Trainer(object):
                     zeros = [zeros1, zeros2]  # , zeros4]
                 else:
                     label_shape_A = (len(real_images_A),) + \
-                        model.D_A.output_shape[1:]
+                        model.D_A.model.output_shape[1:]
                     label_shape_B = (len(real_images_B),) + \
-                        model.D_B.output_shape[1:]
+                        model.D_B.model.output_shape[1:]
                     ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
                     ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
                     zeros_A = ones_A * 0
@@ -283,10 +288,10 @@ class Trainer(object):
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
-                model.save(model.D_A, epoch)
-                model.save(model.D_B, epoch)
-                model.save(model.G_A2B, epoch)
-                model.save(model.G_B2A, epoch)
+                model.save(model.D_A.model, epoch)
+                model.save(model.D_B.model, epoch)
+                model.save(model.G_A2B.model, epoch)
+                model.save(model.G_B2A.model, epoch)
 
             training_history = {
                 'DA_losses': DA_losses,
@@ -350,44 +355,40 @@ class Trainer(object):
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
-        with open('images/{}/loss_output.csv'.format(self.date_time), 'w') as csv_file:
+        with open('{}/loss_output.csv'.format(self.result_path), 'w') as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
             writer.writerow(keys)
             writer.writerows(zip(*[history[key] for key in keys]))
 
-    def writeMetaDataToJSON(self):
-
-        directory = os.path.join('images', self.date_time)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        # Save meta_data
+    def writeMetaDataToJSON(self, model, data_orig):
         data = {}
         data['meta_data'] = []
         data['meta_data'].append({
-            'img shape: height,width,channels': self.img_shape,
+            'img shape: height,width,channels': model.img_shape,
             'batch size': self.batch_size,
             'save interval': self.save_interval,
-            'normalization function': str(self.normalization),
-            'lambda_1': self.lambda_1,
-            'lambda_2': self.lambda_2,
-            'lambda_d': self.lambda_D,
+            'lambda_1': model.lambda_1,
+            'lambda_2': model.lambda_2,
+            'lambda_d': model.lambda_D,
             'learning_rate_D': self.learning_rate_D,
             'learning rate G': self.learning_rate_G,
             'epochs': self.epochs,
             'use linear decay on learning rates': self.use_linear_decay,
-            'use multiscale discriminator': self.use_multiscale_discriminator,
+            'use multiscale discriminator': model.use_multiscale_discriminator,
             'epoch where learning rate linear decay is initialized (if use_linear_decay)': self.decay_epoch,
             'generator iterations': self.generator_iterations,
             'discriminator iterations': self.discriminator_iterations,
-            'use patchGan in discriminator': self.use_patchgan,
+            'use patchGan in discriminator': model.use_patchgan,
             'beta 1': self.beta_1,
             'beta 2': self.beta_2,
             'REAL_LABEL': self.REAL_LABEL,
-            'number of A train examples': len(self.A_train),
-            'number of B train examples': len(self.B_train),
-            'number of A test examples': len(self.A_test),
-            'number of B test examples': len(self.B_test),
+            'data normalized': str(data_orig.norm),
+            'data augmented': str(data_orig.aug),
+            'number of A train examples': len(data_orig.A_train),
+            'number of B train examples': len(data_orig.B_train),
+            'number of A test examples': len(data_orig.A_test),
+            'number of B test examples': len(data_orig.B_test),
         })
 
-        with open('images/{}/meta_data.json'.format(self.date_time), 'w') as outfile:
+        with open('{}/meta_data.json'.format(self.result_path), 'w') as outfile:
             json.dump(data, outfile, sort_keys=True)

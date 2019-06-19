@@ -5,7 +5,7 @@ import pandas as pd
 from tensorflow.python.client import device_lib
 
 from models.gan import cycleGAN
-from helpers.data_loader import load_data
+from helpers.data_loader import Data
 from trainer import Trainer
 from tester import Tester
 
@@ -24,31 +24,32 @@ if __name__ == '__main__':
         if settings['Mode'] == 'train':
             # import data
             mods = settings['Mods'].split(', ')
-            data = load_data(subfolder=settings['Subfolder'], mods=mods,
+            data = Data(subfolder=settings['Subfolder'], mods=mods,
                              norm=settings['Norm'], aug=settings['Augment'])
+            data.load_data()
 
             # import model
-            image_shape = data["trainA_images"].shape[-3:]
-            gan = cycleGAN(result_name=settings['Name'], dim=settings['Dim'],
-                           mode_G=settings['Generator'], mode_D='basic',
-                           model_path=settings['Model Path'],
+            image_shape = data.A_train.shape[-3:]
+            gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'], 
+                           mode_D='basic', model_path=settings['Model Path'],
                            image_shape=image_shape)
 
             # load trainer
-            trainer = Trainer(model=gan, init_epoch=settings['Init Epoch'],
+            trainer = Trainer(result_name=settings['Name'], model=gan, 
+                              init_epoch=settings['Init Epoch'],
                               epochs=settings['Epochs'],
                               lr_D=settings['D LR'], lr_G=settings['G LR'],
                               batch_size=settings['Batch Size'])
 
             # load model weights if necessary
-            if gan.model_path != '':
-                gan.load_model_from_files(settings['Init Epoch'])
+            if os.path.exists(gan.model_path):
+                gan.load_from_files(settings['Init Epoch'])
                 print('Model weights loaded from files')
             else:
                 print('Model loaded with init weights')
 
             # run training
-            trainer.train(data=data)
+            trainer.train(data=data, model=gan)
 
         elif settings['Mode'] == 'test_jpg':
             pass
