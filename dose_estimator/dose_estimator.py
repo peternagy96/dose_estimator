@@ -1,5 +1,8 @@
 # !/usr/bin/env python3
+import os
+
 import pandas as pd
+from tensorflow.python.client import device_lib
 
 from models.gan import cycleGAN
 from helpers.data_loader import load_data
@@ -8,7 +11,10 @@ from tester import Tester
 
 if __name__ == '__main__':
     # import settings from file
-    jobsPath = r"C:\Users\peter\Documents\Thesis\dose_estimator-git\dose_estimator\jobs.csv"
+    if len(device_lib.list_local_devices()) > 1:
+        jobsPath = '/home/peter/jobs.csv'
+    else:
+        jobsPath = os.path.join(os.getcwd(), 'dose_estimator', 'jobs.csv')
     jobs = pd.read_csv(jobsPath)
 
     # iterate through the jobs
