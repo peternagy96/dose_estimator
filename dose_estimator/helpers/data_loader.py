@@ -15,8 +15,7 @@ def load_data(subfolder='data_corrected', mods=['CT', 'PET', 'SPECT'],
     if len(device_lib.list_local_devices()) > 1:
         folder = os.path.join('/home/peter/data', subfolder, 'numpy')
     else:
-        folder = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[
-                              :-1][0], 'data', subfolder, 'numpy')
+        folder = os.path.join(os.getcwd(), 'data', subfolder, 'numpy')
     train_images['CT'] = np.load(os.path.join(
         folder, 'ct_train.npy')).reshape((-1, 128, 128))
     train_images['PET'] = np.load(os.path.join(
@@ -36,6 +35,7 @@ def load_data(subfolder='data_corrected', mods=['CT', 'PET', 'SPECT'],
 
     # normalize
     if norm:
+        print("Normalizing data...")
         for key in train_images.items():
             train_images[key[0]] = normalize_array(train_images[key[0]])
             test_images[key[0]] = normalize_array(test_images[key[0]])

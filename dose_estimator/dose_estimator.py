@@ -3,7 +3,8 @@ import pandas as pd
 
 from models.gan import cycleGAN
 from helpers.data_loader import load_data
-from .trainer import Trainer
+from trainer import Trainer
+from tester import Tester
 
 if __name__ == '__main__':
     # import settings from file
