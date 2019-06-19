@@ -1,7 +1,10 @@
-import SimpleITK as sitk
 import os
 
+import cv2
 import numpy as np
+import SimpleITK as sitk
+from PIL import Image
+
 
 
 class Tester(object):
@@ -17,7 +20,7 @@ class Tester(object):
 
         # create output folders
         # ! epoch variable is not yet implemented
-        path_name = os.path.join(self.result_path, f"epoch_{epoch}")
+        path_name = os.path.join(self.out_path, f"epoch_{epoch}")
         if not os.path.exists(path_name):
             os.makedirs(path_name)
 

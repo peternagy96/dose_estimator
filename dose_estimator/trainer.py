@@ -204,80 +204,82 @@ class Trainer(object):
 
         # Linear decay
         if self.use_linear_decay:
-            decay_D, decay_G = self.get_lr_linear_decay_rate()
+            decay_D, decay_G = self.get_lr_linear_decay_rate(
+                len(data.A_train), len(data.B_train))
 
         # Start stopwatch for ETAs
         start_time = time.time()
 
         for epoch in range(init_epoch, epochs + 1):
-                A_train = data.A_train
-                B_train = data.B_train
-                random_order_A = np.random.randint(
-                    len(A_train), size=len(A_train))
-                random_order_B = np.random.randint(
-                    len(B_train), size=len(B_train))
-                epoch_iterations = max(
-                    len(random_order_A), len(random_order_B))
-                min_nr_imgs = min(len(random_order_A), len(random_order_B))
+            A_train = data.A_train
+            B_train = data.B_train
+            random_order_A = np.random.randint(
+                len(A_train), size=len(A_train))
+            random_order_B = np.random.randint(
+                len(B_train), size=len(B_train))
+            epoch_iterations = max(
+                len(random_order_A), len(random_order_B))
+            min_nr_imgs = min(len(random_order_A), len(random_order_B))
 
-                for loop_index in range(0, epoch_iterations, batch_size):
-                    if loop_index + batch_size >= min_nr_imgs:
-                        # If all images soon are used for one domain,
-                        # randomly pick from this domain
-                        if len(A_train) <= len(B_train):
-                            # indexes_A = np.random.randint(len(A_train), size=batch_size)
-                            # indexes_B = random_order_B[loop_index:loop_index + batch_size]
-                            indexes_A = random_order_A[loop_index:]
-                            indexes_B = random_order_B[loop_index:]
-                        else:
-                            indexes_B = np.random.randint(
-                                len(B_train), size=batch_size)
-                            indexes_A = random_order_A[loop_index:
-                                                       loop_index + batch_size]
+            for loop_index in range(0, epoch_iterations, batch_size):
+                if loop_index + batch_size >= min_nr_imgs:
+                    # If all images soon are used for one domain,
+                    # randomly pick from this domain
+                    if len(A_train) <= len(B_train):
+                        # indexes_A = np.random.randint(len(A_train), size=batch_size)
+                        # indexes_B = random_order_B[loop_index:loop_index + batch_size]
+                        indexes_A = random_order_A[loop_index:]
+                        indexes_B = random_order_B[loop_index:]
                     else:
+                        indexes_B = np.random.randint(
+                            len(B_train), size=batch_size)
                         indexes_A = random_order_A[loop_index:
                                                    loop_index + batch_size]
-                        indexes_B = random_order_B[loop_index:
-                                                   loop_index + batch_size]
+                else:
+                    indexes_A = random_order_A[loop_index:
+                                               loop_index + batch_size]
+                    indexes_B = random_order_B[loop_index:
+                                               loop_index + batch_size]
 
-                    sys.stdout.flush()
-                    real_images_A = A_train[indexes_A]
-                    real_images_B = B_train[indexes_B]
+                sys.stdout.flush()
+                real_images_A = A_train[indexes_A]
+                real_images_B = B_train[indexes_B]
 
-                    # labels
-                    if model.use_multiscale_discriminator:
-                        label_shape1 = (len(real_images_A),) + \
-                            model.D_A.output_shape[0][1:]
-                        label_shape2 = (len(real_images_B),) + \
-                            model.D_B.output_shape[0][1:]
-                        # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
-                        ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
-                        ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
-                        # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
-                        ones = [ones1, ones2]  # , ones4]
-                        zeros1 = ones1 * 0
-                        zeros2 = ones2 * 0
-                        # zeros4 = ones4 * 0
-                        zeros = [zeros1, zeros2]  # , zeros4]
-                    else:
-                        label_shape_A = (len(real_images_A),) + \
-                            model.D_A.output_shape[1:]
-                        label_shape_B = (len(real_images_B),) + \
-                            model.D_B.output_shape[1:]
-                        ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
-                        ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
-                        zeros_A = ones_A * 0
-                        zeros_B = ones_B * 0
+                # labels
+                if model.use_multiscale_discriminator:
+                    label_shape1 = (len(real_images_A),) + \
+                        model.D_A.output_shape[0][1:]
+                    label_shape2 = (len(real_images_B),) + \
+                        model.D_B.output_shape[0][1:]
+                    # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
+                    ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
+                    ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
+                    # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
+                    ones = [ones1, ones2]  # , ones4]
+                    zeros1 = ones1 * 0
+                    zeros2 = ones2 * 0
+                    # zeros4 = ones4 * 0
+                    zeros = [zeros1, zeros2]  # , zeros4]
+                else:
+                    label_shape_A = (len(real_images_A),) + \
+                        model.D_A.output_shape[1:]
+                    label_shape_B = (len(real_images_B),) + \
+                        model.D_B.output_shape[1:]
+                    ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
+                    ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
+                    zeros_A = ones_A * 0
+                    zeros_B = ones_B * 0
 
-                    # Run all training steps
-                    run_training_iteration(loop_index, epoch_iterations)
+                # Run all training steps
+                run_training_iteration(loop_index, epoch_iterations)
 
             # ================== within epoch loop end ==========================
 
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
-                self.saveImages(epoch, real_images_A, real_images_B)
+                # ! Tester is not yet implemented
+                #self.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=mods)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -306,9 +308,9 @@ class Trainer(object):
 # Help functions
 
 
-    def get_lr_linear_decay_rate(self):
+    def get_lr_linear_decay_rate(self, lenA, lenB):
         # Calculate decay rates
-        max_nr_images = max(len(self.A_train), len(self.B_train))
+        max_nr_images = max(lenA, lenB)
 
         updates_per_epoch_D = 2 * max_nr_images + self.discriminator_iterations - 1
         updates_per_epoch_G = max_nr_images + self.generator_iterations - 1
