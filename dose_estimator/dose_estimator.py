@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import pandas as pd
 from tensorflow.python.client import device_lib
@@ -12,7 +13,7 @@ from tester import Tester
 if __name__ == '__main__':
     # import settings from file
     if len(device_lib.list_local_devices()) > 1:
-        jobsPath = '/home/peter/jobs.csv'
+        jobsPath = '/home/peter/code/dose_estimator/jobs.csv'
     else:
         jobsPath = os.path.join(os.getcwd(), 'dose_estimator', 'jobs.csv')
     jobs = pd.read_csv(jobsPath)
