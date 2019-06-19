@@ -36,6 +36,9 @@ if __name__ == '__main__':
             # load model weights if necessary
             if gan.model_path != '':
                 gan.load_model_from_files(settings['Init Epoch'])
+                print('Model weights loaded from files')
+            else:
+                print('Model loaded with init weights')
 
             # run training
             trainer.train(data=data)

@@ -1,40 +1,23 @@
 #!/usr/bin/env python3
 import os
-import load_data
 import tensorflow as tf
 import keras.backend as K
-import cv2
-import SimpleITK as sitk
-from PIL import Image
 import sys
 import csv
-import math
 import json
 import time
 import datetime
-import random
 from collections import OrderedDict
-from keras.engine.topology import Network
-from keras.utils import plot_model
-from keras.models import Model, model_from_json
-from keras.backend import mean
 from keras.optimizers import Adam
-from keras.layers.core import Dense
-from keras.layers.advanced_activations import LeakyReLU
-from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization, InputSpec
-from keras.layers import Layer, Input, Conv2D, Activation, add, BatchNormalization, UpSampling2D, ZeroPadding2D, Conv2DTranspose, Flatten, MaxPooling2D, AveragePooling2D
-from models.gan import cycleGAN
-from models.generator import Generator
-from models.discriminator import Discriminator
-from data_loader.data_loader import dataLoader
 
 from random import randint
 import numpy as np
-import matplotlib.pyplot as plt
+
+from helpers.image_pool import ImagePool
 
 
 class Trainer(object):
-    def __init__(self, model, init_epoch=0, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10):
+    def __init__(self, model, init_epoch=None, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10):
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
         # Number of generator training iterations in each training loop
@@ -44,9 +27,9 @@ class Trainer(object):
         self.beta_1 = 0.5
         self.beta_2 = 0.999
         self.batch_size = batch_size
-        self.epochs = epoch  # choose multiples of 25 since the models are save each 25th epoch
-        if load_epoch is not None:
-            self.init_epoch = int(load_epoch)
+        self.epochs = epochs  # choose multiples of 25 since the models are save each 25th epoch
+        if init_epoch is not None:
+            self.init_epoch = int(init_epoch)
             self.epochs = self.epochs + self.init_epoch
         else:
             self.init_epoch = 1
@@ -62,22 +45,6 @@ class Trainer(object):
         # Identity mapping will be done each time the iteration number is divisable with this number
         self.identity_mapping_modulus = 10
 
-        # PatchGAN - if false the discriminator learning rate should be decreased
-        self.use_patchgan = True
-
-        # Multi scale discriminator - if True the generator have an extra encoding/decoding step to match discriminator information access
-        self.use_multiscale_discriminator = False
-
-        # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
-        self.use_resize_convolution = False
-
-        # Supervised learning part - for MR images - comparison
-        self.use_supervised_learning = False
-        self.supervised_weight = 10.0
-
-        # Fetch data during training instead of pre caching all images - might be necessary for large datasets
-        self.use_data_generator = False
-
         # Tweaks
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
 
@@ -88,36 +55,6 @@ class Trainer(object):
         # optimizer
         self.opt_D = Adam(self.learning_rate_D, self.beta_1, self.beta_2)
         self.opt_G = Adam(self.learning_rate_G, self.beta_1, self.beta_2)
-
-        # ======= Data ==========
-        # Use 'None' to fetch all available images
-        nr_A_train_imgs = None
-        nr_B_train_imgs = None
-        nr_A_test_imgs = None
-        nr_B_test_imgs = None
-
-        if self.use_data_generator:
-            print('--- Using dataloader during training ---')
-        else:
-            print('--- Caching data ---')
-        sys.stdout.flush()
-
-        if self.use_data_generator:
-            self.data_generator = load_data.load_data(
-                nr_of_channels=self.batch_size, generator=True, subfolder=image_folder)
-
-            # Only store test images
-            nr_A_train_imgs = 0
-            nr_B_train_imgs = 0
-
-        self.A_train = data["trainA_images"]
-        self.B_train = data["trainB_images"]
-        self.A_test = data["testA_images"]
-        self.B_test = data["testB_images"]
-        self.testA_image_names = data["testA_image_names"]
-        self.testB_image_names = data["testB_image_names"]
-        if not self.use_data_generator:
-            print('Data has been loaded')
 
         # ======= Create designated run folder and store meta data ==========
         directory = os.path.join('images', self.date_time)
@@ -136,18 +73,6 @@ class Trainer(object):
         K.tensorflow_backend.set_session(tf.Session(config=config))
         K.tensorflow_backend.get_session().run(tf.global_variables_initializer())
 
-        # ======= Load model weights if model path is given ========
-        if model_path is not None:
-            # load model weights
-            self.load_model_from_files(model_path, load_epoch)
-            print('Model weights loaded from files')
-        else:
-            print('Model loaded with init weights')
-
-
-# ===============================================================================
-# Training
-
     def train(self, init_epoch, epochs, model, data):
         batch_size = self.batch_size
         save_interval = self.save_interval
@@ -155,21 +80,21 @@ class Trainer(object):
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
-            synthetic_images_B = self.G_A2B.predict(real_images_A)
-            synthetic_images_A = self.G_B2A.predict(real_images_B)
+            synthetic_images_B = model.G_A2B.predict(real_images_A)
+            synthetic_images_A = model.G_B2A.predict(real_images_B)
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
 
             for _ in range(self.discriminator_iterations):
-                DA_loss_real = self.D_A.train_on_batch(
+                DA_loss_real = model.D_A.train_on_batch(
                     x=real_images_A, y=ones_A)
-                DB_loss_real = self.D_B.train_on_batch(
+                DB_loss_real = model.D_B.train_on_batch(
                     x=real_images_B, y=ones_B)
-                DA_loss_synthetic = self.D_A.train_on_batch(
+                DA_loss_synthetic = model.D_A.train_on_batch(
                     x=synthetic_images_A, y=zeros_B)
-                DB_loss_synthetic = self.D_B.train_on_batch(
+                DB_loss_synthetic = model.D_B.train_on_batch(
                     x=synthetic_images_B, y=zeros_A)
-                if self.use_multiscale_discriminator:
+                if model.use_multiscale_discriminator:
                     DA_loss = sum(DA_loss_real) + sum(DA_loss_synthetic)
                     DB_loss = sum(DB_loss_real) + sum(DB_loss_synthetic)
                     print('DA_losses: ', np.add(
@@ -188,7 +113,7 @@ class Trainer(object):
             # ======= Generator training ==========
             # Compare reconstructed images to real images
             target_data = [real_images_A, real_images_B]
-            if self.use_multiscale_discriminator:
+            if model.use_multiscale_discriminator:
                 for i in range(2):
                     target_data.append(ones[i])
                     target_data.append(ones[i])
@@ -196,12 +121,8 @@ class Trainer(object):
                 target_data.append(ones_A)
                 target_data.append(ones_B)
 
-            if self.use_supervised_learning:
-                target_data.append(real_images_A)
-                target_data.append(real_images_B)
-
             for _ in range(self.generator_iterations):
-                G_loss = self.G_model.train_on_batch(
+                G_loss = model.G_model.train_on_batch(
                     x=[real_images_A, real_images_B], y=target_data)
                 if self.generator_iterations > 1:
                     print('G_loss:', G_loss)
@@ -214,18 +135,18 @@ class Trainer(object):
 
             # Identity training
             if self.use_identity_learning and loop_index % self.identity_mapping_modulus == 0:
-                G_A2B_identity_loss = self.G_A2B.train_on_batch(
+                G_A2B_identity_loss = model.G_A2B.train_on_batch(
                     x=real_images_B, y=real_images_B)
-                G_B2A_identity_loss = self.G_B2A.train_on_batch(
+                G_B2A_identity_loss = model.G_B2A.train_on_batch(
                     x=real_images_A, y=real_images_A)
                 print('G_A2B_identity_loss:', G_A2B_identity_loss)
                 print('G_B2A_identity_loss:', G_B2A_identity_loss)
 
             # Update learning rates
             if self.use_linear_decay and epoch > self.decay_epoch:
-                self.update_lr(self.D_A, decay_D)
-                self.update_lr(self.D_B, decay_D)
-                self.update_lr(self.G_model, decay_G)
+                self.update_lr(model.D_A, decay_D)
+                self.update_lr(model.D_B, decay_D)
+                self.update_lr(model.G_model, decay_G)
 
             # Store training data
             DA_losses.append(DA_loss)
@@ -255,9 +176,6 @@ class Trainer(object):
             print('DB_loss:', DB_loss)
 
             if loop_index % 10 == 0:
-                # Save temporary images continously
-                self.save_tmp_images(
-                    real_images_A, real_images_B, synthetic_images_A, synthetic_images_B)
                 self.print_ETA(start_time, epoch, epoch_iterations, loop_index)
 
         # ======================================================================
@@ -292,64 +210,8 @@ class Trainer(object):
         start_time = time.time()
 
         for epoch in range(init_epoch, epochs + 1):
-            if self.use_data_generator:
-                loop_index = 1
-                for images in self.data_generator:
-                    real_images_A = images[0]
-                    real_images_B = images[1]
-                    if len(real_images_A.shape) == 3:
-                        real_images_A = real_images_A[:, :, :, np.newaxis]
-                        real_images_B = real_images_B[:, :, :, np.newaxis]
-
-                        # labels
-                        if self.use_multiscale_discriminator:
-                            label_shape1 = (len(real_images_A),) + \
-                                self.D_A.output_shape[0][1:]
-                            label_shape2 = (len(real_images_B),) + \
-                                self.D_B.output_shape[0][1:]
-                            # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
-                            ones1 = np.ones(
-                                shape=label_shape1) * self.REAL_LABEL
-                            ones2 = np.ones(
-                                shape=label_shape2) * self.REAL_LABEL
-                            # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
-                            ones = [ones1, ones2]  # , ones4]
-                            zeros1 = ones1 * 0
-                            zeros2 = ones2 * 0
-                            # zeros4 = ones4 * 0
-                            zeros = [zeros1, zeros2]  # , zeros4]
-                        else:
-                            label_shape_A = (len(real_images_A),) + \
-                                self.D_A.output_shape[1:]
-                            label_shape_B = (len(real_images_B),) + \
-                                self.D_B.output_shape[1:]
-                            ones_A = np.ones(
-                                shape=label_shape_A) * self.REAL_LABEL
-                            ones_B = np.ones(
-                                shape=label_shape_B) * self.REAL_LABEL
-                            zeros_A = ones_A * 0
-                            zeros_B = ones_B * 0
-
-                    # Run all training steps
-                    run_training_iteration(
-                        loop_index, self.data_generator.__len__())
-
-                    # Store models
-                    if loop_index % 20000 == 0:
-                        self.saveModel(self.D_A, loop_index)
-                        self.saveModel(self.D_B, loop_index)
-                        self.saveModel(self.G_A2B, loop_index)
-                        self.saveModel(self.G_B2A, loop_index)
-
-                    # Break if loop has ended
-                    if loop_index >= self.data_generator.__len__():
-                        break
-
-                    loop_index += 1
-
-            else:  # Train with all data in cache
-                A_train = self.A_train
-                B_train = self.B_train
+                A_train = data.A_train
+                B_train = data.B_train
                 random_order_A = np.random.randint(
                     len(A_train), size=len(A_train))
                 random_order_B = np.random.randint(
@@ -358,17 +220,13 @@ class Trainer(object):
                     len(random_order_A), len(random_order_B))
                 min_nr_imgs = min(len(random_order_A), len(random_order_B))
 
-                # If we want supervised learning the same images form
-                # the two domains are needed during each training iteration
-                if self.use_supervised_learning:
-                    random_order_B = random_order_A
                 for loop_index in range(0, epoch_iterations, batch_size):
                     if loop_index + batch_size >= min_nr_imgs:
                         # If all images soon are used for one domain,
                         # randomly pick from this domain
                         if len(A_train) <= len(B_train):
-                            #indexes_A = np.random.randint(len(A_train), size=batch_size)
-                            #indexes_B = random_order_B[loop_index:loop_index + batch_size]
+                            # indexes_A = np.random.randint(len(A_train), size=batch_size)
+                            # indexes_B = random_order_B[loop_index:loop_index + batch_size]
                             indexes_A = random_order_A[loop_index:]
                             indexes_B = random_order_B[loop_index:]
                         else:
@@ -387,11 +245,11 @@ class Trainer(object):
                     real_images_B = B_train[indexes_B]
 
                     # labels
-                    if self.use_multiscale_discriminator:
+                    if model.use_multiscale_discriminator:
                         label_shape1 = (len(real_images_A),) + \
-                            self.D_A.output_shape[0][1:]
+                            model.D_A.output_shape[0][1:]
                         label_shape2 = (len(real_images_B),) + \
-                            self.D_B.output_shape[0][1:]
+                            model.D_B.output_shape[0][1:]
                         # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
                         ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
                         ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
@@ -403,9 +261,9 @@ class Trainer(object):
                         zeros = [zeros1, zeros2]  # , zeros4]
                     else:
                         label_shape_A = (len(real_images_A),) + \
-                            self.D_A.output_shape[1:]
+                            model.D_A.output_shape[1:]
                         label_shape_B = (len(real_images_B),) + \
-                            self.D_B.output_shape[1:]
+                            model.D_B.output_shape[1:]
                         ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
                         ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
                         zeros_A = ones_A * 0
@@ -423,10 +281,10 @@ class Trainer(object):
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
-                self.saveModel(self.D_A, epoch)
-                self.saveModel(self.D_B, epoch)
-                self.saveModel(self.G_A2B, epoch)
-                self.saveModel(self.G_B2A, epoch)
+                model.save(model.D_A, epoch)
+                model.save(model.D_B, epoch)
+                model.save(model.G_A2B, epoch)
+                model.save(model.G_B2A, epoch)
 
             training_history = {
                 'DA_losses': DA_losses,
@@ -447,12 +305,10 @@ class Trainer(object):
 # ===============================================================================
 # Help functions
 
+
     def get_lr_linear_decay_rate(self):
         # Calculate decay rates
-        if self.use_data_generator:
-            max_nr_images = len(self.data_generator)
-        else:
-            max_nr_images = max(len(self.A_train), len(self.B_train))
+        max_nr_images = max(len(self.A_train), len(self.B_train))
 
         updates_per_epoch_D = 2 * max_nr_images + self.discriminator_iterations - 1
         updates_per_epoch_G = max_nr_images + self.generator_iterations - 1
@@ -489,7 +345,6 @@ class Trainer(object):
 
 # ===============================================================================
 # Save and load
-
 
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())

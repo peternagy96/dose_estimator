@@ -22,17 +22,11 @@ class cycleGAN(object):
         self.model_path = model_path
 
         self.img_shape = image_shape
-        self.channels = self.img_shape[-1]
 
         # Hyper parameters
         self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
         self.lambda_2 = 8.0  # Cyclic loss weight B_2_A
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
-
-        # Identity loss - sometimes send images from B to G_A2B (and the opposite) to teach identity mappings
-        self.use_identity_learning = True
-        # Identity mapping will be done each time the iteration number is divisable with this number
-        self.identity_mapping_modulus = 10
 
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True
@@ -43,13 +37,9 @@ class cycleGAN(object):
         # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
         self.use_resize_convolution = False
 
-        # Supervised learning part - for MR images - comparison
-        self.use_supervised_learning = False
-        self.supervised_weight = 10.0
+        self.buildBasic(mode_G=mode_G, mode_D=mode_D)
 
-        self.basicModel(mode_G=mode_G, mode_D=mode_D)
-
-    def basicModel(self, mode_G, mode_D):
+    def buildBasic(self, mode_G, mode_D):
         self.D_A = Discriminator(name='A', mode=mode_D, use_patchgan=True,
                                  img_shape=(128, 128, 2))
         self.D_B = Discriminator(name='A', mode=mode_D, use_patchgan=True,
@@ -59,7 +49,7 @@ class cycleGAN(object):
         self.G_B2A = Generator(name='A2B', mode=mode_G, use_resize_convolution=False,
                                use_identity_learning=True, img_shape=(128, 128, 2))
 
-    def compileModel(self, opt_G, opt_D):
+    def compile(self, opt_G, opt_D):
         self.D_A.model.compile(optimizer=opt_D,
                                loss=lse,
                                loss_weights=self.D_A.loss_weights)
@@ -94,14 +84,6 @@ class cycleGAN(object):
             model_outputs.append(dA_guess_synthetic)
             model_outputs.append(dB_guess_synthetic)
 
-        if self.use_supervised_learning:
-            model_outputs.append(synthetic_A)
-            model_outputs.append(synthetic_B)
-            compile_losses.append('MAE')
-            compile_losses.append('MAE')
-            compile_weights.append(self.supervised_weight)
-            compile_weights.append(self.supervised_weight)
-
         self.G_model = Model(inputs=[real_A, real_B],
                              outputs=model_outputs,
                              name='G_model')
@@ -110,7 +92,7 @@ class cycleGAN(object):
                              loss=compile_losses,
                              loss_weights=compile_weights)
 
-    def saveModel(self, model, epoch):
+    def save(self, model, epoch):
         # Create folder to save model architecture and weights
         directory = os.path.join('saved_models', self.date_time)
         if not os.path.exists(directory):
@@ -127,7 +109,7 @@ class cycleGAN(object):
             json.dump(json_string, outfile)
         print('{} has been saved in saved_models/{}/'.format(model.name, self.date_time))
 
-    def load_model_from_files(self, epoch):
+    def load_from_files(self, epoch):
         path = self.model_path
         self.D_A.model.load_weights(os.path.join(
             path, f"D_A_model_weights_epoch_{epoch}.hdf5"))
