@@ -15,6 +15,7 @@ from random import randint
 import numpy as np
 
 from helpers.image_pool import ImagePool
+from tester import Tester
 
 
 class Trainer(object):
@@ -50,14 +51,16 @@ class Trainer(object):
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
 
         # Used as storage folder name
-        self.result_name = result_name + '_' + time.strftime('%Y%m%d-%H%M%S', time.localtime()) 
-        self.result_path = os.path.join(os.getcwd(), 'results', self.result_name)
+        self.result_name = result_name + '_' + \
+            time.strftime('%Y%m%d-%H%M%S', time.localtime())
+        self.result_path = os.path.join(
+            os.getcwd(), 'results', self.result_name)
 
         # optimizer
         self.opt_D = Adam(self.learning_rate_D, self.beta_1, self.beta_2)
         self.opt_G = Adam(self.learning_rate_G, self.beta_1, self.beta_2)
 
-        #compile model
+        # compile model
         model.compile(self.opt_G, self.opt_D, self.use_identity_learning)
 
         # ======= Avoid pre-allocating GPU memory ==========
@@ -76,6 +79,8 @@ class Trainer(object):
         save_interval = self.save_interval
         epochs = self.epochs
         init_epoch = self.init_epoch
+
+        tester = Tester(data=data, model=model, result_path=self.result_path)
 
         # ======= Create designated run folder and store meta data ==========
         if not os.path.exists(self.result_path):
@@ -205,8 +210,6 @@ class Trainer(object):
         synthetic_pool_A = ImagePool(self.synthetic_pool_size)
         synthetic_pool_B = ImagePool(self.synthetic_pool_size)
 
-        # self.saveImages('(init)')
-
         # Linear decay
         if self.use_linear_decay:
             decay_D, decay_G = self.get_lr_linear_decay_rate(
@@ -283,8 +286,7 @@ class Trainer(object):
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
-                # ! Tester is not yet implemented
-                #self.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=mods)
+                tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)

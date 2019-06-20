@@ -1,14 +1,13 @@
 # !/usr/bin/env python3
+from tester import Tester
+from trainer import Trainer
+from helpers.data_loader import Data
+from models.gan import cycleGAN
+from tensorflow.python.client import device_lib
+import pandas as pd
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-import pandas as pd
-from tensorflow.python.client import device_lib
-
-from models.gan import cycleGAN
-from helpers.data_loader import Data
-from trainer import Trainer
-from tester import Tester
 
 if __name__ == '__main__':
     # import settings from file
@@ -26,17 +25,17 @@ if __name__ == '__main__':
             # import data
             mods = settings['Mods'].split(', ')
             data = Data(subfolder=settings['Subfolder'], mods=mods,
-                             norm=settings['Norm'], aug=settings['Augment'])
+                        norm=settings['Norm'], aug=settings['Augment'])
             data.load_data()
 
             # import model
             image_shape = data.A_train.shape[-3:]
-            gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'], 
+            gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=settings['Model Path'],
                            image_shape=image_shape)
 
             # load trainer
-            trainer = Trainer(result_name=settings['Name'], model=gan, 
+            trainer = Trainer(result_name=settings['Name'], model=gan,
                               init_epoch=settings['Init Epoch'],
                               epochs=settings['Epochs'],
                               lr_D=settings['D LR'], lr_G=settings['G LR'],
@@ -51,12 +50,13 @@ if __name__ == '__main__':
 
             # run training
             trainer.train(data=data, model=gan)
-
-        elif settings['Mode'] == 'test_jpg':
-            pass
-        elif settings['Mode'] == 'test_nifti':
-            pass
-        elif settings['Mode'] == 'test_mip':
-            pass
         elif settings['Mode'] == 'plot':
-            pass
+                pass
+        else:
+            tester = Tester(data=data, model=gan, result_path=self.result_path)
+            if settings['Mode'] == 'test_jpg':
+                tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
+            elif settings['Mode'] == 'test_nifti':
+                pass
+            elif settings['Mode'] == 'test_mip':
+                pass
