@@ -1,3 +1,4 @@
-Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment,Resize Conv,Subfolder,Model Path
-2D_CTPET_norm,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, SPECT",Y,Y,N,data_corrected,x
-2D_CTPET_notnormed,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, SPECT",N,Y,N,data_corrected,x
+Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment,Resize Conv,Subfolder,Model Path,Done
+2D_CTPET_norm,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, SPECT",Y,Y,N,data_corrected,x,x
+2D_CTPET_notnormed,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, SPECT",N,Y,N,data_corrected,x,x
+MIP,test_mip,2D,basic,0.0003,0.0003,200,,,"CT, PET, SPECT",Y,,N,data_corrected,/home/peter/saved_models/augmented/,
