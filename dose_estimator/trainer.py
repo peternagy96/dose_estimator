@@ -28,11 +28,11 @@ class Trainer(object):
         self.discriminator_iterations = 1
         self.beta_1 = 0.5
         self.beta_2 = 0.999
-        self.batch_size = batch_size
-        self.epochs = epochs  # choose multiples of 25 since the models are save each 25th epoch
+        self.batch_size = int(batch_size)
+        self.epochs = int(epochs)  # choose multiples of 25 since the models are save each 25th epoch
         if not math.isnan(init_epoch):
             self.init_epoch = int(init_epoch)
-            self.epochs = self.epochs + self.init_epoch
+            self.epochs = int(self.epochs + self.init_epoch)
         else:
             self.init_epoch = 1
         self.save_interval = 1
