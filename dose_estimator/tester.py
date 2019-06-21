@@ -135,10 +135,10 @@ class Tester(object):
         train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
         indices = test_file.read().splitlines()
         testlen = len(indices)
-        indices.append(train_file.read().splitlines())
+        indices.extend(train_file.read().splitlines())
 
-        if not os.path.exists(os.path.join(os.path.join(result_path, 'MIP'))):
-            os.makedirs(os.path.join(result_path, 'MIP'))
+        if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
+            os.makedirs(os.path.join(self.result_path, 'MIP'))
 
         for idx, i in enumerate(indices):
             print(f"Processing {i}...")
@@ -195,11 +195,11 @@ class Tester(object):
                 final_img, f"Gen SPECT", (3*s2+40, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
                 final_img, 'Error Map', (4*s2+40, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-            if i+1 > testlen:
+            if idx+1 > testlen:
                 addition = 'train'
             else:
                 addition = 'test'
-            path_out = f"{result_path}/MIP/{i}_{addition}.png"
+            path_out = f"{self.result_path}/{i}_{addition}.png"
             im = Image.fromarray(final_img).convert("L")
             im.save(path_out)
 

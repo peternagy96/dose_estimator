@@ -110,6 +110,7 @@ class cycleGAN(object):
 
     def load_from_files(self, epoch):
         path = self.model_path
+        epoch = int(epoch)
         self.D_A.model.load_weights(os.path.join(
             path, f"D_A_model_weights_epoch_{epoch}.hdf5"))
         self.D_B.model.load_weights(os.path.join(
