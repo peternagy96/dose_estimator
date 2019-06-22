@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 import os
+import sys
 import time
 
 from tensorflow.python.client import device_lib
@@ -34,9 +35,10 @@ if __name__ == '__main__':
 
             # import data
             mods = settings['Mods'].split(', ')
-            data = Data(subfolder=settings['Subfolder'], mods=mods,
+            data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
                         norm=settings['Norm'], aug=settings['Augment'])
             data.load_data()
+            sys.exit() # ! REMOVE
 
             # import model
             image_shape = data.A_train.shape[-3:]

@@ -5,14 +5,15 @@ import random
 import skimage as sk
 from skimage import transform
 
+
 class Data(object):
-    def __init__(self, subfolder='data_corrected', mods=['CT', 'PET', 'SPECT'],
+    def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'SPECT'],
                  norm=True, aug=False):
         self.subfolder = subfolder
+        self.dim = dim
         self.mods = mods
         self.norm = norm
         self.aug = aug
-
 
     def load_data(self):
         train_images = {}
@@ -33,22 +34,33 @@ class Data(object):
             folder, 'pet_test.npy')).reshape((-1, 128, 128))
         test_images['SPECT'] = np.load(os.path.join(
             folder, 'dose_test.npy')).reshape((-1, 128, 128))
-        train_file = open(os.path.join(folder, "train.txt"), "r", encoding='utf8')
+        train_file = open(os.path.join(folder, "train.txt"),
+                          "r", encoding='utf8')
         train_image_names = train_file.read().splitlines()
-        test_file = open(os.path.join(folder, "test.txt"), "r", encoding='utf8')
+        test_file = open(os.path.join(folder, "test.txt"),
+                         "r", encoding='utf8')
         test_image_names = test_file.read().splitlines()
 
         # normalize
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
-                train_images[key[0]] = self.normalize_array(train_images[key[0]])
+                train_images[key[0]] = self.normalize_array(
+                    train_images[key[0]])
                 test_images[key[0]] = self.normalize_array(test_images[key[0]])
+
+        # TODO: make depth and step hyperparameters in the Excel file
+        if self.dim == '3D':
+            train_images = convertTo3D(train_images, depth=9, step=3)
+            test_images = convertTo3D(test_images, depth=9, step=3)
 
         # augment
         if self.aug == 'Y':
             print("Augmenting training data...")
-            train_images = self.augment(train_images)
+            if self.dim == '2D':
+                train_images = self.augment2D(train_images)
+            elif self.dim == '3D':
+                train_images = self.augment3D(train_images)
 
         trainA_images = []
         testA_images = []
@@ -68,7 +80,6 @@ class Data(object):
         self.test_image_names = test_image_names
         print('Data has been loaded')
 
-
     @staticmethod
     def normalize_array(inp):
         # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
@@ -82,7 +93,7 @@ class Data(object):
         return array
 
     @staticmethod
-    def augment(images):
+    def augment2D(images):
         out = {}
         out.update(images)
         for i in images.keys():
@@ -96,6 +107,21 @@ class Data(object):
             out[i] = np.concatenate((images[i], out[i]), axis=0)
         return out
 
+    # TODO: augment 3D dataset by random rotating each patient's scan
+    @staticmethod
+    def augment3D(images):
+        return images
 
-    def convertTo3D(depth: int = 3, step: int = 1):
-        return 0
+    @staticmethod
+    def convertTo3D(inp, depth=9, step=9):
+    numpics = inp.shape[0]
+    piclen = inp.shape[1]
+    out = []
+    for j in range(numpics):
+        for i in np.arange(0, piclen, step):
+            if i+depth <= piclen:
+                out.append(inp[j, i:i+depth, :, :])
+            else:
+                out.append(inp[j, piclen-depth:, :, :])
+                break
+    return np.array(out)
