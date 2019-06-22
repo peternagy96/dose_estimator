@@ -32,9 +32,12 @@ class cycleGAN(object):
         # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
         self.use_resize_convolution = False
 
-        self.buildBasic(mode_G=mode_G, mode_D=mode_D)
+        if dim == '2D':
+            self.build2D(mode_G=mode_G, mode_D=mode_D)
+        elif dim == '3D':
+            self.build3D(mode_G=mode_G, mode_D=mode_D)
 
-    def buildBasic(self, mode_G, mode_D):
+    def build2D(self, mode_G, mode_D):
         self.D_A = Discriminator(name='A', mode=mode_D, use_patchgan=True,
                                  img_shape=(128, 128, 2))
         self.D_B = Discriminator(name='B', mode=mode_D, use_patchgan=True,

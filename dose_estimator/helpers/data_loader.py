@@ -51,8 +51,12 @@ class Data(object):
 
         # TODO: make depth and step hyperparameters in the Excel file
         if self.dim == '3D':
-            train_images = convertTo3D(train_images, depth=9, step=3)
-            test_images = convertTo3D(test_images, depth=9, step=3)
+            print("Converting data to the 3D format...")
+            for key in train_images.items():
+                train_images[key[0]] = train_images[key[0]].reshape((-1,81,128,128))
+                test_images[key[0]] = test_images[key[0]].reshape((-1,81,128,128))
+                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=9, step=3)
+                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=9, step=3)
 
         # augment
         if self.aug == 'Y':
@@ -114,14 +118,14 @@ class Data(object):
 
     @staticmethod
     def convertTo3D(inp, depth=9, step=9):
-    numpics = inp.shape[0]
-    piclen = inp.shape[1]
-    out = []
-    for j in range(numpics):
-        for i in np.arange(0, piclen, step):
-            if i+depth <= piclen:
-                out.append(inp[j, i:i+depth, :, :])
-            else:
-                out.append(inp[j, piclen-depth:, :, :])
-                break
-    return np.array(out)
+        numpics = inp.shape[0]
+        piclen = inp.shape[1]
+        out = []
+        for j in range(numpics):
+            for i in np.arange(0, piclen, step):
+                if i+depth <= piclen:
+                    out.append(inp[j, i:i+depth, :, :])
+                else:
+                    out.append(inp[j, piclen-depth:, :, :])
+                    break
+        return np.array(out)

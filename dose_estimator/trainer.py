@@ -286,7 +286,11 @@ class Trainer(object):
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
-                tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
+                if data.dim == '2D':
+                    tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
+                elif data.dim == '3D':
+                    pass
+                    # TODO: implement 3D results output
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -294,6 +298,8 @@ class Trainer(object):
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
+                # TODO: full MIP putput of all patients
+
 
             training_history = {
                 'DA_losses': DA_losses,

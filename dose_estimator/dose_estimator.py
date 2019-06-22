@@ -38,10 +38,14 @@ if __name__ == '__main__':
             data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
                         norm=settings['Norm'], aug=settings['Augment'])
             data.load_data()
+            print(data.A_train.shape)
             sys.exit() # ! REMOVE
 
             # import model
-            image_shape = data.A_train.shape[-3:]
+            if settings['Dim'] == '2D':
+                image_shape = data.A_train.shape[-3:]
+            elif settings['Dim'] == '3D':
+                image_shape = data.A_train.shape[-4:]
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=settings['Model Path'],
                            image_shape=image_shape)
