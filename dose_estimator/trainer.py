@@ -290,10 +290,10 @@ class Trainer(object):
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
-                model.save(model.D_A.model, epoch)
-                model.save(model.D_B.model, epoch)
-                model.save(model.G_A2B.model, epoch)
-                model.save(model.G_B2A.model, epoch)
+                model.save(self.result_path, model.D_A.model, epoch)
+                model.save(self.result_path, model.D_B.model, epoch)
+                model.save(self.result_path, model.G_A2B.model, epoch)
+                model.save(self.result_path, model.G_B2A.model, epoch)
 
             training_history = {
                 'DA_losses': DA_losses,

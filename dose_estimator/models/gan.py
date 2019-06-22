@@ -91,22 +91,22 @@ class cycleGAN(object):
                              loss=compile_losses,
                              loss_weights=compile_weights)
 
-    def save(self, model, epoch):
+    def save(self, path, model, epoch):
         # Create folder to save model architecture and weights
-        directory = os.path.join('saved_models', self.date_time)
+        directory = os.path.join(path, 'saved_models')
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        model_path_w = 'saved_models/{}/{}_weights_epoch_{}.hdf5'.format(
-            self.date_time, model.name, epoch)
+        model_path_w = '{}/saved_models/{}_weights_epoch_{}.hdf5'.format(
+            path, model.name, epoch)
         model.save_weights(model_path_w)
-        model_path_m = 'saved_models/{}/{}_model_epoch_{}.json'.format(
-            self.date_time, model.name, epoch)
+        model_path_m = '{}/saved_models/{}_model_epoch_{}.json'.format(
+            path, model.name, epoch)
         model.save_weights(model_path_m)
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:
             json.dump(json_string, outfile)
-        print('{} has been saved in saved_models/{}/'.format(model.name, self.date_time))
+        print('{} has been saved in {}/saved_models}/'.format(model.name, path))
 
     def load_from_files(self, epoch):
         path = self.model_path
