@@ -11,7 +11,7 @@ from .losses import lse, cycle_loss
 
 
 class cycleGAN(object):
-    def __init__(self, dim, mode_G='basic', mode_D='basic',
+    def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
                  model_path: str = None, image_shape: tuple = (128, 128, 2)):
 
         self.model_path = model_path
