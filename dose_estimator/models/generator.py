@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
-from keras.layers import Input, Conv2D, Activation
+from keras.layers import Input, Conv2D, Conv3D, Activation
 from keras.models import Model
 
-from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D
+from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ReflectionPadding3D, UnetUpsample, BN_Relu, Unet3dBlock
 
 
 class Generator(object):
-    def __init__(self, name, mode='basic', use_resize_convolution=False,
+    def __init__(self, name, dim='2D', mode='basic', use_resize_convolution=False,
                  use_identity_learning=True, img_shape=(128, 128, 2)):
         self.img_shape = img_shape
         self.name = name
@@ -16,11 +16,14 @@ class Generator(object):
         self.normalization = InstanceNormalization
         self.use_resize_convolution = use_resize_convolution
 
-        self.model = self.getModel(mode)
+        self.model = self.getModel(dim, mode)
 
-    def getModel(self, mode):
+    def getModel(self, dim, mode):
         if mode == 'basic':
-            return self.basicGenerator()
+            if dim == '2D':
+                return self.basicGenerator()
+            elif dim == '3D':
+                return self.basic3DGenerator()
 
     def basicGenerator(self):
         # Specify input
@@ -52,6 +55,56 @@ class Generator(object):
         x = ReflectionPadding2D((3, 3))(x)
         x = Conv2D(self.img_shape[-1], kernel_size=7, strides=1)(x)
         # They say they use Relu but really they do not
+        x = Activation('tanh')(x)
+        return Model(inputs=input_img, outputs=x, name=self.name)
+
+    def basic3DGenerator(self):
+        base_filter = 16
+        depth = 3
+        filters = []
+        down_list = []
+
+        channels = self.img_shape[-1]
+        input_img = Input(shape=self.img_shape)
+        x = ReflectionPadding2D((3, 3))(input_img)
+        x = Conv3D(inputs=x, filters=base_filter, kernel_size=(
+                   3, 3, 3), strides=1, padding='same')
+        x = BN_Relu(x, self.normalization)
+
+        for d in range(depth):
+            num_filters = base_filter * (2**d)
+            filters.append(num_filters)
+            x = Unet3dBlock(x, kernels=(3, 3, 3), n_feat=num_filters)
+            down_list.append(x)
+            if d != depth - 1:
+                x = Conv3D(inputs=x,
+                           filters=num_filters*2,
+                           kernel_size=(3, 3, 3),
+                           strides=(2, 2, 2),
+                           padding='same',
+                           activation=lambda x, name=None: BN_Relu(x))
+
+        for d in range(depth-1, -1, -1):
+            x = UnetUpsample(x, filters[d])
+
+            x = tf.concat([x, down_list[d]], axis=-1)
+            x = Conv3D(inputs=x,
+                       filters=filters[d],
+                       kernel_size=(3, 3, 3),
+                       strides=1,
+                       padding='same',
+                       activation=lambda x, name=None: BN_Relu(x))
+            x = Conv3D(inputs=x,
+                       filters=filters[d],
+                       kernel_size=(1, 1, 1),
+                       strides=1,
+                       padding='same',
+                       activation=lambda x, name=None: BN_Relu(x))
+
+        x = Conv3D(layer,
+                   filters=channels,
+                   kernel_size=(3, 3, 3),
+                   padding="same")
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)
 

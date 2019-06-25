@@ -1,4 +1,4 @@
-from keras.layers import Layer, Input, Conv2D, Activation, add, UpSampling2D, Conv2DTranspose
+from keras.layers import Layer, Input, Conv2D, Conv3D, Activation, add, UpSampling2D, Upsampling3D, Conv2DTranspose
 from keras.layers.advanced_activations import LeakyReLU
 from keras_contrib.layers.normalization.instancenormalization import InputSpec
 import tensorflow as tf
@@ -58,6 +58,39 @@ def uk(norm, resize, x, k):
     return x
 
 
+def Upsample3D(x):
+    return UpSampling3D(size=(2, 2, 2))(x)
+
+
+def UnetUpsample(x, num_filters):
+    x = Upsample3D(x)
+    x = tf.layers.conv3d(inputs=x,
+                         filters=num_filters,
+                         kernel_size=(3, 3, 3),
+                         strides=1,
+                         padding='same')
+    return x
+
+
+def BN_Relu(x, norm):
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
+    return x
+
+
+def Unet3dBlock(x, kernels, n_feat, residual=False):
+    if residual:
+        x_in = x
+
+    for i in range(2):
+        x = Conv3D(inputs=x,
+                   filters=n_feat,
+                   kernel_size=kernels,
+                   strides=1,
+                   padding='same')
+    return x_in + x if residual else x
+
+
 # reflection padding taken from
 # https://github.com/fastai/courses/blob/master/deeplearning2/neural-style.ipynb
 class ReflectionPadding2D(Layer):
@@ -73,3 +106,18 @@ class ReflectionPadding2D(Layer):
     def call(self, x, mask=None):
         w_pad, h_pad = self.padding
         return tf.pad(x, [[0, 0], [h_pad, h_pad], [w_pad, w_pad], [0, 0]], 'REFLECT')
+
+
+class ReflectionPadding3D(Layer):
+
+    def __init__(self, padding=(1, 1, 1), **kwargs):
+        self.padding = tuple(padding)
+        self.input_spec = [InputSpec(ndim=5)]
+        super(ReflectionPadding3D, self).__init__(**kwargs)
+
+    def compute_output_shape(self, s):
+        return (s[0], s[1] + 2 * self.padding[0], s[2] + 2 * self.padding[1], s[3] + 2 * self.padding[2], s[4])
+
+    def call(self, x, mask=None):
+        w_pad, h_pad = self.padding
+        return tf.pad(x, [[0, 0, 0], [h_pad, h_pad, h_pad], [w_pad, w_pad, w_pad], [0, 0, 0]], 'REFLECT')

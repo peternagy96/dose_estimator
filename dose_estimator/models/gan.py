@@ -15,7 +15,7 @@ class cycleGAN(object):
                  model_path: str = None, image_shape: tuple = (128, 128, 2)):
 
         self.model_path = model_path
-
+        self.dim = dim
         self.img_shape = image_shape
 
         # Hyper parameters
@@ -32,20 +32,17 @@ class cycleGAN(object):
         # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
         self.use_resize_convolution = False
 
-        if dim == '2D':
-            self.build2D(mode_G=mode_G, mode_D=mode_D)
-        elif dim == '3D':
-            self.build3D(mode_G=mode_G, mode_D=mode_D)
+        self.build(dim=dim, mode_G=mode_G, mode_D=mode_D, img_shape=self.img_shape)
 
-    def build2D(self, mode_G, mode_D):
-        self.D_A = Discriminator(name='A', mode=mode_D, use_patchgan=True,
-                                 img_shape=(128, 128, 2))
-        self.D_B = Discriminator(name='B', mode=mode_D, use_patchgan=True,
-                                 img_shape=(128, 128, 2))
-        self.G_A2B = Generator(name='A2B', mode=mode_G, use_resize_convolution=False,
-                               use_identity_learning=True, img_shape=(128, 128, 2))
-        self.G_B2A = Generator(name='B2A', mode=mode_G, use_resize_convolution=False,
-                               use_identity_learning=True, img_shape=(128, 128, 2))
+    def build(self, dim, mode_G, mode_D, img_shape):
+        self.D_A = Discriminator(name='A', dim=dim, mode=mode_D, use_patchgan=True,
+                                 img_shape=img_shape)
+        self.D_B = Discriminator(name='B', dim=dim, mode=mode_D, use_patchgan=True,
+                                 img_shape=img_shape)
+        self.G_A2B = Generator(name='A2B', dim=dim, mode=mode_G, use_resize_convolution=False,
+                               use_identity_learning=True, img_shape=img_shape)
+        self.G_B2A = Generator(name='B2A', dim=dim, mode=mode_G, use_resize_convolution=False,
+                               use_identity_learning=True, img_shape=img_shape)
 
     def compile(self, opt_G, opt_D, use_identity_learning):
         self.D_A.model.compile(optimizer=opt_D,
