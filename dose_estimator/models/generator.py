@@ -3,7 +3,7 @@ from keras_contrib.layers.normalization.instancenormalization import InstanceNor
 from keras.layers import Input, Conv2D, Conv3D, Activation
 from keras.models import Model
 
-from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ReflectionPadding3D, UnetUpsample, BN_Relu, Unet3dBlock
+from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
 
 
 class Generator(object):
@@ -69,7 +69,7 @@ class Generator(object):
         x = ReflectionPadding2D((3, 3))(input_img)
         x = Conv3D(inputs=x, filters=base_filter, kernel_size=(
                    3, 3, 3), strides=1, padding='same')
-        x = BN_Relu(x, self.normalization)
+        x = IN_Relu(x, self.normalization)
 
         for d in range(depth):
             num_filters = base_filter * (2**d)
@@ -82,7 +82,7 @@ class Generator(object):
                            kernel_size=(3, 3, 3),
                            strides=(2, 2, 2),
                            padding='same',
-                           activation=lambda x, name=None: BN_Relu(x))
+                           activation=lambda x, name=None: IN_Relu(x))
 
         for d in range(depth-1, -1, -1):
             x = UnetUpsample(x, filters[d])
@@ -93,13 +93,13 @@ class Generator(object):
                        kernel_size=(3, 3, 3),
                        strides=1,
                        padding='same',
-                       activation=lambda x, name=None: BN_Relu(x))
+                       activation=lambda x, name=None: IN_Relu(x))
             x = Conv3D(inputs=x,
                        filters=filters[d],
                        kernel_size=(1, 1, 1),
                        strides=1,
                        padding='same',
-                       activation=lambda x, name=None: BN_Relu(x))
+                       activation=lambda x, name=None: IN_Relu(x))
 
         x = Conv3D(layer,
                    filters=channels,

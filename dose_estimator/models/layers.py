@@ -72,9 +72,14 @@ def UnetUpsample(x, num_filters):
     return x
 
 
-def BN_Relu(x, norm):
+def IN_Relu(x, norm):
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
+    return x
+
+def IN_LeakyRelu(x, norm):
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    x = LeakyReLU(alpha=0.2)(x)
     return x
 
 

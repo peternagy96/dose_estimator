@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-from keras.layers import Input, Conv2D, Activation, Flatten, AveragePooling2D, AveragePooling3D
+from keras.layers import Input, Conv2D, Conv3D, Activation, Flatten, AveragePooling2D, AveragePooling3D
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.engine.topology import Network
 from keras.layers.core import Dense
 from keras.models import Model
 
-from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D
+from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, IN_LeakyRelu
 
 
 class Discriminator(object):
@@ -93,16 +93,20 @@ class Discriminator(object):
         # Specify input
         input_img = Input(shape=self.img_shape)
         # Layer 1 (#Instance normalization is not used for this layer)
-        x = ck(self.normalization, input_img, 64, False)
+        x = Conv3D(inputs=x, filters=64, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+        x = LeakyReLU(alpha=0.2)(x)
         # Layer 2
-        x = ck(self.normalization, x, 128, True)
+        x = Conv3D(inputs=x, filters=128, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+        x = IN_LeakyRelu(x, self.normalization)
         # Layer 3
-        x = ck(self.normalization, x, 256, True)
+        x = Conv3D(inputs=x, filters=256, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+        x = IN_LeakyRelu(x, self.normalization)
         # Layer 4
-        x = ck(self.normalization, x, 512, True)
+        x = Conv3D(inputs=x, filters=512, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+        x = IN_LeakyRelu(x, self.normalization)
         # Output layer
         if self.use_patchgan:
-            x = Conv2D(filters=1, kernel_size=4, strides=1, padding='same')(x)
+            x = Conv3D(filters=1, kernel_size=(3, 3, 3), strides=(1, 1, 1), padding='same')(x)
         else:
             x = Flatten()(x)
             x = Dense(1)(x)
