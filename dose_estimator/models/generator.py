@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
-from keras.layers import Input, Conv2D, Conv3D, Activation
+from keras.layers import Input, Conv2D, Conv3D, Activation, concatenate
 from keras.models import Model
 
 from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
@@ -66,45 +66,42 @@ class Generator(object):
 
         channels = self.img_shape[-1]
         input_img = Input(shape=self.img_shape)
-        x = ReflectionPadding2D((3, 3))(input_img)
-        x = Conv3D(inputs=x, filters=base_filter, kernel_size=(
-                   3, 3, 3), strides=1, padding='same')
+        #x = ReflectionPadding3D((3, 3, 3))(input_img)
+        x = Conv3D(filters=base_filter, kernel_size=(
+                   3, 3, 3), strides=1, padding='same')(input_img)
         x = IN_Relu(x, self.normalization)
 
         for d in range(depth):
             num_filters = base_filter * (2**d)
             filters.append(num_filters)
-            x = Unet3dBlock(x, kernels=(3, 3, 3), n_feat=num_filters)
+            x = Unet3dBlock(x, kernels=(3, 3, 3), n_feat=num_filters, norm=self.normalization)
             down_list.append(x)
             if d != depth - 1:
-                x = Conv3D(inputs=x,
-                           filters=num_filters*2,
+                x = Conv3D(filters=num_filters*2,
                            kernel_size=(3, 3, 3),
                            strides=(2, 2, 2),
                            padding='same',
-                           activation=lambda x, name=None: IN_Relu(x))
+                           activation=lambda x, name=None: IN_Relu(x, self.normalization))(x)
 
-        for d in range(depth-1, -1, -1):
-            x = UnetUpsample(x, filters[d])
+        for d in range(depth-2, -1, -1):
+            x = UnetUpsample(x, filters[d], self.normalization)
 
-            x = tf.concat([x, down_list[d]], axis=-1)
-            x = Conv3D(inputs=x,
-                       filters=filters[d],
+            x = concatenate([x, down_list[d]], axis=-1)
+            x = Conv3D(filters=filters[d],
                        kernel_size=(3, 3, 3),
                        strides=1,
                        padding='same',
-                       activation=lambda x, name=None: IN_Relu(x))
-            x = Conv3D(inputs=x,
-                       filters=filters[d],
+                       activation=lambda x, name=None: IN_Relu(x, self.normalization))(x)
+            x = Conv3D(filters=filters[d],
                        kernel_size=(1, 1, 1),
                        strides=1,
                        padding='same',
-                       activation=lambda x, name=None: IN_Relu(x))
+                       activation=lambda x, name=None: IN_Relu(x, self.normalization))(x)
 
-        x = Conv3D(layer,
-                   filters=channels,
+        #x = ReflectionPadding3D((3, 3, 3))(x)
+        x = Conv3D(filters=channels,
                    kernel_size=(3, 3, 3),
-                   padding="same")
+                   padding="same")(x)
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)
 

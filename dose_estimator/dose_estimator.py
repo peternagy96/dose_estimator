@@ -39,7 +39,7 @@ if __name__ == '__main__':
                         norm=settings['Norm'], aug=settings['Augment'])
             data.load_data()
             print(data.A_train.shape)
-            sys.exit() # ! REMOVE
+            
 
             # import model
             if settings['Dim'] == '2D':
@@ -49,6 +49,7 @@ if __name__ == '__main__':
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=settings['Model Path'],
                            image_shape=image_shape)
+            #sys.exit() # ! REMOVE
 
             # load trainer
             trainer = Trainer(result_name=settings['Name'], model=gan,
