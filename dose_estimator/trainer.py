@@ -73,6 +73,12 @@ class Trainer(object):
         # Create a session with the above options specified.
         K.tensorflow_backend.set_session(tf.Session(config=config))
         K.tensorflow_backend.get_session().run(tf.global_variables_initializer())
+        # ! REMOVE
+        model.save(self.result_path, model.D_A.model, 1)
+        model.save(self.result_path, model.D_B.model, 1)
+        model.save(self.result_path, model.G_A2B.model, 1)
+        model.save(self.result_path, model.G_B2A.model, 1)
+        sys.exit()
 
     def train(self, data, model):
         batch_size = self.batch_size
