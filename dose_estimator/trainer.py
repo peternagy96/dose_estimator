@@ -92,8 +92,13 @@ class Trainer(object):
                 # Generate batch of synthetic images
             synthetic_images_B = model.G_A2B.model.predict(real_images_A)
             synthetic_images_A = model.G_B2A.model.predict(real_images_B)
+            
+            print(f"ones A shape: {ones_A.shape}")
+            print(f"zeros A shape: {zeros_A.shape}")
+            print(f"zeros B shape: {zeros_B.shape}")
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
+            print(f"synthetic images A shape: {synthetic_images_A.shape}")
 
             for _ in range(self.discriminator_iterations):
                 DA_loss_real = model.D_A.model.train_on_batch(
@@ -252,6 +257,8 @@ class Trainer(object):
                 sys.stdout.flush()
                 real_images_A = A_train[indexes_A]
                 real_images_B = B_train[indexes_B]
+                print(f"A train shape: {A_train.shape}") # ! REMOVE
+                print(f"real uimages A shape: {real_images_A.shape}") # ! REMOVE
 
                 # labels
                 if model.use_multiscale_discriminator:

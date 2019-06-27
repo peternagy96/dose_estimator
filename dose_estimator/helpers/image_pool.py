@@ -17,6 +17,8 @@ class ImagePool():
         for image in images:
             if len(image.shape) == 3:
                 image = image[np.newaxis, :, :, :]
+            elif len(image.shape) == 4:
+                image = image[np.newaxis, :, :, :, :]
 
             if self.num_imgs < self.pool_size:  # fill up the image pool
                 self.num_imgs = self.num_imgs + 1

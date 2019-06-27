@@ -60,7 +60,7 @@ class Generator(object):
 
     def basic3DGenerator(self):
         base_filter = 16
-        depth = 3
+        depth = 4
         filters = []
         down_list = []
 
@@ -80,8 +80,8 @@ class Generator(object):
                 x = Conv3D(filters=num_filters*2,
                            kernel_size=(3, 3, 3),
                            strides=(2, 2, 2),
-                           padding='same',
-                           activation=lambda x, name=None: IN_Relu(x, self.normalization))(x)
+                           padding='same')(x)
+                x = IN_Relu(x, self.normalization)
 
         for d in range(depth-2, -1, -1):
             x = UnetUpsample(x, filters[d], self.normalization)
@@ -90,13 +90,13 @@ class Generator(object):
             x = Conv3D(filters=filters[d],
                        kernel_size=(3, 3, 3),
                        strides=1,
-                       padding='same',
-                       activation=lambda x, name=None: IN_Relu(x, self.normalization))(x)
+                       padding='same')(x)
+            x = IN_Relu(x, self.normalization)
             x = Conv3D(filters=filters[d],
                        kernel_size=(1, 1, 1),
                        strides=1,
-                       padding='same',
-                       activation=lambda x, name=None: IN_Relu(x, self.normalization))(x)
+                       padding='same')(x)
+            x = IN_Relu(x, self.normalization)
 
         #x = ReflectionPadding3D((3, 3, 3))(x)
         x = Conv3D(filters=channels,

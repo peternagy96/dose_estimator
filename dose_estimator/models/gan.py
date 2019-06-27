@@ -119,3 +119,9 @@ class cycleGAN(object):
             path, f"G_A2B_model_weights_epoch_{epoch}.hdf5"))
         self.G_B2A.model.load_weights(os.path.join(
             path, f"G_B2A_model_weights_epoch_{epoch}.hdf5"))
+
+    def saveSummary(self):
+        with open(f"/home/peter/generator_{self.dim}.txt", 'w') as f:
+            self.G_A2B.model.summary(print_fn=lambda x: f.write(x + '\n'))
+        with open(f"/home/peter/discriminator_{self.dim}.txt", 'w') as f:
+            self.D_A.summary(print_fn=lambda x: f.write(x + '\n'))

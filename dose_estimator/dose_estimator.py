@@ -38,7 +38,6 @@ if __name__ == '__main__':
             data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
                         norm=settings['Norm'], aug=settings['Augment'])
             data.load_data()
-            print(data.A_train.shape)
             
 
             # import model
@@ -49,7 +48,9 @@ if __name__ == '__main__':
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=settings['Model Path'],
                            image_shape=image_shape)
-            #sys.exit() # ! REMOVE
+
+            gan.saveSummary()
+            sys.exit()
 
             # load trainer
             trainer = Trainer(result_name=settings['Name'], model=gan,

@@ -19,6 +19,7 @@ class Discriminator(object):
         self.normalization = InstanceNormalization
 
         D = self.getModel(dim, mode)
+        self.summary = D.summary
 
         # Discriminator builds
         image = Input(shape=self.img_shape)

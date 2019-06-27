@@ -67,8 +67,8 @@ def UnetUpsample(x, num_filters, norm):
     x = Conv3D(filters=num_filters,
                          kernel_size=(3, 3, 3),
                          strides=1,
-                         padding='same',
-                        activation=lambda x, name=None: IN_Relu(x, norm))(x)
+                         padding='same')(x)
+    x = IN_Relu(x, norm)
     return x
 
 
@@ -91,8 +91,8 @@ def Unet3dBlock(x, kernels, n_feat, norm, residual=False):
         x = Conv3D(filters=n_feat,
                    kernel_size=kernels,
                    strides=1,
-                   padding='same',
-                   activation=lambda x, name=None: IN_Relu(x, norm))(x)
+                   padding='same')(x)
+        x = IN_Relu(x, norm)
     return x_in + x if residual else x
 
 
