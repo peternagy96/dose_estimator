@@ -1,4 +1,5 @@
 import os
+import sys
 
 import cv2
 import numpy as np
@@ -137,8 +138,9 @@ class Tester(object):
         testlen = len(indices)
         indices.extend(train_file.read().splitlines())
 
-        if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
-            os.makedirs(os.path.join(self.result_path, 'MIP'))
+        if epoch == '':
+            if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
+                os.makedirs(os.path.join(self.result_path, 'MIP'))
 
         for idx, i in enumerate(indices):
             print(f"Processing {i}...")
@@ -160,12 +162,25 @@ class Tester(object):
             # predict output modality
             print("    files loaded")
             pred_B = np.empty(in1.shape)
-            for j in range(nifti_in_A.shape[0]):
-                pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
-                                                           np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
-                #pred_B[j] = (255.0 / (pred_B[j].max() - pred_B[j].min()) * (pred_B[j] - pred_B[j].min())).astype(np.uint8)
-                #pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
-            pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+            if self.model.dim == '2D':
+                for j in range(nifti_in_A.shape[0]):
+                    pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
+                                                                np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
+            elif self.model.dim == '3D':
+                depth = self.model.img_shape[0]
+                max_depth = nifti_in_B.shape[0]
+                for j in range(0, max_depth, depth):
+                    if j+depth <= max_depth:
+                        pred_B[j:j+depth] = self.model.G_A2B.model.predict(np.stack((in1[j:j+depth], in2[j:j+depth]), axis=3)[
+                                                                np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]  # .reshape((256,128))
+                    else:
+                        pred_B[max_depth-depth:] = self.model.G_A2B.model.predict(np.stack((in1[max_depth-depth:], in2[max_depth-depth:]), axis=3)[
+                                                                np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]  # .reshape((256,128))
+                    
+            
+                
+            # TODO: fix histogram matching
+            # pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
 
             # create MIP for all images
             print("    predictions done")
@@ -200,7 +215,7 @@ class Tester(object):
             else:
                 addition = 'test'
             if epoch != '':
-                path_out = f"{self.result_path}/Epoch {epoch}/{i}_{addition}.png"
+                path_out = f"{self.result_path}/Epoch {epoch}/MIP/{i}_{addition}.png"
             else:
                 path_out = f"{self.result_path}/{i}_{addition}.png"
             im = Image.fromarray(final_img).convert("L")

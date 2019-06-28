@@ -289,7 +289,7 @@ class Trainer(object):
                 if data.dim == '2D':
                     tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
                 elif data.dim == '3D':
-                    tester.testMIP(test_path='/home/peter/data/data_corrected/', mod_A=['CT', 'PET'], mod_B=['dose'], epoch=epoch)
+                    tester.testMIP(test_path='/home/peter/data/data_corrected/', mod_A=['CT', 'PET'], mod_B='dose', epoch=epoch)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
