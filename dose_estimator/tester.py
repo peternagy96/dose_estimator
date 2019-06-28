@@ -129,7 +129,7 @@ class Tester(object):
 
 # Create MIP of prediction and ground truth for all patients from NIFTI
 
-    def testMIP(self, test_path: str, mod_A, mod_B: str):
+    def testMIP(self, test_path: str, mod_A, mod_B: str, epoch=''):
      # load txt file of test file names
         test_file = open(f"{test_path}/numpy/test.txt", "r", encoding='utf8')
         train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
@@ -199,7 +199,10 @@ class Tester(object):
                 addition = 'train'
             else:
                 addition = 'test'
-            path_out = f"{self.result_path}/{i}_{addition}.png"
+            if epoch != '':
+                path_out = f"{self.result_path}/Epoch {epoch}/{i}_{addition}.png"
+            else:
+                path_out = f"{self.result_path}/{i}_{addition}.png"
             im = Image.fromarray(final_img).convert("L")
             im.save(path_out)
 

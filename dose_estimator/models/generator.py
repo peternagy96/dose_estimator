@@ -60,7 +60,7 @@ class Generator(object):
 
     def basic3DGenerator(self):
         base_filter = 16
-        depth = 4
+        depth = 3
         filters = []
         down_list = []
 

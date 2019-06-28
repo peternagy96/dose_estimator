@@ -106,7 +106,7 @@ class cycleGAN(object):
         json_string = model.to_json()
         with open(model_path_m, 'w') as outfile:
             json.dump(json_string, outfile)
-        print('{} has been saved in {}/saved_models}/'.format(model.name, path))
+        print(f"{model.name} has been saved in {path}/saved_models/")
 
     def load_from_files(self, epoch):
         path = self.model_path

@@ -73,12 +73,6 @@ class Trainer(object):
         # Create a session with the above options specified.
         K.tensorflow_backend.set_session(tf.Session(config=config))
         K.tensorflow_backend.get_session().run(tf.global_variables_initializer())
-        # ! REMOVE
-        model.save(self.result_path, model.D_A.model, 1)
-        model.save(self.result_path, model.D_B.model, 1)
-        model.save(self.result_path, model.G_A2B.model, 1)
-        model.save(self.result_path, model.G_B2A.model, 1)
-        sys.exit()
 
     def train(self, data, model):
         batch_size = self.batch_size
@@ -97,14 +91,9 @@ class Trainer(object):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
             synthetic_images_B = model.G_A2B.model.predict(real_images_A)
-            synthetic_images_A = model.G_B2A.model.predict(real_images_B)
-            
-            print(f"ones A shape: {ones_A.shape}")
-            print(f"zeros A shape: {zeros_A.shape}")
-            print(f"zeros B shape: {zeros_B.shape}")
+            synthetic_images_A = model.G_B2A.model.predict(real_images_B)           
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
-            print(f"synthetic images A shape: {synthetic_images_A.shape}")
 
             for _ in range(self.discriminator_iterations):
                 DA_loss_real = model.D_A.model.train_on_batch(
@@ -263,8 +252,6 @@ class Trainer(object):
                 sys.stdout.flush()
                 real_images_A = A_train[indexes_A]
                 real_images_B = B_train[indexes_B]
-                print(f"A train shape: {A_train.shape}") # ! REMOVE
-                print(f"real uimages A shape: {real_images_A.shape}") # ! REMOVE
 
                 # labels
                 if model.use_multiscale_discriminator:
@@ -302,8 +289,7 @@ class Trainer(object):
                 if data.dim == '2D':
                     tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
                 elif data.dim == '3D':
-                    pass
-                    # TODO: implement 3D results output
+                    tester.testMIP(test_path='/home/peter/data/data_corrected/', mod_A=['CT', 'PET'], mod_B=['dose'], epoch=epoch)
 
             if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -311,7 +297,6 @@ class Trainer(object):
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
-                # TODO: full MIP putput of all patients
 
 
             training_history = {

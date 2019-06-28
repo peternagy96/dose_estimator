@@ -57,7 +57,6 @@ if __name__ == '__main__':
                                 batch_size=settings['Batch Size'])
 
             # load model weights if necessary
-            print(gan.model_path)
             if os.path.exists(gan.model_path):
                 gan.load_from_files(settings['Init Epoch'])
                 print('Model weights loaded from files')

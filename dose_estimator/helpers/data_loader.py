@@ -42,12 +42,14 @@ class Data(object):
         test_image_names = test_file.read().splitlines()
 
         # normalize
+        per_patient=True
+        step2 = False
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
                 train_images[key[0]] = self.normalize_array(
-                    train_images[key[0]])
-                test_images[key[0]] = self.normalize_array(test_images[key[0]])
+                    train_images[key[0]], per_patient=per_patient, step2=step2)
+                test_images[key[0]] = self.normalize_array(test_images[key[0]], per_patient=per_patient, step2=step2)
 
         # TODO: make depth and step hyperparameters in the Excel file
         if self.dim == '3D':
@@ -55,8 +57,8 @@ class Data(object):
             for key in train_images.items():
                 train_images[key[0]] = train_images[key[0]].reshape((-1,81,128,128))
                 test_images[key[0]] = test_images[key[0]].reshape((-1,81,128,128))
-                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=16, step=3)
-                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=16, step=3)
+                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=4, step=1)
+                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=4, step=1)
 
         # augment
         if self.aug == 'Y':
@@ -85,15 +87,22 @@ class Data(object):
         print('Data has been loaded')
 
     @staticmethod
-    def normalize_array(inp):
+    def normalize_array(inp, per_patient=False, step2 = False):
         # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
-        array = inp.copy()
-        for i in range(array.shape[0]):
-            pic = array[i, :, :]
-            mi = pic.min()
-            ma = pic.max()
-            pic = ((2 * (pic - mi)) / (ma - mi)) - 1
-            array[i:(i+1), :, :] = pic
+        if step2:
+            inp = (inp - inp.mean()) / (inp.std())
+        if per_patient:
+            mi = inp.min()
+            ma = inp.max()
+            array = ((2 * (inp - mi)) / (ma - mi)) - 1
+        else:
+            array = inp.copy()
+            for i in range(array.shape[0]):
+                pic = array[i, :, :]
+                mi = pic.min()
+                ma = pic.max()
+                pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+                array[i:(i+1), :, :] = pic
         return array
 
     @staticmethod
