@@ -141,6 +141,9 @@ class Tester(object):
         if epoch == '':
             if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
                 os.makedirs(os.path.join(self.result_path, 'MIP'))
+        else:
+            if not os.path.exists(os.path.join(os.path.join(self.result_path, f"Epoch {epoch}", 'MIP'))):
+                os.makedirs(os.path.join(self.result_path, f"Epoch {epoch}", 'MIP'))
 
         for idx, i in enumerate(indices):
             print(f"Processing {i}...")
