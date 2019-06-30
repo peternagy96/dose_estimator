@@ -35,7 +35,7 @@ class Trainer(object):
             self.epochs = int(self.epochs + self.init_epoch)
         else:
             self.init_epoch = 1
-        self.save_interval = 1
+        self.save_interval = 10
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators
@@ -286,17 +286,21 @@ class Trainer(object):
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
-                if data.dim == '2D':
-                    tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
-                elif data.dim == '3D':
-                    tester.testMIP(test_path='/home/peter/data/data_corrected/', mod_A=['CT', 'PET'], mod_B='dose', epoch=epoch)
-
-            if epoch % 20 == 0:
-                # self.saveModel(self.G_model)
+                #if data.dim == '2D':
+                #    tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
+                #elif data.dim == '3D':
                 model.save(self.result_path, model.D_A.model, epoch)
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
+                tester.testMIP(test_path='/home/peter/data/data_corrected/', mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
+            
+            """ if epoch % 20 == 0:
+                # self.saveModel(self.G_model)
+                model.save(self.result_path, model.D_A.model, epoch)
+                model.save(self.result_path, model.D_B.model, epoch)
+                model.save(self.result_path, model.G_A2B.model, epoch)
+                model.save(self.result_path, model.G_B2A.model, epoch) """
 
 
             training_history = {
