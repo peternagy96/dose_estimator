@@ -79,7 +79,7 @@ class Generator(object):
             x = dk3D(self.normalization, x, 256)
 
         # Layer 4-12: Residual layer
-        for _ in range(4, 13):
+        for _ in range(4, 9):
             x = Rk3D(self.normalization, x)
 
         if self.mode == 'multiscale':
@@ -91,7 +91,7 @@ class Generator(object):
         # Layer 14
         x = uk3D(self.normalization, self.use_resize_convolution, x, 48)
         x = ReflectionPadding3D((3, 3, 3))(x)
-        x = Conv3D(self.img_shape[-1], kernel_size=5, strides=1)(x)
+        x = Conv3D(self.img_shape[-1], kernel_size=7, strides=1)(x)
         # They say they use Relu but really they do not
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)

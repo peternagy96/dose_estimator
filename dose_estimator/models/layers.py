@@ -70,7 +70,7 @@ def ck3D(norm, x, k, use_normalization):
 
 
 def c5Ak3D(norm, x, k):
-    x = Conv3D(filters=k, kernel_size=5, strides=1, padding='valid')(x)
+    x = Conv3D(filters=k, kernel_size=7, strides=1, padding='valid')(x)
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
