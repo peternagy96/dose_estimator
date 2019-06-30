@@ -95,20 +95,20 @@ class Discriminator(object):
         # Specify input
         input_img = Input(shape=self.img_shape)
         # Layer 1 (#Instance normalization is not used for this layer)
-        x = Conv3D(filters=64, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')(input_img)
+        x = Conv3D(filters=64, kernel_size=3, strides=2, padding='same')(input_img)
         x = LeakyReLU(alpha=0.2)(x)
         # Layer 2
-        x = Conv3D(filters=128, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')(x)
+        x = Conv3D(filters=128, kernel_size=3, strides=2, padding='same')(x)
         x = IN_LeakyRelu(x, self.normalization)
         # Layer 3
-        x = Conv3D(filters=256, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')(x)
+        x = Conv3D(filters=256, kernel_size=3, strides=2, padding='same')(x)
         x = IN_LeakyRelu(x, self.normalization)
         # Layer 4
-        x = Conv3D(filters=512, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')(x)
+        x = Conv3D(filters=512, kernel_size=3, strides=2, padding='same')(x)
         x = IN_LeakyRelu(x, self.normalization)
         # Output layer
         if self.use_patchgan:
-            x = Conv3D(filters=1, kernel_size=(3, 3, 3), strides=(1, 1, 1), padding='same')(x)
+            x = Conv3D(filters=1, kernel_size=3, strides=1, padding='same')(x)
         else:
             x = Flatten()(x)
             x = Dense(1)(x)

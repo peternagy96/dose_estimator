@@ -3,7 +3,7 @@ from keras_contrib.layers.normalization.instancenormalization import InstanceNor
 from keras.layers import Input, Conv2D, Conv3D, Activation, concatenate
 from keras.models import Model
 
-from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
+from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ck3D, c5Ak3D, dk3D, Rk3D, uk3D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
 
 
 class Generator(object):
@@ -24,6 +24,11 @@ class Generator(object):
                 return self.basicGenerator()
             elif dim == '3D':
                 return self.basic3DGenerator()
+        elif mdoe == 'unet':
+            if dim == '2D':
+                return self.unetGenerator()
+            elif dim == '3D':
+                return self.unet3DGenerator()
 
     def basicGenerator(self):
         # Specify input
@@ -59,6 +64,42 @@ class Generator(object):
         return Model(inputs=input_img, outputs=x, name=self.name)
 
     def basic3DGenerator(self):
+        # Specify input
+        input_img = Input(shape=self.img_shape)
+        # Layer 1
+        x = ReflectionPadding3D((3, 3, 3))(input_img)
+        x = c5Ak3D(self.normalization, x, 48)
+        # Layer 2
+        x = dk3D(self.normalization, x, 72)
+        # Layer 3
+        x = dk3D(self.normalization, x, 128)
+
+        if self.mode == 'multiscale':
+            # Layer 3.5
+            x = dk3D(self.normalization, x, 256)
+
+        # Layer 4-12: Residual layer
+        for _ in range(4, 13):
+            x = Rk3D(self.normalization, x)
+
+        if self.mode == 'multiscale':
+            # Layer 12.5
+            x = uk3D(self.normalization, self.use_resize_convolution, x, 128)
+
+        # Layer 13
+        x = uk3D(self.normalization, self.use_resize_convolution, x, 72)
+        # Layer 14
+        x = uk3D(self.normalization, self.use_resize_convolution, x, 48)
+        x = ReflectionPadding3D((3, 3, 3))(x)
+        x = Conv3D(self.img_shape[-1], kernel_size=5, strides=1)(x)
+        # They say they use Relu but really they do not
+        x = Activation('tanh')(x)
+        return Model(inputs=input_img, outputs=x, name=self.name)
+
+    def unetGenerator(self):
+        raise NotImplementedError("2D Unet generator not implemented!")
+
+    def unet3DGenerator(self):
         base_filter = 16
         depth = 3
         filters = []

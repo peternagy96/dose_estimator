@@ -1,4 +1,4 @@
-from keras.layers import Layer, Input, Conv2D, Conv3D, Activation, add, UpSampling2D, UpSampling3D, Conv2DTranspose
+from keras.layers import Layer, Input, Conv2D, Conv3D, Activation, add, UpSampling2D, UpSampling3D, Conv2DTranspose, Conv3DTranspose
 from keras.layers.advanced_activations import LeakyReLU
 from keras_contrib.layers.normalization.instancenormalization import InputSpec
 import tensorflow as tf
@@ -57,6 +57,60 @@ def uk(norm, resize, x, k):
     x = Activation('relu')(x)
     return x
 
+# 3D basic layers -----------------------------------------------------------
+
+def ck3D(norm, x, k, use_normalization):
+    x = Conv3D(filters=k, kernel_size=3, strides=2, padding='same')(x)
+    # Normalization is not done on the first discriminator layer
+    if use_normalization:
+        x = norm(axis=4, center=True,
+                 epsilon=1e-5)(x, training=True)
+    x = LeakyReLU(alpha=0.2)(x)
+    return x
+
+
+def c5Ak3D(norm, x, k):
+    x = Conv3D(filters=k, kernel_size=5, strides=1, padding='valid')(x)
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
+    return x
+
+
+def dk3D(norm, x, k):
+    x = Conv3D(filters=k, kernel_size=3, strides=2, padding='same')(x)
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
+    return x
+
+
+def Rk3D(norm, x0):
+    k = int(x0.shape[-1])
+    # first layer
+    x = Conv3D(filters=k, kernel_size=3, strides=1, padding='same')(x0)
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
+    # second layer
+    x = Conv3D(filters=k, kernel_size=3, strides=1, padding='same')(x)
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    # merge
+    x = add([x, x0])
+    return x
+
+
+def uk3D(norm, resize, x, k):
+    # (up sampling followed by 1x1 convolution <=> fractional-strided 1/2)
+    if resize:
+        x = UpSampling3D(size=(2, 2, 2))(x)  # Nearest neighbor upsampling
+        x = ReflectionPadding3D((1, 1, 1))(x)
+        x = Conv3D(filters=k, kernel_size=3, strides=1, padding='valid')(x)
+    else:
+        x = Conv3DTranspose(filters=k, kernel_size=3, strides=2, padding='same')(
+            x)  # this matches fractionally stided with stride 1/2
+    x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
+    return x
+
+# 3D Unet layers ------------------------------------------------------------
 
 def Upsample3D(x):
     return UpSampling3D(size=(2, 2, 2))(x)
@@ -70,7 +124,6 @@ def UnetUpsample(x, num_filters, norm):
                          padding='same')(x)
     x = IN_Relu(x, norm)
     return x
-
 
 def IN_Relu(x, norm):
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
