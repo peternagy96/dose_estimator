@@ -67,7 +67,7 @@ if __name__ == '__main__':
                 # run training
                 trainer.train(data=data, model=gan)
             elif settings['Mode'] == 'plot':
-                pass
+                gan.saveSummary()
             else:
                 result_name = settings['Name'] + '_' + time.strftime('%Y%m%d-%H%M%S', time.localtime())
                 result_path = os.path.join( os.getcwd(), 'results', result_name)
