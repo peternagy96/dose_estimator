@@ -7,7 +7,7 @@ from skimage import transform
 
 
 class Data(object):
-    def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'SPECT'],
+    def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
                  norm=True, aug=False):
         self.subfolder = subfolder
         self.dim = dim
@@ -26,13 +26,13 @@ class Data(object):
             folder, 'ct_train.npy')).reshape((-1, 128, 128))
         train_images['PET'] = np.load(os.path.join(
             folder, 'pet_train.npy')).reshape((-1, 128, 128))
-        train_images['SPECT'] = np.load(os.path.join(
+        train_images['dose'] = np.load(os.path.join(
             folder, 'dose_train.npy')).reshape((-1, 128, 128))
         test_images['CT'] = np.load(os.path.join(
             folder, 'ct_test.npy')).reshape((-1, 128, 128))
         test_images['PET'] = np.load(os.path.join(
             folder, 'pet_test.npy')).reshape((-1, 128, 128))
-        test_images['SPECT'] = np.load(os.path.join(
+        test_images['dose'] = np.load(os.path.join(
             folder, 'dose_test.npy')).reshape((-1, 128, 128))
         train_file = open(os.path.join(folder, "train.txt"),
                           "r", encoding='utf8')
