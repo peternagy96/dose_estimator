@@ -1,5 +1,5 @@
 Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment,Resize Conv,Subfolder,Model Path,Done
-3D_normtest,train,3D,basic,0.0003,0.0003,,200,5,"CT, PET, dose",Y,N,N,data_3d,x,
+3D_normtest,train,3D,basic,0.0003,0.0003,,200,5,"CT, PET, dose",N,N,N,data_3d,x,
 2D_CTPET_notnormed,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",N,Y,N,data_corrected,x,
 2D_CTPET_norm,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,Y,N,data_corrected,x,
 MIP,test_mip,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,,N,data_3d,/home/peter/saved_models/augmented/,x

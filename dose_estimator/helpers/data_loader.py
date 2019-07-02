@@ -133,8 +133,10 @@ class Data(object):
         for j in range(numpics):
             for i in np.arange(0, piclen, step):
                 if i+depth <= piclen:
-                    out.append(inp[j, i:i+depth, :, :])
+                    block = inp[j, i:i+depth, :, :]
+                    out.append(block)
                 else:
-                    out.append(inp[j, piclen-depth:, :, :])
+                    block = inp[j, piclen-depth:, :, :]
+                    out.append(block)
                     break
         return np.array(out)
