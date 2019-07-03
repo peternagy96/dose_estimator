@@ -142,7 +142,7 @@ class Tester(object):
             if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
                 os.makedirs(os.path.join(self.result_path, 'MIP'))
         else:
-            if not os.path.exists(os.path.join(os.path.join(self.result_path, f"Epoch {epoch}", 'MIP'))):
+            if not os.path.exists(os.path.join(os.path.join(self.result_path, f"epoch_{epoch}", 'MIP'))):
                 os.makedirs(os.path.join(self.result_path, f"epoch_{epoch}", 'MIP'))
 
         for idx, i in enumerate(indices):
@@ -218,7 +218,7 @@ class Tester(object):
             else:
                 addition = 'test'
             if epoch != '':
-                path_out = f"{self.result_path}/Epoch {epoch}/MIP/{i}_{addition}.png"
+                path_out = f"{self.result_path}/epoch_{epoch}/MIP/{i}_{addition}.png"
             else:
                 path_out = f"{self.result_path}/{i}_{addition}.png"
             im = Image.fromarray(final_img).convert("L")

@@ -283,7 +283,7 @@ class Trainer(object):
 
             # ================== within epoch loop end ==========================
 
-            if epoch % save_interval == 0:
+            if epoch % 1 == 0: # save_interval
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
                 #if data.dim == '2D':
