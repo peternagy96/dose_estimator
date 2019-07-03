@@ -47,9 +47,9 @@ class Data(object):
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
-                train_images[key[0]] = self.normalize_array(
-                    train_images[key[0]], per_patient=per_patient, step2=step2)
-                test_images[key[0]] = self.normalize_array(test_images[key[0]], per_patient=per_patient, step2=step2)
+                train_images[key[0]] = self.normalize(
+                    train_images[key[0]], step2=step2)
+                test_images[key[0]] = self.normalize(test_images[key[0]], step2=step2)
 
         # TODO: make depth and step hyperparameters in the Excel file
         if self.dim == '3D':
@@ -103,6 +103,20 @@ class Data(object):
                 ma = pic.max()
                 pic = ((2 * (pic - mi)) / (ma - mi)) - 1
                 array[i:(i+1), :, :] = pic
+        return array
+
+    @staticmethod
+    def normalize(inp, step2 = True):
+        array = inp.copy()     
+        for i in range(array.shape[0]):
+            pic = array[i, :, :]
+            mask = pic > pic.mean()
+            if step2:
+                pic = (pic - pic[mask].mean()) / (pic[mask].std())  
+            #mi = pic.min()
+            #ma = pic.max()
+            #pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+            array[i, :, :] = pic
         return array
 
     @staticmethod

@@ -293,7 +293,7 @@ class Trainer(object):
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
-                #tester.testMIP(test_path='/home/peter/data/data_corrected/', mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
+                tester.testMIP(test_path='/home/peter/data/3d_filtered/', mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
             
             """ if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
