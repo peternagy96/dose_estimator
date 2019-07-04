@@ -15,7 +15,7 @@ from models.gan import cycleGAN
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #if len(device_lib.list_local_devices()) > 1:
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 np.random.seed(seed=12345)
 
