@@ -57,8 +57,8 @@ class Data(object):
             for key in train_images.items():
                 train_images[key[0]] = train_images[key[0]].reshape((-1,81,128,128))
                 test_images[key[0]] = test_images[key[0]].reshape((-1,81,128,128))
-                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=12, step=2)
-                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=12, step=2)
+                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=4, step=1)
+                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=4, step=1)
 
         # augment
         if self.aug == 'Y':

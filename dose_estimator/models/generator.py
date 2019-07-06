@@ -24,11 +24,17 @@ class Generator(object):
                 return self.basicGenerator()
             elif dim == '3D':
                 return self.basic3DGenerator()
-        elif mdoe == 'unet':
+        elif mode == 'unet':
             if dim == '2D':
                 return self.unetGenerator()
             elif dim == '3D':
                 return self.unet3DGenerator()
+        elif mode == 'small':
+            if dim == '2D':
+                raise NotImplementedError("2D small generator model not implemented!")
+            elif dim == '3D':
+                return self.small3DGenerator()
+
 
     def basicGenerator(self):
         # Specify input
@@ -90,6 +96,39 @@ class Generator(object):
         x = uk3D(self.normalization, self.use_resize_convolution, x, 72)
         # Layer 14
         x = uk3D(self.normalization, self.use_resize_convolution, x, 48)
+        x = ReflectionPadding3D((3, 3, 3))(x)
+        x = Conv3D(self.img_shape[-1], kernel_size=7, strides=1)(x)
+        # They say they use Relu but really they do not
+        x = Activation('tanh')(x)
+        return Model(inputs=input_img, outputs=x, name=self.name)
+
+    def small3DGenerator(self):
+        # Specify input
+        input_img = Input(shape=self.img_shape)
+        # Layer 1
+        x = ReflectionPadding3D((3, 3, 3))(input_img)
+        x = c5Ak3D(self.normalization, x, 32)
+        # Layer 2
+        x = dk3D(self.normalization, x, 64)
+        # Layer 3
+        x = dk3D(self.normalization, x, 64)
+
+        if self.mode == 'multiscale':
+            # Layer 3.5
+            x = dk3D(self.normalization, x, 256)
+
+        # Layer 4-12: Residual layer
+        for _ in range(4, 9):
+            x = Rk3D(self.normalization, x)
+
+        if self.mode == 'multiscale':
+            # Layer 12.5
+            x = uk3D(self.normalization, self.use_resize_convolution, x, 64)
+
+        # Layer 13
+        x = uk3D(self.normalization, self.use_resize_convolution, x, 64)
+        # Layer 14
+        x = uk3D(self.normalization, self.use_resize_convolution, x, 32)
         x = ReflectionPadding3D((3, 3, 3))(x)
         x = Conv3D(self.img_shape[-1], kernel_size=7, strides=1)(x)
         # They say they use Relu but really they do not
