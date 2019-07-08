@@ -69,7 +69,6 @@ class Data(object):
                     train_images[key[0]] = self.normPET(train_images[key[0]])
                     test_images[key[0]] = self.normPET(test_images[key[0]])
 
-        # TODO: make depth and step hyperparameters in the Excel file
         if self.dim == '3D':
             print("Converting data to the 3D format...")
             for key in train_images.items():
@@ -160,10 +159,23 @@ class Data(object):
             out[i] = np.concatenate((images[i], out[i]), axis=0)
         return out
 
-    # TODO: augment 3D dataset by random rotating each patient's scan
     @staticmethod
-    def augment3D(images):
-        return images
+    def augment3d(images):
+        out = {}
+        out.update(images)
+        num_imgs = images[list(images.keys())[0]].shape[0]
+        num_slices = images[list(images.keys())[0]].shape[1]
+        for i in images.keys():
+            out[i] = np.empty(images[i].shape)
+        for j in range(num_imgs):
+            random_degree = random.uniform(-25, 25)
+            for i in images.keys():
+                for k in range(num_slices):
+                    out[i][j,k] = sk.transform.rotate(
+                        images[i][j,k], random_degree, mode='constant', cval=out[i][j,k].min())
+        for i in images.keys():
+            out[i] = np.concatenate((images[i], out[i]), axis=0)
+        return out
 
     @staticmethod
     def convertTo3D(inp, depth=9, step=9):
