@@ -9,14 +9,14 @@ from scipy.ndimage import zoom
 
 class Data(object):
     def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
-                 norm=True, aug=False, down=False, 3D_depth=5, step_size=1):
+                 norm=True, aug=False, down=False, depth=5, step_size=1):
         self.subfolder = subfolder
         self.dim = dim
         self.mods = mods
         self.norm = norm
         self.aug = aug
         self.down = down
-        self.3D_depth = 3D_depth
+        self.depth = depth
         self.step_size = step_size
 
     def load_data(self):
@@ -45,37 +45,42 @@ class Data(object):
                          "r", encoding='utf8')
         test_image_names = test_file.read().splitlines()
 
-        #downsample
-        if down:
+        # downsample
+        if self.down:
             for key in train_images.items():
-                train_images[key[0]] = zoom(train_images[key[0]], (0.5,0.5,0.5))
-                test_images[key[0]] = zoom(test_images[key[0]], (0.5,0.5,0.5))
+                train_images[key[0]] = zoom(
+                    train_images[key[0]], (0.5, 0.5, 0.5))
+                test_images[key[0]] = zoom(
+                    test_images[key[0]], (0.5, 0.5, 0.5))
 
         # normalize
-        per_patient=True
+        per_patient = True
         step2 = False
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
                 train_images[key[0]] = self.normalize(
                     train_images[key[0]], step2=step2)
-                test_images[key[0]] = self.normalize(test_images[key[0]], step2=step2)
+                test_images[key[0]] = self.normalize(
+                    test_images[key[0]], step2=step2)
         else:
             for key in train_images.items():
-                if key[0] == 'CT'
+                if key[0] == 'CT':
                     train_images[key[0]] = self.normCT(train_images[key[0]])
                     test_images[key[0]] = self.normCT(test_images[key[0]])
-                elif key[0] == 'PET'
+                elif key[0] == 'PET':
                     train_images[key[0]] = self.normPET(train_images[key[0]])
                     test_images[key[0]] = self.normPET(test_images[key[0]])
 
         if self.dim == '3D':
             print("Converting data to the 3D format...")
             for key in train_images.items():
-                train_images[key[0]] = train_images[key[0]].reshape((-1,81,128,128))
-                test_images[key[0]] = test_images[key[0]].reshape((-1,81,128,128))
-                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.3D_depth, step=self.step_size)
-                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.3D_depth, step=self.step_size)
+                train_images[key[0]] = train_images[key[0]
+                                                    ].reshape((-1, 81, 128, 128))
+                test_images[key[0]] = test_images[key[0]
+                                                  ].reshape((-1, 81, 128, 128))
+                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.depth, step=self.step_size)
+                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.depth, step=self.step_size)
 
         # augment
         if self.aug == 'Y':
@@ -105,14 +110,14 @@ class Data(object):
 
     @staticmethod
     def normCT(array):
-    return array/1024.0123291015625
+        return array/1024.0123291015625
 
     @staticmethod
     def normPET(array):
-    return array/10
+        return array/10
 
     @staticmethod
-    def normalize_array(inp, per_patient=False, step2 = False):
+    def normalize_array(inp, per_patient=False, step2=False):
         # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
         if step2:
             inp = (inp - inp.mean()) / (inp.std())
@@ -131,13 +136,13 @@ class Data(object):
         return array
 
     @staticmethod
-    def normalize(inp, step2 = True):
-        array = inp.copy()     
+    def normalize(inp, step2=True):
+        array = inp.copy()
         for i in range(array.shape[0]):
             pic = array[i, :, :]
             mask = pic > pic.mean()
             if step2:
-                pic = (pic - pic[mask].mean()) / (pic[mask].std())  
+                pic = (pic - pic[mask].mean()) / (pic[mask].std())
             #mi = pic.min()
             #ma = pic.max()
             #pic = ((2 * (pic - mi)) / (ma - mi)) - 1
@@ -171,8 +176,8 @@ class Data(object):
             random_degree = random.uniform(-25, 25)
             for i in images.keys():
                 for k in range(num_slices):
-                    out[i][j,k] = sk.transform.rotate(
-                        images[i][j,k], random_degree, mode='constant', cval=out[i][j,k].min())
+                    out[i][j, k] = sk.transform.rotate(
+                        images[i][j, k], random_degree, mode='constant', cval=out[i][j, k].min())
         for i in images.keys():
             out[i] = np.concatenate((images[i], out[i]), axis=0)
         return out

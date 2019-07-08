@@ -15,7 +15,7 @@ from models.gan import cycleGAN
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #if len(device_lib.list_local_devices()) > 1:
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 np.random.seed(seed=12345)
 
@@ -35,8 +35,11 @@ if __name__ == '__main__':
 
             # import data
             mods = settings['Mods'].split(', ')
+            down = False
+            if settings['Full 3D'] == 'Y' and settings['Dim'] == '3D':
+                down = True
             data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
-                        norm=settings['Norm'], aug=settings['Augment'])
+                        norm=settings['Norm'], aug=settings['Augment'], down=down)
             data.load_data()
             
 
@@ -44,7 +47,7 @@ if __name__ == '__main__':
             if settings['Dim'] == '2D':
                 image_shape = data.A_train.shape[-3:]
             elif settings['Dim'] == '3D':
-                image_shape = data.A_train.shape[-4:]
+                image_shape = data.A_train.shape[-4:]                
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=settings['Model Path'],
                            image_shape=image_shape)

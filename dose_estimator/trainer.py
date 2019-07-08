@@ -35,7 +35,7 @@ class Trainer(object):
             self.epochs = int(self.epochs + self.init_epoch)
         else:
             self.init_epoch = 1
-        self.save_interval = 10
+        self.save_interval = 20
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators
@@ -394,6 +394,10 @@ class Trainer(object):
             'REAL_LABEL': self.REAL_LABEL,
             'data normalized': str(data_orig.norm),
             'data augmented': str(data_orig.aug),
+            '3D window size': str(data_orig.depth),
+            '3D step size': str(data_orig.step_size),
+            'data downsampled': str(data_orig.down),
+            'resize convolution': str(model.use_resize_convolution)
             'number of A train examples': len(data_orig.A_train),
             'number of B train examples': len(data_orig.B_train),
             'number of A test examples': len(data_orig.A_test),
