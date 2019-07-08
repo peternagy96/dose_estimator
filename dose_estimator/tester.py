@@ -117,15 +117,20 @@ class Tester(object):
             array[i:(i+1), :, :] = pic
         return array
 
-    @staticmethod
-    def normalize(inp):
+    def normalize(self, inp, mod=''):
         array = inp.copy()
-        for i in range(array.shape[0]):
-            pic = array[i, :, :]
-            mi = pic.min()
-            ma = pic.max()
-            pic = ((2 * (pic - mi)) / (ma - mi)) - 1
-            array[i:(i+1), :, :] = pic
+        if data.norm:
+            for i in range(array.shape[0]):
+                pic = array[i, :, :]
+                mi = pic.min()
+                ma = pic.max()
+                pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+                array[i:(i+1), :, :] = pic
+        else:
+            if mod == 'CT':
+               array = array/1024.0123291015625
+            elif mod == 'PET':
+                array = array/10
         return array
 
 # Create MIP of prediction and ground truth for all patients from NIFTI
@@ -151,16 +156,16 @@ class Tester(object):
             # load NIFTI files
             if len(mod_A) == 2:
                 in1 = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[0])))
+                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0)
                 in2 = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[1])))
+                    self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
                 nifti_in_A = np.concatenate((in1, in2), axis=1)
             else:
                 nifti_in_A = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[0])))
+                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
 
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
-                self.read_nifti(test_path, i, mod_B)))
+                self.read_nifti(test_path, i, mod_B)), mod_B)
 
             # predict output modality
             print("    files loaded")

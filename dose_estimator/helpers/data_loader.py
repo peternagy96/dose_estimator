@@ -9,13 +9,15 @@ from scipy.ndimage import zoom
 
 class Data(object):
     def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
-                 norm=True, aug=False, down=False):
+                 norm=True, aug=False, down=False, 3D_depth=4, step_size=1):
         self.subfolder = subfolder
         self.dim = dim
         self.mods = mods
         self.norm = norm
         self.aug = aug
         self.down = down
+        self.3D_depth = 3D_depth
+        self.step_size = step_size
 
     def load_data(self):
         train_images = {}
@@ -73,8 +75,8 @@ class Data(object):
             for key in train_images.items():
                 train_images[key[0]] = train_images[key[0]].reshape((-1,81,128,128))
                 test_images[key[0]] = test_images[key[0]].reshape((-1,81,128,128))
-                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=4, step=1)
-                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=4, step=1)
+                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.3D_depth, step=self.step_size)
+                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.3D_depth, step=self.step_size)
 
         # augment
         if self.aug == 'Y':
