@@ -4,11 +4,12 @@ from tensorflow.python.client import device_lib
 import random
 import skimage as sk
 from skimage import transform
+from scipy.ndimage import zoom
 
 
 class Data(object):
     def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
-                 norm=True, aug=False):
+                 norm=True, aug=False, down=False):
         self.subfolder = subfolder
         self.dim = dim
         self.mods = mods
@@ -41,6 +42,12 @@ class Data(object):
                          "r", encoding='utf8')
         test_image_names = test_file.read().splitlines()
 
+        #downsample
+        if down:
+            for key in train_images.items():
+                train_images[key[0]] = zoom(train_images[key[0]], (0.5,0.5,0.5))
+                test_images[key[0]] = zoom(test_images[key[0]], (0.5,0.5,0.5))
+
         # normalize
         per_patient=True
         step2 = False
@@ -50,6 +57,14 @@ class Data(object):
                 train_images[key[0]] = self.normalize(
                     train_images[key[0]], step2=step2)
                 test_images[key[0]] = self.normalize(test_images[key[0]], step2=step2)
+        else:
+            for key in train_images.items():
+                if key[0] == 'CT'
+                    train_images[key[0]] = self.normCT(train_images[key[0]])
+                    test_images[key[0]] = self.normCT(test_images[key[0]])
+                elif key[0] == 'PET'
+                    train_images[key[0]] = self.normPET(train_images[key[0]])
+                    test_images[key[0]] = self.normPET(test_images[key[0]])
 
         # TODO: make depth and step hyperparameters in the Excel file
         if self.dim == '3D':
@@ -85,6 +100,14 @@ class Data(object):
         self.train_image_names = train_image_names
         self.test_image_names = test_image_names
         print('Data has been loaded')
+
+    @staticmethod
+    def normCT(array):
+    return array/1024.0123291015625
+
+    @staticmethod
+    def normPET(array):
+    return array/10
 
     @staticmethod
     def normalize_array(inp, per_patient=False, step2 = False):
