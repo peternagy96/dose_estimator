@@ -119,7 +119,7 @@ class Tester(object):
 
     def normalize(self, inp, mod=''):
         array = inp.copy()
-        if data.norm:
+        if self.data.norm:
             for i in range(array.shape[0]):
                 pic = array[i, :, :]
                 mi = pic.min()

@@ -283,7 +283,7 @@ class Trainer(object):
 
             # ================== within epoch loop end ==========================
 
-            if epoch % 1 == 0: # save_interval
+            if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
                 #if data.dim == '2D':
@@ -294,6 +294,8 @@ class Trainer(object):
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
                 tester.testMIP(test_path='/home/peter/data/3d_filtered/', mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
+                #pat_num = [int(data.A_train.shape[0]), int()]
+                #tester.test_jpg(epoch=epoch, mode="forward",index=40, pat_num=[32, 5], mods=data.mods)
             
             """ if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -397,7 +399,7 @@ class Trainer(object):
             '3D window size': str(data_orig.depth),
             '3D step size': str(data_orig.step_size),
             'data downsampled': str(data_orig.down),
-            'resize convolution': str(model.use_resize_convolution)
+            'resize convolution': str(model.use_resize_convolution),
             'number of A train examples': len(data_orig.A_train),
             'number of B train examples': len(data_orig.B_train),
             'number of A test examples': len(data_orig.A_test),
