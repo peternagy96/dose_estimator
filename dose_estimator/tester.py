@@ -156,36 +156,43 @@ class Tester(object):
             # load NIFTI files
             if len(mod_A) == 2:
                 in1 = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0)
+                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
                 in2 = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
-                nifti_in_A = np.concatenate((in1, in2), axis=1)
+                pred_B = np.empty(in1.shape)
+                # pad input when using a 3D model
+                depth = self.model.img_shape[0]
+                if self.model.dim == '3D':
+                    pad_l = int((depth-1)/2)
+                    in1_pad = np.pad(in1, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
+                    in2_pad = np.pad(in2, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
+                    nifti_in_A = np.concatenate((in1_pad, in2_pad), axis=1)
+                else:
+                    nifti_in_A = np.concatenate((in1, in2), axis=1)
             else:
                 nifti_in_A = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
+                if self.model.dim == '3D':
+                    pad_l = int((depth-1)/2)
+                    nifti_in_A = np.pad(nifti_in_A, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
+                    
+
 
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
                 self.read_nifti(test_path, i, mod_B)), mod_B)
 
             # predict output modality
             print("    files loaded")
-            pred_B = np.empty(in1.shape)
             if self.model.dim == '2D':
                 for j in range(nifti_in_A.shape[0]):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
                                                                 np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
-            elif self.model.dim == '3D':
-                depth = self.model.img_shape[0]
+            elif self.model.dim == '3D':               
                 max_depth = nifti_in_B.shape[0]
-                for j in range(0, max_depth, depth):
-                    if j+depth <= max_depth:
-                        pred_B[j:j+depth] = self.model.G_A2B.model.predict(np.stack((in1[j:j+depth], in2[j:j+depth]), axis=3)[
-                                                                np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]  # .reshape((256,128))
-                    else:
-                        pred_B[max_depth-depth:] = self.model.G_A2B.model.predict(np.stack((in1[max_depth-depth:], in2[max_depth-depth:]), axis=3)[
-                                                                np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]  # .reshape((256,128))
-                    
-            
+                for j in range(0, max_depth, 1):
+                    pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
+                                                            np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]  # .reshape((256,128))        
+        
                 
             # TODO: fix histogram matching
             # pred_B[j] = self.hist_match(pred_B[0], pred_B[j])

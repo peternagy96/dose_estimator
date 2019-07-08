@@ -9,7 +9,7 @@ from scipy.ndimage import zoom
 
 class Data(object):
     def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
-                 norm=True, aug=False, down=False, 3D_depth=4, step_size=1):
+                 norm=True, aug=False, down=False, 3D_depth=5, step_size=1):
         self.subfolder = subfolder
         self.dim = dim
         self.mods = mods
