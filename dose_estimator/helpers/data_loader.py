@@ -15,6 +15,7 @@ class Data(object):
         self.mods = mods
         self.norm = norm
         self.aug = aug
+        self.down = down
 
     def load_data(self):
         train_images = {}
