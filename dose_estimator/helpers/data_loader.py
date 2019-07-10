@@ -18,6 +18,9 @@ class Data(object):
         self.down = down
         self.depth = depth
         self.step_size = step_size
+        if self.down:
+            self.depth = 40
+            self.step_size = 40
 
     def load_data(self):
         train_images = {}
@@ -45,13 +48,17 @@ class Data(object):
                          "r", encoding='utf8')
         test_image_names = test_file.read().splitlines()
 
+        """
         # downsample
         if self.down:
             for key in train_images.items():
-                train_images[key[0]] = zoom(
-                    train_images[key[0]], (0.5, 0.5, 0.5))
-                test_images[key[0]] = zoom(
-                    test_images[key[0]], (0.5, 0.5, 0.5))
+                print(key[0])
+                print(train_images[key[0]].shape)
+                train_images[key[0]] = zoom(train_images[key[0]], (0.5, 0.5, 0.5))
+                test_images[key[0]] = zoom(test_images[key[0]], (0.5, 0.5, 0.5))
+                print(train_images[key[0]].shape)
+                print(' ')
+        """
 
         # normalize
         per_patient = True
@@ -75,12 +82,15 @@ class Data(object):
         if self.dim == '3D':
             print("Converting data to the 3D format...")
             for key in train_images.items():
-                train_images[key[0]] = train_images[key[0]
-                                                    ].reshape((-1, 81, 128, 128))
-                test_images[key[0]] = test_images[key[0]
-                                                  ].reshape((-1, 81, 128, 128))
-                train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.depth, step=self.step_size)
-                test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.depth, step=self.step_size)
+                train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 128, 128))
+                test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 128, 128))
+                if self.down:
+                    train_images[key[0]] = zoom(train_images[key[0]], (1, 0.5, 0.5, 0.5))
+                    test_images[key[0]] = zoom(test_images[key[0]], (1, 0.5, 0.5, 0.5))
+                else:
+                    train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.depth, step=self.step_size)
+                    test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.depth, step=self.step_size)
+                
 
         # augment
         if self.aug == 'Y':
@@ -143,9 +153,9 @@ class Data(object):
             mask = pic > pic.mean()
             if step2:
                 pic = (pic - pic[mask].mean()) / (pic[mask].std())
-            #mi = pic.min()
-            #ma = pic.max()
-            #pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+            mi = pic.min()
+            ma = pic.max()
+            pic = ((2 * (pic - mi)) / (ma - mi)) - 1
             array[i, :, :] = pic
         return array
 
@@ -165,7 +175,7 @@ class Data(object):
         return out
 
     @staticmethod
-    def augment3d(images):
+    def augment3D(images):
         out = {}
         out.update(images)
         num_imgs = images[list(images.keys())[0]].shape[0]
