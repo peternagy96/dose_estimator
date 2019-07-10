@@ -91,7 +91,7 @@ class Trainer(object):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
             synthetic_images_B = model.G_A2B.model.predict(real_images_A)
-            synthetic_images_A = model.G_B2A.model.predict(real_images_B)           
+            synthetic_images_A = model.G_B2A.model.predict(real_images_B)        
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
 
@@ -101,9 +101,9 @@ class Trainer(object):
                 DB_loss_real = model.D_B.model.train_on_batch(
                     x=real_images_B, y=ones_B)
                 DA_loss_synthetic = model.D_A.model.train_on_batch(
-                    x=synthetic_images_A, y=zeros_B)
+                    x=synthetic_images_A, y=zeros_A)
                 DB_loss_synthetic = model.D_B.model.train_on_batch(
-                    x=synthetic_images_B, y=zeros_A)
+                    x=synthetic_images_B, y=zeros_B)
                 if model.use_multiscale_discriminator:
                     DA_loss = sum(DA_loss_real) + sum(DA_loss_synthetic)
                     DB_loss = sum(DB_loss_real) + sum(DB_loss_synthetic)

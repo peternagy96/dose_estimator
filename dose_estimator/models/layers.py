@@ -60,7 +60,7 @@ def uk(norm, resize, x, k):
 # 3D basic layers -----------------------------------------------------------
 
 def ck3D(norm, x, k, use_normalization):
-    x = Conv3D(filters=k, kernel_size=3, strides=2, padding='same')(x)
+    x = Conv3D(filters=k, kernel_size=3, strides=(1,2,2), padding='same')(x)
     # Normalization is not done on the first discriminator layer
     if use_normalization:
         x = norm(axis=4, center=True,
@@ -77,7 +77,7 @@ def c5Ak3D(norm, x, k):
 
 
 def dk3D(norm, x, k):
-    x = Conv3D(filters=k, kernel_size=3, strides=2, padding='same')(x)
+    x = Conv3D(filters=k, kernel_size=3, strides=(1,2,2), padding='same')(x)
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
@@ -104,7 +104,7 @@ def uk3D(norm, resize, x, k):
         x = ReflectionPadding3D((1, 1, 1))(x)
         x = Conv3D(filters=k, kernel_size=3, strides=1, padding='valid')(x)
     else:
-        x = Conv3DTranspose(filters=k, kernel_size=3, strides=2, padding='same')(
+        x = Conv3DTranspose(filters=k, kernel_size=3, strides=(1,2,2), padding='same')(
             x)  # this matches fractionally stided with stride 1/2
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
