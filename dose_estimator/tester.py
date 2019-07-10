@@ -160,6 +160,9 @@ class Tester(object):
                 in2 = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
                 pred_B = np.empty(in1.shape)
+                if self.model.img_shape[-2] != 128:
+                    in1 = zoom(in1, (0.5, 0.5, 0.5))
+                    in2 = zoom(in2, (0.5, 0.5, 0.5))
                 # pad input when using a 3D model
                 depth = self.model.img_shape[0]
                 if self.model.dim == '3D':
