@@ -15,7 +15,7 @@ from models.gan import cycleGAN
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #if len(device_lib.list_local_devices()) > 1:
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 np.random.seed(seed=12345)
 
@@ -47,9 +47,10 @@ if __name__ == '__main__':
             if settings['Dim'] == '2D':
                 image_shape = data.A_train.shape[-3:]
             elif settings['Dim'] == '3D':
-                image_shape = data.A_train.shape[-4:]                
+                image_shape = data.A_train.shape[-4:] 
+            model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
-                           mode_D='basic', model_path=settings['Model Path'],
+                           mode_D='basic', model_path=model_path,
                            image_shape=image_shape)
 
             # load trainer
@@ -73,11 +74,11 @@ if __name__ == '__main__':
                 gan.saveSummary()
             else:
                 result_name = settings['Name'] + '_' + time.strftime('%Y%m%d-%H%M%S', time.localtime())
-                result_path = os.path.join( os.getcwd(), 'results', result_name)
+                #result_path = os.path.join( os.getcwd(), 'results', result_name)
+                result_path = os.path.join('/home/peter/results', result_name)
                 tester = Tester(data=data, model=gan, result_path=result_path)
                 if settings['Mode'] == 'test_jpg':
-                    tester.test_jpg(epoch=epoch, mode="forward",
-                                    index=40, pat_num=[32, 5], mods=data.mods)
+                    tester.test_jpg(index=40, pat_num=[32, 5], mods=data.mods)
                 elif settings['Mode'] == 'test_nifti':
                     pass
                 elif settings['Mode'] == 'test_mip':

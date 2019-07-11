@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import SimpleITK as sitk
 from PIL import Image
+from scipy.ndimage import zoom
 
 
 class Tester(object):
@@ -14,10 +15,13 @@ class Tester(object):
         self.model = model
 
     # Return a generated slice from all train and test images
-    def test_jpg(self, epoch: int, mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'SPECT']):
+    def test_jpg(self, epoch: int = '', mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'dose']):
 
         # create output folders
-        path_name = os.path.join(self.result_path, f"epoch_{epoch}")
+        if epoch == '':
+            path_name = self.result_path
+        else:
+            path_name = os.path.join(self.result_path, f"epoch_{epoch}")
         if not os.path.exists(path_name):
             os.makedirs(path_name)
 
@@ -41,13 +45,13 @@ class Tester(object):
             num_train_samples = self.data.B_train.shape[0]
             num_test_samples = self.data.B_test.shape[0]
             # process training images
-            for idx in np.arange(index, num_train_samples, pat_num):
+            for idx in np.arange(index, num_train_samples, pat_num[0]):
                 pred = self.model.G_B2A.model.predict(
                     self.data.B_train[np.newaxis, idx, :, :]).squeeze()
                 self.save_basic_plot(self.data.B_train[idx], pred, self.data.A_train[idx],
                                      f"{path_name}/train_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
             # process test images
-            for idx in np.arange(index, num_test_samples, pat_num):
+            for idx in np.arange(index, num_test_samples, pat_num[1]):
                 pred = self.model.G_B2A.model.predict(
                     self.data.B_test[np.newaxis, idx, :, :]).squeeze()
                 self.save_basic_plot(self.data.B_test[idx], pred, self.data.A_test[idx],
@@ -71,22 +75,16 @@ class Tester(object):
             gt = np.vstack((gt[..., 0], gt[..., 1]))
             error = np.abs(pred-gt)
 
-        s2 = gt.shape[0] * 2
-
         border = np.ones((s, 10)) * 255
         final_img = np.hstack((orig, border, pred, border, gt, border, error))
         footer = np.ones((20, final_img.shape[1])) * 255
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(
-            final_img, f"Input", (40, s2+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(
-            final_img, f"Generated {mods[-1]}", (int(s2/2)+20, s2+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, f"Ground Truth {mods[-1]}", (2*(
-            int(s2/2)+15), s2+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(
-            final_img, 'Error Map', (10+3*(int(s2/2)+20), s2+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"Input", (40, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"Generated dose", (int(s/2)+25, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"GT dose", (s+60, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, 'Error Map', (3*int(s/2)+60, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
 
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)

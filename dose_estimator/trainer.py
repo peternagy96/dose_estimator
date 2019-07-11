@@ -295,7 +295,7 @@ class Trainer(object):
                 model.save(self.result_path, model.G_B2A.model, epoch)
                 tester.testMIP(test_path='/home/peter/data/3d_filtered/', mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
                 #pat_num = [int(data.A_train.shape[0]), int()]
-                #tester.test_jpg(epoch=epoch, mode="forward",index=40, pat_num=[32, 5], mods=data.mods)
+                tester.test_jpg(epoch=epoch, mode="forward",index=40, pat_num=[32, 5], mods=data.mods)
             
             """ if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
@@ -377,6 +377,7 @@ class Trainer(object):
         data['meta_data'] = []
         data['meta_data'].append({
             'img shape: height,width,channels': model.img_shape,
+            'data subfolder': data_orig.subfolder,
             'batch size': self.batch_size,
             'save interval': self.save_interval,
             'lambda_1': model.lambda_1,
