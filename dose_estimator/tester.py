@@ -15,7 +15,7 @@ class Tester(object):
         self.model = model
 
     # Return a generated slice from all train and test images
-    def test_jpg(self, epoch: int = '', mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'dose']):
+    def test_jpg(self, epoch: int = '', mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'dose'], depth: int = 5):
 
         # create output folders
         if epoch == '':
@@ -27,20 +27,38 @@ class Tester(object):
 
         if mode == 'forward':
             num_train_samples = self.data.A_train.shape[0]
-            num_test_samples = self.data.A_test.shape[0]
+            num_test_samples = self.data.A_test.shape[0]  
+            if self.model.dim == '3D' and self.model.img_shape[-2] != 128:
+                pat_num = [1,1]
+                index = 0
+
             # process training images
             for idx in np.arange(index, num_train_samples, pat_num[0]):
-                pred = self.model.G_A2B.model.predict(
-                    self.data.A_train[np.newaxis, idx, :, :]).squeeze()
-                self.save_basic_plot(
-                    self.data.A_train[idx], pred, self.data.B_train[idx], f"{path_name}/train_{idx}.png", mods)
+                if self.model.dim == '2D':
+                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :]).squeeze()
+                    self.save_basic_plot(self.data.A_train[idx], pred, self.data.B_train[idx], f"{path_name}/train_{idx}.png", mods)
+                elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:
+                    pad_l = int((depth-1)/2)
+                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :]).squeeze()[pad_l]
+                    self.save_basic_plot(self.data.A_train[idx,pad_l], pred, self.data.B_train[idx,pad_l], f"{path_name}/train_{idx}.png", mods)
+                else: # full 3D model
+                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
+                    self.save_basic_plot(self.data.A_train[idx,20], pred, self.data.B_train[idx,20], f"{path_name}/train_{idx}.png", mods)
+
+
             # process test images
             for idx in np.arange(index, num_test_samples, pat_num[1]):
-                pred = self.model.G_A2B.model.predict(
-                    self.data.A_test[np.newaxis, idx, :, :]).squeeze()
-                self.save_basic_plot(
-                    self.data.A_test[idx], pred, self.data.B_test[idx], f"{path_name}/test_{idx}.png", mods)
-
+                if self.model.dim == '2D':
+                    pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :]).squeeze()
+                    self.save_basic_plot(self.data.A_test[idx], pred, self.data.B_test[idx], f"{path_name}/test_{idx}.png", mods)
+                elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:
+                    pad_l = int((depth-1)/2)
+                    pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :]).squeeze()[pad_l]
+                    self.save_basic_plot(self.data.A_test[idx,pad_l], pred, self.data.B_test[idx,pad_l], f"{path_name}/test_{idx}.png", mods)
+                else:
+                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
+                    self.save_basic_plot(self.data.A_test[idx,20], pred, self.data.B_test[idx,20], f"{path_name}/test_{idx}.png", mods)
+                
         elif mode == 'backward':
             num_train_samples = self.data.B_train.shape[0]
             num_test_samples = self.data.B_test.shape[0]
@@ -157,13 +175,13 @@ class Tester(object):
                     self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
                 in2 = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
-                pred_B = np.empty(in1.shape)
                 if self.model.img_shape[-2] != 128:
                     in1 = zoom(in1, (0.5, 0.5, 0.5))
                     in2 = zoom(in2, (0.5, 0.5, 0.5))
+                pred_B = np.empty(in1.shape)
                 # pad input when using a 3D model
                 depth = self.model.img_shape[0]
-                if self.model.dim == '3D':
+                if self.model.dim == '3D' and self.model.img_shape[-2] == 128:
                     pad_l = int((depth-1)/2)
                     in1_pad = np.pad(in1, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
                     in2_pad = np.pad(in2, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
@@ -181,25 +199,27 @@ class Tester(object):
 
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
                 self.read_nifti(test_path, i, mod_B)), mod_B)
+            if self.model.img_shape[-2] != 128:
+                nifti_in_B = zoom(nifti_in_B, (0.5, 0.5, 0.5))
 
             # predict output modality
-            print("    files loaded")
             if self.model.dim == '2D':
                 for j in range(nifti_in_A.shape[0]):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
                                                                 np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
-            elif self.model.dim == '3D':               
+            elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:               
                 max_depth = nifti_in_B.shape[0]
                 for j in range(0, max_depth, 1):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
-                                                            np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]  # .reshape((256,128))        
-        
+                                                            np.newaxis, :, :, :, :]).squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))        
+            else:
+                pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
+                                                            np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]
                 
             # TODO: fix histogram matching
             # pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
 
             # create MIP for all images
-            print("    predictions done")
             mip_ct = np.max(self.rescale_mip(in1), axis=1)
             mip_pet = np.max(self.rescale_mip(in2), axis=1)
             mip_orig = np.max(self.rescale_mip(nifti_in_B), axis=1)
