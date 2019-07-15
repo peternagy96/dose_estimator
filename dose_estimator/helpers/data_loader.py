@@ -66,10 +66,10 @@ class Data(object):
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
-                train_images[key[0]] = self.normalize(
-                    train_images[key[0]], step2=step2)
-                test_images[key[0]] = self.normalize(
-                    test_images[key[0]], step2=step2)
+                train_images[key[0]] = self.normalize_array(
+                    train_images[key[0]], per_patient=per_patient, step2=step2)
+                test_images[key[0]] = self.normalize_array(
+                    test_images[key[0]], per_patient=per_patient, step2=step2)
         else:
             for key in train_images.items():
                 if key[0] == 'CT':
