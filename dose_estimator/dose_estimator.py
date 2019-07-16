@@ -15,7 +15,7 @@ from models.gan import cycleGAN
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #if len(device_lib.list_local_devices()) > 1:
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 np.random.seed(seed=12345)
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
             model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=model_path,
-                           image_shape=image_shape)
+                           image_shape=image_shape, resize=settings['Resize Conv'])
 
             # load trainer
             trainer = Trainer(result_name=settings['Name'], model=gan,

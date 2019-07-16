@@ -85,8 +85,8 @@ class Data(object):
                 train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 128, 128))
                 test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 128, 128))
                 if self.down:
-                    train_images[key[0]] = zoom(train_images[key[0]], (1, 0.5, 0.5, 0.5))
-                    test_images[key[0]] = zoom(test_images[key[0]], (1, 0.5, 0.5, 0.5))
+                    train_images[key[0]] = zoom(train_images[key[0]], (1, 0.5, 1,1))
+                    test_images[key[0]] = zoom(test_images[key[0]], (1, 0.5, 1,1))
                 else:
                     train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.depth, step=self.step_size)
                     test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.depth, step=self.step_size)

@@ -12,11 +12,15 @@ from .losses import lse, cycle_loss
 
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
-                 model_path: str = None, image_shape: tuple = (128, 128, 2)):
+                 model_path: str = None, image_shape: tuple = (128, 128, 2), resize='N'):
 
         self.model_path = model_path
         self.dim = dim
         self.img_shape = image_shape
+        if resize == "Y":
+            self.resize_conv = True
+        else:
+            self.resize_conv = False
 
         # Hyper parameters
         self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
@@ -30,7 +34,7 @@ class cycleGAN(object):
         self.use_multiscale_discriminator = False
 
         # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
-        self.use_resize_convolution = False
+        self.use_resize_convolution = self.resize_conv
 
         self.build(dim=dim, mode_G=mode_G, mode_D=mode_D, img_shape=self.img_shape)
 
