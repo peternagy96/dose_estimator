@@ -207,7 +207,7 @@ class Tester(object):
                 for j in range(nifti_in_A.shape[0]):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
                                                                 np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
-            elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:               
+            elif self.model.dim == '3D' and self.model.img_shape[0] == 81:               
                 max_depth = nifti_in_B.shape[0]
                 for j in range(0, max_depth, 1):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[

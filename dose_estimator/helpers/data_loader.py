@@ -19,8 +19,8 @@ class Data(object):
         self.depth = depth
         self.step_size = step_size
         if self.down:
-            self.depth = 40
-            self.step_size = 40
+            self.depth = 39
+            self.step_size = 39
 
     def load_data(self):
         train_images = {}
