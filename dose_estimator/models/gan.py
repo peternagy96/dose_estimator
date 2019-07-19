@@ -116,13 +116,13 @@ class cycleGAN(object):
         path = self.model_path
         epoch = int(epoch)
         self.D_A.model.load_weights(os.path.join(
-            path, f"D_A_model_weights_epoch_{epoch}.hdf5"))
+            path, f"A_weights_epoch_{epoch}.hdf5"))
         self.D_B.model.load_weights(os.path.join(
-            path, f"D_B_model_weights_epoch_{epoch}.hdf5"))
+            path, f"B_weights_epoch_{epoch}.hdf5"))
         self.G_A2B.model.load_weights(os.path.join(
-            path, f"G_A2B_model_weights_epoch_{epoch}.hdf5"))
+            path, f"A2B_weights_epoch_{epoch}.hdf5"))
         self.G_B2A.model.load_weights(os.path.join(
-            path, f"G_B2A_model_weights_epoch_{epoch}.hdf5"))
+            path, f"B2A_weights_epoch_{epoch}.hdf5"))
 
     def saveSummary(self):
         with open(f"/home/peter/generator_{self.dim}.txt", 'w') as f:
