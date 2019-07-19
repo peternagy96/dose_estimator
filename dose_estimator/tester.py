@@ -28,7 +28,7 @@ class Tester(object):
         if mode == 'forward':
             num_train_samples = self.data.A_train.shape[0]
             num_test_samples = self.data.A_test.shape[0]  
-            if self.model.dim == '3D' and self.model.img_shape[-2] != 128:
+            if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                 pat_num = [1,1]
                 index = 0
 
