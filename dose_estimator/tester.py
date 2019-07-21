@@ -181,7 +181,7 @@ class Tester(object):
                 pred_B = np.empty(in1.shape)
                 # pad input when using a 3D model
                 depth = self.model.img_shape[0]
-                if self.model.dim == '3D' and self.model.img_shape[-2] == 128:
+                if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                     pad_l = int((depth-1)/2)
                     in1_pad = np.pad(in1, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
                     in2_pad = np.pad(in2, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
@@ -207,7 +207,7 @@ class Tester(object):
                 for j in range(nifti_in_A.shape[0]):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
                                                                 np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
-            elif self.model.dim == '3D' and self.model.img_shape[0] == 81:               
+            elif self.model.dim == '3D' and self.model.img_shape[0] < 40:               
                 max_depth = nifti_in_B.shape[0]
                 for j in range(0, max_depth, 1):
                     pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
@@ -253,7 +253,7 @@ class Tester(object):
             if epoch != '':
                 path_out = f"{self.result_path}/epoch_{epoch}/MIP/{i}_{addition}.png"
             else:
-                path_out = f"{self.result_path}/{i}_{addition}.png"
+                path_out = f"{self.result_path}/{addition}_{i}.png"
             im = Image.fromarray(final_img).convert("L")
             im.save(path_out)
 
