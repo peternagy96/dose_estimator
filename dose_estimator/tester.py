@@ -253,7 +253,7 @@ class Tester(object):
             if epoch != '':
                 path_out = f"{self.result_path}/epoch_{epoch}/MIP/{i}_{addition}.png"
             else:
-                path_out = f"{self.result_path}/{i}_{addition}.png"
+                path_out = f"{self.result_path}/{addition}_{i}.png"
             im = Image.fromarray(final_img).convert("L")
             im.save(path_out)
 
