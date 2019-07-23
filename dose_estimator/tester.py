@@ -182,7 +182,10 @@ class Tester(object):
                     in1 = zoom(in1, (0.5, 1, 1))
                     in2 = zoom(in2, (0.5, 1, 1))
                 if crop:
-                    pred_B = np.empty((128, 80, 80))
+                    if self.data.view == 'front':
+                        pred_B = np.empty((128, 80, 80))
+                    elif self.data.view == 'top':
+                        pred_B = np.empty((81, 80, 80))
                 else:
                     pred_B = np.empty(in1.shape)
                 # pad input when using a 3D model

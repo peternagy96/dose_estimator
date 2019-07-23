@@ -24,6 +24,7 @@ class Data(object):
             self.step_size = 39
 
         self.crop = True
+        print(self.view)
 
     def load_data(self):
         train_images = {}
