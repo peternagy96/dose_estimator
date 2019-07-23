@@ -1,4 +1,4 @@
-from keras.layers import Layer, Input, Conv2D, Conv3D, Activation, add, UpSampling2D, UpSampling3D, Conv2DTranspose, Conv3DTranspose
+from keras.layers import Layer, Input, Conv2D, Conv3D, Activation, MaxPool2D, add, UpSampling2D, UpSampling3D, Conv2DTranspose, Conv3DTranspose
 from keras.layers.advanced_activations import LeakyReLU
 from keras_contrib.layers.normalization.instancenormalization import InputSpec
 import tensorflow as tf
@@ -23,8 +23,12 @@ def c7Ak(norm, x, k):
     return x
 
 
-def dk(norm, x, k):
-    x = Conv2D(filters=k, kernel_size=3, strides=2, padding='same')(x)
+def dk(norm, x, k, pool=False):
+    if pool:
+        x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x)
+        x = MaxPool2D(pool_size=(2,2), padding='same')(x)
+    else:
+        x = Conv2D(filters=k, kernel_size=3, strides=2, padding='same')(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
@@ -44,15 +48,18 @@ def Rk(norm, x0):
     return x
 
 
-def uk(norm, resize, x, k):
+def uk(norm, resize, x, k, pool=False):
     # (up sampling followed by 1x1 convolution <=> fractional-strided 1/2)
     if resize:
         x = UpSampling2D(size=(2, 2))(x)  # Nearest neighbor upsampling
         x = ReflectionPadding2D((1, 1))(x)
         x = Conv2D(filters=k, kernel_size=3, strides=1, padding='valid')(x)
     else:
-        x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same')(
-            x)  # this matches fractionally stided with stride 1/2
+        if pool:
+            x = Conv2DTranspose(filters=k, kernel_size=3, strides=1, padding='same')(x)
+            x = MaxPool2D(pool_size=(2,2), padding='same')(x)
+        else:
+            x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same')(x)  # this matches fractionally stided with stride 1/2
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x

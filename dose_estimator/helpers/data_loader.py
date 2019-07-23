@@ -9,9 +9,10 @@ from scipy.ndimage import zoom
 
 class Data(object):
     def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
-                 norm=True, aug=False, down=False, depth=5, step_size=1):
+                 view='top', norm=True, aug=False, down=False, depth=5, step_size=1):
         self.subfolder = subfolder
         self.dim = dim
+        self.view = view
         self.mods = mods
         self.norm = norm
         self.aug = aug
@@ -21,6 +22,8 @@ class Data(object):
         if self.down:
             self.depth = 39
             self.step_size = 39
+
+        self.crop = True
 
     def load_data(self):
         train_images = {}
@@ -48,18 +51,6 @@ class Data(object):
                          "r", encoding='utf8')
         test_image_names = test_file.read().splitlines()
 
-        """
-        # downsample
-        if self.down:
-            for key in train_images.items():
-                print(key[0])
-                print(train_images[key[0]].shape)
-                train_images[key[0]] = zoom(train_images[key[0]], (0.5, 0.5, 0.5))
-                test_images[key[0]] = zoom(test_images[key[0]], (0.5, 0.5, 0.5))
-                print(train_images[key[0]].shape)
-                print(' ')
-        """
-
         # normalize
         per_patient = True
         step2 = False
@@ -78,6 +69,22 @@ class Data(object):
                 elif key[0] == 'PET':
                     train_images[key[0]] = self.normPET(train_images[key[0]])
                     test_images[key[0]] = self.normPET(test_images[key[0]])
+
+        if self.view == 'front':
+            for key in train_images.items():
+                train_images[key[0]] = np.swapaxes(train_images[key[0]],1,2).reshape(-1,81,128)
+                test_images[key[0]] = np.swapaxes(test_images[key[0]],1,2).reshape(-1,81,128)
+
+        # crop the images into a square shape
+        if self.crop:
+            if self.view == 'front':
+                for key in train_images.items():
+                    train_images[key[0]] = train_images[key[0]][:,:80,24:104]
+                    test_images[key[0]] = test_images[key[0]][:,:80,24:104]
+            elif self.view == 'top':
+                for key in train_images.items():
+                    train_images[key[0]] = train_images[key[0]][:,24:104,24:104]
+                    test_images[key[0]] = test_images[key[0]][:,24:104,24:104]
 
         if self.dim == '3D':
             print("Converting data to the 3D format...")
@@ -116,6 +123,7 @@ class Data(object):
         self.B_test = np.stack(testB_images, axis=-1)
         self.train_image_names = train_image_names
         self.test_image_names = test_image_names
+        print(self.A_train.shape)
         print('Data has been loaded')
 
     @staticmethod

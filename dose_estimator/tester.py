@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 
 import cv2
 import numpy as np
@@ -106,6 +107,7 @@ class Tester(object):
 
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
+        #cv2.imwrite(path_name,final_img)
 
     @staticmethod
     def rescale(image):
@@ -152,6 +154,8 @@ class Tester(object):
 # Create MIP of prediction and ground truth for all patients from NIFTI
 
     def testMIP(self, test_path: str, mod_A, mod_B: str, epoch=''):
+        crop = True
+        view = 'front'
      # load txt file of test file names
         test_file = open(f"{test_path}/numpy/test.txt", "r", encoding='utf8')
         train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
@@ -175,10 +179,13 @@ class Tester(object):
                     self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
                 in2 = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
-                if self.model.img_shape[0] != 81:
+                if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                     in1 = zoom(in1, (0.5, 1, 1))
                     in2 = zoom(in2, (0.5, 1, 1))
-                pred_B = np.empty(in1.shape)
+                if crop:
+                    pred_B = np.empty((128, 80, 80))
+                else:
+                    pred_B = np.empty(in1.shape)
                 # pad input when using a 3D model
                 depth = self.model.img_shape[0]
                 if self.model.dim == '3D' and self.model.img_shape[0] != 81:
@@ -199,8 +206,27 @@ class Tester(object):
 
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
                 self.read_nifti(test_path, i, mod_B)), mod_B)
-            if self.model.img_shape[0] != 81:
+            if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                 nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
+
+            if view == 'front':
+                if self.model.dim == '3D' and self.model.img_shape[0] != 81:
+                    in1_pad = np.swapaxes(in1_pad,0,1)
+                    in2_pad = np.swapaxes(in2_pad,0,1)
+                else:
+                    in1 = np.swapaxes(in1,0,1)
+                    in2 = np.swapaxes(in2,0,1)
+                nifti_in_B = np.swapaxes(nifti_in_B,0,1)
+            
+            if crop:
+                if view == 'front':
+                    in1 = in1[:,:80,24:104]
+                    in2 = in2[:,:80,24:104]
+                    nifti_in_B = nifti_in_B[:,:80,24:104]
+                elif view == 'top':
+                    in1 = in1[:,24:104,24:104]
+                    in2 = in2[:,24:104,24:104]
+                    nifti_in_B = nifti_in_B[:,24:104,24:104]
 
             # predict output modality
             if self.model.dim == '2D':
@@ -218,13 +244,20 @@ class Tester(object):
                 
             # TODO: fix histogram matching
             # pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+            if view == 'front':
+                in1 = np.swapaxes(in1,0,1)
+                in2 = np.swapaxes(in2,0,1)
+                pred_B = np.swapaxes(pred_B,0,1)
+                nifti_in_B = np.swapaxes(nifti_in_B,0,1)
 
             # create MIP for all images
-            mip_ct = np.max(self.rescale_mip(in1), axis=1)
-            mip_pet = np.max(self.rescale_mip(in2), axis=1)
-            mip_orig = np.max(self.rescale_mip(nifti_in_B), axis=1)
-            mip_pred = np.max(self.rescale_mip(pred_B), axis=1)
+            mip_ct = (255 - np.max(self.rescale_mip(in1), axis=1))
+            mip_pet = (255 - np.max(self.rescale_mip(in2), axis=1))
+            mip_orig = (255 - np.max(self.rescale_mip(nifti_in_B), axis=1))
+            mip_pred = (255 - np.max(self.rescale_mip(pred_B), axis=1))
             error = np.abs(mip_pred - mip_orig)
+            rmse = self.rmse(nifti_in_B, pred_B)
+            psnr = self.psnr(nifti_in_B, pred_B)
 
             # create plot
             s = error.shape[0]
@@ -235,17 +268,23 @@ class Tester(object):
             footer = np.ones((20, final_img.shape[1])) * 255
             final_img = np.vstack((final_img, footer))
 
+            final_img = cv2.cvtColor(final_img.astype(np.float32), cv2.COLOR_GRAY2BGR)
+
             font = cv2.FONT_HERSHEY_SIMPLEX
             final_img = cv2.putText(
-                final_img, f"CT", (70, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"CT", (int(s2*0.37), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"PET", (s2+60, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"PET", (int(s2*1.33), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"GT SPECT", (2*s2+40, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"GT SPECT", (int(2.1*s2), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"Gen SPECT", (3*s2+40, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"Gen SPECT", (int(3.1*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, 'Error Map', (4*s2+40, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(
+                final_img, f"RMSE: {rmse}", (int(4*s2), s-2), font, 0.25, (255, 0, 0), 1, cv2.LINE_AA)
+            final_img = cv2.putText(
+                final_img, f"PSNR: {psnr}", (int(4*s2), s-14), font, 0.25, (255, 0, 0), 1, cv2.LINE_AA)
             if idx+1 > testlen:
                 addition = 'train'
             else:
@@ -254,8 +293,9 @@ class Tester(object):
                 path_out = f"{self.result_path}/epoch_{epoch}/MIP/{i}_{addition}.png"
             else:
                 path_out = f"{self.result_path}/{addition}_{i}.png"
-            im = Image.fromarray(final_img).convert("L")
-            im.save(path_out)
+            #im = Image.fromarray(final_img).convert("L")
+            #im.save(path_out)
+            cv2.imwrite(path_out,final_img)
 
 
 # Test and return 3D NIFTI images ==============================================
@@ -359,3 +399,15 @@ class Tester(object):
         # that correspond most closely to the quantiles in the source image
         interp_t_values = np.interp(s_quantiles, t_quantiles, t_values)
         return interp_t_values[bin_idx].reshape(oldshape)
+
+    @staticmethod
+    def psnr(img1, img2):
+        mse = np.mean( (img1 - img2) ** 2 )
+        if mse == 0:
+            return 100
+        PIXEL_MAX = 255.0
+        return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+
+    @staticmethod
+    def rmse(img1, img2):
+        return np.sqrt(np.mean((img1-img2)**2))

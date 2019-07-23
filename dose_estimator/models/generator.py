@@ -24,6 +24,11 @@ class Generator(object):
                 return self.basicGenerator()
             elif dim == '3D':
                 return self.basic3DGenerator()
+        elif mode == 'pool':
+            if dim == '2D':
+                return self.basicGenerator(pool=True)
+            elif dim == '3D':
+                raise NotImplementedError("3D pool generator model not implemented!")
         elif mode == 'unet':
             if dim == '2D':
                 return self.unetGenerator()
@@ -36,20 +41,20 @@ class Generator(object):
                 return self.small3DGenerator()
 
 
-    def basicGenerator(self):
+    def basicGenerator(self, pool=False):
         # Specify input
         input_img = Input(shape=self.img_shape)
         # Layer 1
         x = ReflectionPadding2D((3, 3))(input_img)
         x = c7Ak(self.normalization, x, 48)
         # Layer 2
-        x = dk(self.normalization, x, 72)
+        x = dk(self.normalization, x, 72, pool=pool)
         # Layer 3
-        x = dk(self.normalization, x, 128)
+        x = dk(self.normalization, x, 128, pool=pool)
 
         if self.mode == 'multiscale':
             # Layer 3.5
-            x = dk(self.normalization, x, 256)
+            x = dk(self.normalization, x, 256, pool=pool)
 
         # Layer 4-12: Residual layer
         for _ in range(4, 13):
@@ -60,14 +65,15 @@ class Generator(object):
             x = uk(self.normalization, self.use_resize_convolution, x, 128)
 
         # Layer 13
-        x = uk(self.normalization, self.use_resize_convolution, x, 72)
+        x = uk(self.normalization, self.use_resize_convolution, x, 72, pool=pool)
         # Layer 14
-        x = uk(self.normalization, self.use_resize_convolution, x, 48)
+        x = uk(self.normalization, self.use_resize_convolution, x, 48, pool=pool)
         x = ReflectionPadding2D((3, 3))(x)
         x = Conv2D(self.img_shape[-1], kernel_size=7, strides=1)(x)
         # They say they use Relu but really they do not
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)
+
 
     def basic3DGenerator(self):
         # Specify input

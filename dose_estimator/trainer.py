@@ -35,7 +35,7 @@ class Trainer(object):
             self.epochs = int(self.epochs + self.init_epoch)
         else:
             self.init_epoch = 1
-        self.save_interval = 50 # ! CHANGE
+        self.save_interval = 1 # ! CHANGE
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators
@@ -377,6 +377,7 @@ class Trainer(object):
         data['meta_data'] = []
         data['meta_data'].append({
             'img shape: height,width,channels': model.img_shape,
+            'Image view': data_orig.view,
             'data subfolder': data_orig.subfolder,
             'batch size': self.batch_size,
             'save interval': self.save_interval,

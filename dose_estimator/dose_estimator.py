@@ -39,7 +39,7 @@ if __name__ == '__main__':
             if settings['Full 3D'] == 'Y' and settings['Dim'] == '3D':
                 down = True
             data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
-                        norm=settings['Norm'], aug=settings['Augment'], down=down)
+                        view =settings['View'], norm=settings['Norm'], aug=settings['Augment'], down=down)
             data.load_data()
             
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
             model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=model_path,
-                           image_shape=image_shape, resize=settings['Resize Conv'])
+                           image_shape=image_shape)
 
             # load trainer
             trainer = Trainer(result_name=settings['Name'], model=gan,
