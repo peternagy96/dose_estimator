@@ -1,14 +1,8 @@
-Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment,Resize Conv,Full 3D,SW Depth,Subfolder,Model Path,Done
-2D_norm_olddata,train,2D,basic,0.0003,0.0003,,100,10,"CT, PET, dose",Y,Y,N,,,data_corrected,x,x
-2D_olddata,train,2D,basic,0.0003,0.0003,,100,10,"CT, PET, dose",N,Y,N,,,data_corrected,x,x
-2D,train,2D,basic,0.0003,0.0003,,100,10,"CT, PET, dose",N,Y,N,,,3d_filtered,x,x
-3Ds_full_norm,train,3D,small,0.0003,0.0003,,200,1,"CT, PET, dose",Y,Y,N,Y,,3d_filtered,x,x
-3Ds_full,train,3D,small,0.0003,0.0003,,400,1,"CT, PET, dose",N,Y,N,Y,,3d_filtered,x,x
-3Ds_full_resize,train,3D,small,0.0003,0.0003,,400,1,"CT, PET, dose",N,Y,Y,Y,,3d_filtered,x,x
-3Db_full_resize,train,3D,basic,0.0003,0.0003,,100,5,"CT, PET, dose",Y,Y,N,N,5,3d_filtered,x,x
-3Du_full,train,3D,unet,0.0003,0.0003,,200,1,"CT, PET, dose",N,Y,N,Y,,3d_filtered,x,x
-3Du,train,3D,unet,0.0003,0.0003,,200,5,"CT, PET, dose",N,Y,N,N,5,3d_filtered,x,x
-MIP,test_mip,3D,basic,0.0003,0.0003,200,200,10,"CT, PET, dose",N,Y,N,,,data_3d,3D_first,x
-plot,plot,3D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,N,N,,,data_3d,x,x
-2D_norm,train,2D,basic,0.0003,0.0003,100,200,10,"CT, PET, dose",Y,Y,N,,,3d_filtered,new2D,
-2D_norm_resize,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,Y,Y,,,3d_filtered,x,
+Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment,View,Content loss,Adversarial loss,Full 3D,SW Depth,Subfolder,Model Path,Done
+2D_top,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,Y,top,N,N,N,,3d_filtered,x,
+2D_front,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,Y,front,N,N,N,,3d_filtered,x,x
+2D_top_gram,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,Y,top,Y,N,N,,3d_filtered,x,x
+2D_front_gram,train,2D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,Y,front,Y,N,N,,3d_filtered,x,x
+3D,train,3D,basic,0.0003,0.0003,,200,5,"CT, PET, dose",Y,Y,top,N,N,N,5,3d_filtered,x,x
+MIP,test_mip,3D,basic,0.0003,0.0003,200,200,10,"CT, PET, dose",Y,Y,top,N,N,N,,data_3d,3D_first,x
+plot,plot,3D,basic,0.0003,0.0003,,200,10,"CT, PET, dose",Y,N,top,N,N,N,,data_3d,x,x
