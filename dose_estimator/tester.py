@@ -89,10 +89,10 @@ class Tester(object):
             gt = self.rescale(gt)
             s = gt.shape[0] * 2
 
-            orig = np.vstack((orig[..., 0], orig[..., 1]))
-            pred = np.vstack((pred[..., 0], pred[..., 1]))
-            gt = np.vstack((gt[..., 0], gt[..., 1]))
-            error = np.abs(pred-gt)
+        orig = np.vstack((orig[..., 0], orig[..., 1]))
+        pred = np.vstack((pred[..., 0], pred[..., 1]))
+        gt = np.vstack((gt[..., 0], gt[..., 1]))
+        error = np.abs(pred-gt)
 
         border = np.ones((s, 10)) * 255
         final_img = np.hstack((orig, border, pred, border, gt, border, error))
@@ -100,11 +100,10 @@ class Tester(object):
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(final_img, f"Input", (40, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, f"Generated dose", (int(s/2)+25, s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, f"GT dose", (s+60, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, 'Error Map', (3*int(s/2)+60, s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-
+        final_img = cv2.putText(final_img, f"Input", (int(s/2*0.37), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"Gen dose", (int(s/2*1.23), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"GT dose", (int(s/2*2.47), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, 'Error Map', (int(s/2*3.53), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
         #cv2.imwrite(path_name,final_img)
@@ -154,8 +153,8 @@ class Tester(object):
 # Create MIP of prediction and ground truth for all patients from NIFTI
 
     def testMIP(self, test_path: str, mod_A, mod_B: str, epoch=''):
-        crop = True
-        view = 'front'
+        crop = self.data.crop
+        view = self.data.view
      # load txt file of test file names
         test_file = open(f"{test_path}/numpy/test.txt", "r", encoding='utf8')
         train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
@@ -279,12 +278,12 @@ class Tester(object):
                 final_img, f"GT SPECT", (int(2.1*s2), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
                 final_img, f"Gen SPECT", (int(3.1*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+            #final_img = cv2.putText(
+            #    final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"RMSE: {np.around(rmse,4)}", (int(4*s2), s+8), font, 0.28, (0, 0, 255), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"RMSE: {rmse}", (int(4*s2), s-2), font, 0.25, (255, 0, 0), 1, cv2.LINE_AA)
-            final_img = cv2.putText(
-                final_img, f"PSNR: {psnr}", (int(4*s2), s-14), font, 0.25, (255, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"PSNR: {np.around(psnr,2)}", (int(4*s2), s+17), font, 0.28, (0, 0, 255), 1, cv2.LINE_AA)
             if idx+1 > testlen:
                 addition = 'train'
             else:

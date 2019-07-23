@@ -51,7 +51,7 @@ if __name__ == '__main__':
             model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=model_path,
-                           image_shape=image_shape)
+                           image_shape=image_shape, ct_loss_weight=settings['CT Weight'])
 
             # load trainer
             trainer = Trainer(result_name=settings['Name'], model=gan,

@@ -7,12 +7,12 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse, cycle_loss
+from .losses import lse_g, lse_d, cycle_loss
 
 
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
-                 model_path: str = None, image_shape: tuple = (128, 128, 2)):
+                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5):
 
         self.model_path = model_path
         self.dim = dim
@@ -22,6 +22,7 @@ class cycleGAN(object):
         self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
         self.lambda_2 = 8.0  # Cyclic loss weight B_2_A
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
+        self.ct_loss_weight = ct_loss_weight
 
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True
@@ -46,10 +47,10 @@ class cycleGAN(object):
 
     def compile(self, opt_G, opt_D, use_identity_learning):
         self.D_A.model.compile(optimizer=opt_D,
-                               loss=lse,
+                               loss=lse_d,
                                loss_weights=self.D_A.loss_weights)
         self.D_B.model.compile(optimizer=opt_D,
-                               loss=lse,
+                               loss=lse_d,
                                loss_weights=self.D_B.loss_weights)
 
         if use_identity_learning:
@@ -67,13 +68,13 @@ class cycleGAN(object):
 
         model_outputs = [reconstructed_A, reconstructed_B]
         compile_losses = [cycle_loss, cycle_loss,
-                          lse, lse]
+                          lse_g(alpha=self.ct_loss_weight), lse_g(alpha=self.ct_loss_weight)]
         compile_weights = [self.lambda_1, self.lambda_2,
                            self.lambda_D, self.lambda_D]
 
         if self.use_multiscale_discriminator:
             for _ in range(2):
-                compile_losses.append(lse)
+                compile_losses.append(lse_g(alpha=self.ct_loss_weight))
                 # * 1e-3)  # Lower weight to regularize the model
                 compile_weights.append(self.lambda_D)
             for i in range(2):
