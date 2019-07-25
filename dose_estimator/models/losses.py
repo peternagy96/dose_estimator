@@ -7,7 +7,6 @@ def lse(y_true, y_pred): # size: (batch, 5, 5, 1)
     return loss
 
 def mae(y_true, y_pred): # size: (batch, 80, 80, 2)
-    print(K.int_shape(y_pred))
     loss = tf.reduce_mean(tf.abs(y_pred - y_true))
     return loss
 
