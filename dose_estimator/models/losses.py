@@ -7,7 +7,7 @@ def lse_d(y_true, y_pred):
 
 def lse_g(alpha=0.5):
     def lse(y_true, y_pred):
-        return alpha*tf.reduce_mean(tf.squared_difference(y_pred[...,0], y_true[...,0])) + (1-alpha)*tf.reduce_mean(tf.squared_difference(y_pred[...,0], y_true[...,0]))
+        return alpha*tf.reduce_mean(tf.squared_difference(y_pred[...,0], y_true[...,0])) + (1-alpha)*tf.reduce_mean(tf.squared_difference(y_pred[...,1], y_true[...,1]))
     return lse
 
 
