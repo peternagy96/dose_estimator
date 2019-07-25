@@ -7,7 +7,7 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse_g, lse_d, cycle_loss
+from .losses import lse, mae_g, cycle_loss
 
 
 class cycleGAN(object):
@@ -47,10 +47,10 @@ class cycleGAN(object):
 
     def compile(self, opt_G, opt_D, use_identity_learning):
         self.D_A.model.compile(optimizer=opt_D,
-                               loss=lse_d,
+                               loss=lse,
                                loss_weights=self.D_A.loss_weights)
         self.D_B.model.compile(optimizer=opt_D,
-                               loss=lse_d,
+                               loss=lse,
                                loss_weights=self.D_B.loss_weights)
 
         if use_identity_learning:
@@ -68,13 +68,13 @@ class cycleGAN(object):
 
         model_outputs = [reconstructed_A, reconstructed_B]
         compile_losses = [cycle_loss, cycle_loss,
-                          lse_g(alpha=self.ct_loss_weight), lse_g(alpha=self.ct_loss_weight)]
+                          lse, lse]
         compile_weights = [self.lambda_1, self.lambda_2,
                            self.lambda_D, self.lambda_D]
 
         if self.use_multiscale_discriminator:
             for _ in range(2):
-                compile_losses.append(lse_g(alpha=self.ct_loss_weight))
+                compile_losses.append(lse)
                 # * 1e-3)  # Lower weight to regularize the model
                 compile_weights.append(self.lambda_D)
             for i in range(2):
