@@ -48,10 +48,14 @@ if __name__ == '__main__':
                 image_shape = data.A_train.shape[-3:]
             elif settings['Dim'] == '3D':
                 image_shape = data.A_train.shape[-4:] 
+            style_loss = False
+            if settings['Style loss'] == 'Y':
+                style_loss = True
             model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=model_path,
-                           image_shape=image_shape, ct_loss_weight=settings['CT Weight'])
+                           image_shape=image_shape, ct_loss_weight=settings['CT Weight'],
+                           style_loss=style_loss)
 
             # load trainer
             trainer = Trainer(result_name=settings['Name'], model=gan,

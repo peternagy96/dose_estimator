@@ -5,7 +5,6 @@ from keras.models import Model
 
 from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ck3D, c5Ak3D, dk3D, Rk3D, uk3D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
 
-
 class Generator(object):
     def __init__(self, name, dim='2D', mode='basic', use_resize_convolution=False,
                  use_identity_learning=True, img_shape=(128, 128, 2)):
@@ -17,9 +16,6 @@ class Generator(object):
         self.use_resize_convolution = use_resize_convolution
 
         self.model = self.getModel(dim, mode)
-
-    def getStyleLoss(self):
-        outputs_dict = dict([(layer.name, layer.output) for layer in model.layers])
 
     def getModel(self, dim, mode):
         if mode == 'basic':

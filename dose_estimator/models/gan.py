@@ -12,7 +12,7 @@ from .losses import lse, mae, cycle_loss
 
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
-                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5):
+                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5, style_loss=False):
 
         self.model_path = model_path
         self.dim = dim
@@ -23,6 +23,8 @@ class cycleGAN(object):
         self.lambda_2 = 8.0  # Cyclic loss weight B_2_A
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
         self.ct_loss_weight = ct_loss_weight
+        self.style_loss = style_loss
+        self.style_weight = 1.0
 
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True
@@ -54,8 +56,10 @@ class cycleGAN(object):
                                loss_weights=self.D_B.loss_weights)
 
         if use_identity_learning:
-            self.G_A2B.model.compile(optimizer=opt_G, loss=mae(alpha=self.ct_loss_weight))
-            self.G_B2A.model.compile(optimizer=opt_G, loss=mae(alpha=self.ct_loss_weight))
+            if 
+            identity_loss = [mae(alpha=self.ct_loss_weight)]
+            self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
+            self.G_B2A.model.compile(optimizer=opt_G, loss=identity_loss)
 
         real_A = Input(shape=self.img_shape, name='real_A')
         real_B = Input(shape=self.img_shape, name='real_B')
