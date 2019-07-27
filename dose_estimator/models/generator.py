@@ -18,6 +18,9 @@ class Generator(object):
 
         self.model = self.getModel(dim, mode)
 
+    def getStyleLoss(self):
+        outputs_dict = dict([(layer.name, layer.output) for layer in model.layers])
+
     def getModel(self, dim, mode):
         if mode == 'basic':
             if dim == '2D':
@@ -46,30 +49,30 @@ class Generator(object):
         input_img = Input(shape=self.img_shape)
         # Layer 1
         x = ReflectionPadding2D((3, 3))(input_img)
-        x = c7Ak(self.normalization, x, 48)
+        x = c7Ak(self.normalization, x, 48, name='c7ak_1')
         # Layer 2
-        x = dk(self.normalization, x, 72, pool=pool)
+        x = dk(self.normalization, x, 72, pool=pool, name='dk_1')
         # Layer 3
-        x = dk(self.normalization, x, 128, pool=pool)
+        x = dk(self.normalization, x, 128, pool=pool, name='dk_2')
 
         if self.mode == 'multiscale':
             # Layer 3.5
             x = dk(self.normalization, x, 256, pool=pool)
 
         # Layer 4-12: Residual layer
-        for _ in range(4, 13):
-            x = Rk(self.normalization, x)
+        for i in range(4, 13):
+            x = Rk(self.normalization, x, name=f"res_{i}")
 
         if self.mode == 'multiscale':
             # Layer 12.5
             x = uk(self.normalization, self.use_resize_convolution, x, 128)
 
         # Layer 13
-        x = uk(self.normalization, self.use_resize_convolution, x, 72, pool=pool)
+        x = uk(self.normalization, self.use_resize_convolution, x, 72, pool=pool, name='uk_1')
         # Layer 14
-        x = uk(self.normalization, self.use_resize_convolution, x, 48, pool=pool)
+        x = uk(self.normalization, self.use_resize_convolution, x, 48, pool=pool, name='uk_2')
         x = ReflectionPadding2D((3, 3))(x)
-        x = Conv2D(self.img_shape[-1], kernel_size=7, strides=1)(x)
+        x = Conv2D(self.img_shape[-1], kernel_size=7, strides=1, name='final')(x)
         # They say they use Relu but really they do not
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)

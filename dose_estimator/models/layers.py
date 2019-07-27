@@ -16,39 +16,39 @@ def ck(norm, x, k, use_normalization):
     return x
 
 
-def c7Ak(norm, x, k):
-    x = Conv2D(filters=k, kernel_size=7, strides=1, padding='valid')(x)
+def c7Ak(norm, x, k, name=''):
+    x = Conv2D(filters=k, kernel_size=7, strides=1, padding='valid', name=name)(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
 
 
-def dk(norm, x, k, pool=False):
+def dk(norm, x, k, pool=False, name=''):
     if pool:
         x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x)
         x = MaxPool2D(pool_size=(2,2), padding='same')(x)
     else:
-        x = Conv2D(filters=k, kernel_size=3, strides=2, padding='same')(x)
+        x = Conv2D(filters=k, kernel_size=3, strides=2, padding='same', name=name)(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
 
 
-def Rk(norm, x0):
+def Rk(norm, x0, name=''):
     k = int(x0.shape[-1])
     # first layer
-    x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x0)
+    x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same', name=f"{name}1")(x0)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     # second layer
-    x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x)
+    x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same', name=f"{name}2")(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     # merge
     x = add([x, x0])
     return x
 
 
-def uk(norm, resize, x, k, pool=False):
+def uk(norm, resize, x, k, pool=False, name=''):
     # (up sampling followed by 1x1 convolution <=> fractional-strided 1/2)
     if resize:
         x = UpSampling2D(size=(2, 2))(x)  # Nearest neighbor upsampling
@@ -59,7 +59,7 @@ def uk(norm, resize, x, k, pool=False):
             x = Conv2DTranspose(filters=k, kernel_size=3, strides=1, padding='same')(x)
             x = MaxPool2D(pool_size=(2,2), padding='same')(x)
         else:
-            x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same')(x)  # this matches fractionally stided with stride 1/2
+            x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same', name=name)(x)  # this matches fractionally stided with stride 1/2
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
