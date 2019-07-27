@@ -182,10 +182,10 @@ class Tester(object):
                     in1 = zoom(in1, (0.5, 1, 1))
                     in2 = zoom(in2, (0.5, 1, 1))
                 if crop:
-                    if self.data.view == 'front':
-                        pred_B = np.empty((128, 80, 80))
-                    elif self.data.view == 'top':
-                        pred_B = np.empty((81, 80, 80))
+                    #if self.data.view == 'front':
+                    #    pred_B = np.empty((128, 80, 80))
+                    #elif self.data.view == 'top':
+                    pred_B = np.empty((80, 80, 80))
                 else:
                     pred_B = np.empty(in1.shape)
                 # pad input when using a 3D model
@@ -210,7 +210,7 @@ class Tester(object):
                 self.read_nifti(test_path, i, mod_B)), mod_B)
             if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                 nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
-
+            """
             if view == 'front':
                 if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                     in1_pad = np.swapaxes(in1_pad,0,1)
@@ -219,21 +219,27 @@ class Tester(object):
                     in1 = np.swapaxes(in1,0,1)
                     in2 = np.swapaxes(in2,0,1)
                 nifti_in_B = np.swapaxes(nifti_in_B,0,1)
+            """
+                
             
             if crop:
-                if view == 'front':
-                    in1 = in1[:,:80,24:104]
-                    in2 = in2[:,:80,24:104]
-                    nifti_in_B = nifti_in_B[:,:80,24:104]
-                elif view == 'top':
-                    in1 = in1[:,24:104,24:104]
-                    in2 = in2[:,24:104,24:104]
-                    nifti_in_B = nifti_in_B[:,24:104,24:104]
+                #if view == 'front':
+                #    in1 = in1[:,:80,24:104]
+                #    in2 = in2[:,:80,24:104]
+                #    nifti_in_B = nifti_in_B[:,:80,24:104]
+                #elif view == 'top':
+                in1 = in1[:80,24:104,24:104]
+                in2 = in2[:80,24:104,24:104]
+                nifti_in_B = nifti_in_B[:80,24:104,24:104]
 
             # predict output modality
             if self.model.dim == '2D':
-                for j in range(nifti_in_A.shape[0]):
-                    pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
+                for j in range(nifti_in_B.shape[0]):
+                    if view == 'front':
+                        pred_B[:,j,:] = self.model.G_A2B.model.predict(np.stack((in1[:,j,:], in2[:,j,:]), axis=2)[
+                                                                    np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
+                    elif view == 'top':
+                        pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
                                                                 np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
             elif self.model.dim == '3D' and self.model.img_shape[0] < 40:               
                 max_depth = nifti_in_B.shape[0]
@@ -246,11 +252,15 @@ class Tester(object):
                 
             # TODO: fix histogram matching
             # pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+            
+            """
             if view == 'front':
                 in1 = np.swapaxes(in1,0,1)
                 in2 = np.swapaxes(in2,0,1)
                 pred_B = np.swapaxes(pred_B,0,1)
                 nifti_in_B = np.swapaxes(nifti_in_B,0,1)
+            """
+                
 
             # create MIP for all images
             mip_ct = (255 - np.max(self.rescale_mip(in1), axis=1))
