@@ -54,8 +54,8 @@ class cycleGAN(object):
                                loss_weights=self.D_B.loss_weights)
 
         if use_identity_learning:
-            self.G_A2B.model.compile(optimizer=opt_G, loss=mae) # ! CHANGE to 'MAE'
-            self.G_B2A.model.compile(optimizer=opt_G, loss=mae) # ! CHANGE 
+            self.G_A2B.model.compile(optimizer=opt_G, loss=mae(alpha=self.ct_loss_weight))
+            self.G_B2A.model.compile(optimizer=opt_G, loss=mae(alpha=self.ct_loss_weight))
 
         real_A = Input(shape=self.img_shape, name='real_A')
         real_B = Input(shape=self.img_shape, name='real_B')
@@ -67,7 +67,7 @@ class cycleGAN(object):
         reconstructed_B = self.G_A2B.model(synthetic_A)
 
         model_outputs = [reconstructed_A, reconstructed_B]
-        compile_losses = [cycle_loss, cycle_loss,
+        compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight),
                           lse, lse]
         compile_weights = [self.lambda_1, self.lambda_2,
                            self.lambda_D, self.lambda_D]

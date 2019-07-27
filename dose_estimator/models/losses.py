@@ -6,8 +6,9 @@ def lse(y_true, y_pred): # size: (batch, 5, 5, 1)
     loss = tf.reduce_mean(tf.squared_difference(y_pred, y_true))
     return loss
 
-def mae(y_true, y_pred): # size: (batch, 80, 80, 2)
-    loss = tf.reduce_mean(tf.abs(y_pred - y_true))
+def mae(alpha=0.5): # size: (batch, 80, 80, 2)
+    def loss(y_true, y_pred):
+        return alpha * tf.reduce_mean(tf.abs(y_pred[...,0] - y_true[...,0])) + (1-alpha) * tf.reduce_mean(tf.abs(y_pred[...,1] - y_true[...,1]))
     return loss
 
 def mae_g(alpha=0.5):
@@ -17,6 +18,7 @@ def mae_g(alpha=0.5):
     return lse
 
 
-def cycle_loss(y_true, y_pred): # size: (batch, 80, 80, 2)
-    loss = tf.reduce_mean(tf.abs(y_pred - y_true))
+def cycle_loss(alpha=0.5): # size: (batch, 80, 80, 2)
+    def loss(y_true, y_pred):
+        return alpha * tf.reduce_mean(tf.abs(y_pred[...,0] - y_true[...,0])) + (1-alpha) * tf.reduce_mean(tf.abs(y_pred[...,1] - y_true[...,1]))
     return loss
