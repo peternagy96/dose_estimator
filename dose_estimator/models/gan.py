@@ -7,7 +7,7 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse, mae, cycle_loss
+from .losses import lse, mae, cycle_loss, style_loss
 
 
 class cycleGAN(object):
@@ -56,8 +56,11 @@ class cycleGAN(object):
                                loss_weights=self.D_B.loss_weights)
 
         if use_identity_learning:
-            if 
-            identity_loss = [mae(alpha=self.ct_loss_weight)]
+            if self.style_loss:
+                outputs_dict = dict([(layer.name, layer.output) for layer in self.model.layers])
+                identity_loss = [mae(alpha=self.ct_loss_weight), style_loss(gt_dict=gt_dict, gen_dict=gen_dict)]
+            else:
+                identity_loss = [mae(alpha=self.ct_loss_weight)]
             self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
             self.G_B2A.model.compile(optimizer=opt_G, loss=identity_loss)
 
