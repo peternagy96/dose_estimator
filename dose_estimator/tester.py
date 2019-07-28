@@ -302,7 +302,7 @@ class Tester(object):
             else:
                 addition = 'test'
             if epoch != '':
-                path_out = f"{self.result_path}/epoch_{epoch}/MIP/{i}_{addition}.png"
+                path_out = f"{self.result_path}/epoch_{epoch}/MIP/{addition}_{i}.png"
             else:
                 path_out = f"{self.result_path}/{addition}_{i}.png"
             #im = Image.fromarray(final_img).convert("L")
