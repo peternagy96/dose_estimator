@@ -133,7 +133,7 @@ class Trainer(object):
 
             for _ in range(self.generator_iterations):
                 G_loss = model.G_model.train_on_batch(
-                    x=[real_images_A, real_images_B], y=target_data)
+                    x=[real_images_A, real_images_B], y=target_data) # ToDo: add loss here
                 if self.generator_iterations > 1:
                     print('G_loss:', G_loss)
                     sys.stdout.flush()
@@ -146,9 +146,9 @@ class Trainer(object):
             # Identity training
             if self.use_identity_learning and loop_index % self.identity_mapping_modulus == 0:
                 G_A2B_identity_loss = model.G_A2B.model.train_on_batch(
-                    x=real_images_B, y=real_images_B)
+                    x=real_images_B, y=real_images_B)  # ToDo: add loss here
                 G_B2A_identity_loss = model.G_B2A.model.train_on_batch(
-                    x=real_images_A, y=real_images_A)
+                    x=real_images_A, y=real_images_A)  # ToDo: add loss here
                 print('G_A2B_identity_loss:', G_A2B_identity_loss)
                 print('G_B2A_identity_loss:', G_B2A_identity_loss)
 
