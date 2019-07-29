@@ -19,7 +19,7 @@ class Generator(object):
 
     def getModel(self, dim, mode, style_loss):
         if mode == 'basic':
-            if style_loss
+            if style_loss:
                 if dim == '2D':
                     return self.styleGenerator()
                 elif dim == '3D':
