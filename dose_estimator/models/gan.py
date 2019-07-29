@@ -43,11 +43,11 @@ class cycleGAN(object):
         self.D_B = Discriminator(name='B', dim=dim, mode=mode_D, use_patchgan=True,
                                  img_shape=img_shape)
         self.G_A2B = Generator(name='A2B', dim=dim, mode=mode_G, use_resize_convolution=False,
-                               use_identity_learning=True, img_shape=img_shape)
+                               use_identity_learning=True, img_shape=img_shape, style_loss=self.style_loss)
         self.G_B2A = Generator(name='B2A', dim=dim, mode=mode_G, use_resize_convolution=False,
-                               use_identity_learning=True, img_shape=img_shape)
+                               use_identity_learning=True, img_shape=img_shape, style_loss=self.style_loss)
 
-    def compile(self, opt_G, opt_D, use_identity_learning):
+    def compile(self, opt_G, opt_D, use_identity_learning, style_loss=False):
         self.D_A.model.compile(optimizer=opt_D,
                                loss=lse,
                                loss_weights=self.D_A.loss_weights)

@@ -7,7 +7,7 @@ from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ck3D, c5Ak3D, dk3
 
 class Generator(object):
     def __init__(self, name, dim='2D', mode='basic', use_resize_convolution=False,
-                 use_identity_learning=True, img_shape=(128, 128, 2)):
+                 use_identity_learning=True, img_shape=(128, 128, 2), style_loss=False):
         self.img_shape = img_shape
         self.name = name
         self.mode = mode
@@ -15,14 +15,20 @@ class Generator(object):
         self.normalization = InstanceNormalization
         self.use_resize_convolution = use_resize_convolution
 
-        self.model = self.getModel(dim, mode)
+        self.model = self.getModel(dim, mode, style_loss)
 
-    def getModel(self, dim, mode):
+    def getModel(self, dim, mode, style_loss):
         if mode == 'basic':
-            if dim == '2D':
-                return self.basicGenerator()
-            elif dim == '3D':
-                return self.basic3DGenerator()
+            if style_loss
+                if dim == '2D':
+                    return self.styleGenerator()
+                elif dim == '3D':
+                    raise NotImplementedError("3D style generator model not implemented!")
+            else:
+                if dim == '2D':
+                    return self.basicGenerator()
+                elif dim == '3D':
+                    return self.basic3DGenerator()
         elif mode == 'pool':
             if dim == '2D':
                 return self.basicGenerator(pool=True)
@@ -106,6 +112,41 @@ class Generator(object):
         # They say they use Relu but really they do not
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)
+
+
+    def styleGenerator(self):
+        # Specify input
+        input_img = Input(shape=self.img_shape)
+        # Layer 1
+        x = ReflectionPadding2D((3, 3))(input_img)
+        x = c7Ak(self.normalization, x, 48, name='c7ak_1')
+        # Layer 2
+        x = dk(self.normalization, x, 72, pool=pool, name='dk_1')
+        # Layer 3
+        x = dk(self.normalization, x, 128, pool=pool, name='dk_2')
+
+        if self.mode == 'multiscale':
+            # Layer 3.5
+            x = dk(self.normalization, x, 256, pool=pool)
+
+        # Layer 4-12: Residual layer
+        for i in range(4, 13):
+            x = Rk(self.normalization, x, name=f"res_{i}")
+
+        if self.mode == 'multiscale':
+            # Layer 12.5
+            x = uk(self.normalization, self.use_resize_convolution, x, 128)
+
+        # Layer 13
+        x = uk(self.normalization, self.use_resize_convolution, x, 72, pool=pool, name='uk_1')
+        # Layer 14
+        x = uk(self.normalization, self.use_resize_convolution, x, 48, pool=pool, name='uk_2')
+        x = ReflectionPadding2D((3, 3))(x)
+        x = Conv2D(self.img_shape[-1], kernel_size=7, strides=1, name='final')(x)
+        # They say they use Relu but really they do not
+        x = Activation('tanh')(x)
+        return Model(inputs=input_img, outputs=x, name=self.name)
+
 
     def small3DGenerator(self):
         # Specify input
