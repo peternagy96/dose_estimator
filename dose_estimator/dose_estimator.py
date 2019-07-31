@@ -62,7 +62,8 @@ if __name__ == '__main__':
                                 init_epoch=settings['Init Epoch'],
                                 epochs=settings['Epochs'],
                                 lr_D=settings['D LR'], lr_G=settings['G LR'],
-                                batch_size=settings['Batch Size'])
+                                batch_size=settings['Batch Size'],
+                                gen_iter=settings['Gen Iter'])
 
             # load model weights if necessary
             if os.path.exists(gan.model_path):

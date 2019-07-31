@@ -19,12 +19,12 @@ from tester import Tester
 
 
 class Trainer(object):
-    def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10):
+    def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10, gen_iter=2):
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
         # Number of generator training iterations in each training loop
-        self.generator_iterations = 1
-        # Number of generator training iterations in each training loop
+        self.generator_iterations = gen_iter
+        # Number of discriminator training iterations in each training loop
         self.discriminator_iterations = 1
         self.beta_1 = 0.5
         self.beta_2 = 0.999
