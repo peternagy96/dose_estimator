@@ -12,10 +12,21 @@ from trainer import Trainer
 from helpers.data_loader import Data
 from models.gan import cycleGAN
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
+
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=FutureWarning)
 
 #if len(device_lib.list_local_devices()) > 1:
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+tf.config.set_soft_device_placement(True)
+tf.logging.set_verbosity(tf.logging.ERROR)
+
+
 
 np.random.seed(seed=12345)
 
@@ -25,7 +36,8 @@ if __name__ == '__main__':
     if len(device_lib.list_local_devices()) > 1:
         jobsPath = '/home/peter/code/dose_estimator/jobs.csv'
     else:
-        jobsPath = os.path.join(os.getcwd(), 'dose_estimator', 'jobs.csv')
+        jobsPath = '/home/peter/code/dose_estimator/jobs.csv'
+        #jobsPath = os.path.join(os.getcwd(), 'dose_estimator', 'jobs.csv')
     jobs = pd.read_csv(jobsPath)
 
     # iterate through the jobs
@@ -58,12 +70,16 @@ if __name__ == '__main__':
                            style_loss=style_loss)
 
             # load trainer
+            adv_loss = False
+            if settings['Adversarial Loss'] == 'Y':
+                adv_loss = True
             trainer = Trainer(result_name=settings['Name'], model=gan,
                                 init_epoch=settings['Init Epoch'],
                                 epochs=settings['Epochs'],
                                 lr_D=settings['D LR'], lr_G=settings['G LR'],
                                 batch_size=settings['Batch Size'],
-                                gen_iter=settings['Gen Iter'])
+                                gen_iter=settings['Gen Iter'],
+                                adv_training=adv_loss)
 
             # load model weights if necessary
             if os.path.exists(gan.model_path):

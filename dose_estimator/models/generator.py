@@ -29,7 +29,7 @@ class Generator(object):
                     return self.basicGenerator()
                 elif dim == '3D':
                     return self.basic3DGenerator()
-         elif mode == 'pool':
+        elif mode == 'pool':
             if dim == '2D':
                 return self.newGenerator()
             elif dim == '3D':

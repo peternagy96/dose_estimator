@@ -19,23 +19,25 @@ from tester import Tester
 
 
 class Trainer(object):
-    def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10, gen_iter=2):
+    def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10, gen_iter=2, adv_training=False):
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
         # Number of generator training iterations in each training loop
         self.generator_iterations = gen_iter
         # Number of discriminator training iterations in each training loop
         self.discriminator_iterations = 1
+        self.adv_training = adv_training
         self.beta_1 = 0.5
         self.beta_2 = 0.999
         self.batch_size = int(batch_size)
-        self.epochs = int(epochs)  # choose multiples of 25 since the models are save each 25th epoch
+        # choose multiples of 25 since the models are save each 25th epoch
+        self.epochs = int(epochs)
         if not math.isnan(init_epoch):
             self.init_epoch = int(init_epoch)
             self.epochs = int(self.epochs + self.init_epoch)
         else:
             self.init_epoch = 1
-        self.save_interval = 50 # ! CHANGE
+        self.save_interval = 50  # ! CHANGE
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators
@@ -90,8 +92,14 @@ class Trainer(object):
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
                 # Generate batch of synthetic images
-            synthetic_images_B = model.G_A2B.model.predict(real_images_A)
-            synthetic_images_A = model.G_B2A.model.predict(real_images_B)        
+            # ToDo: add random noise generation here
+            if self.adv_training:
+                synthetic_images_B = model.G_A2B.model.predict(self.add_noise(real_images_A))
+                synthetic_images_A = model.G_B2A.model.predict(self.add_noise(real_images_B))
+            else:
+                synthetic_images_B = model.G_A2B.model.predict(real_images_A)
+                synthetic_images_A = model.G_B2A.model.predict(real_images_B)
+
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
 
@@ -133,7 +141,7 @@ class Trainer(object):
 
             for _ in range(self.generator_iterations):
                 G_loss = model.G_model.train_on_batch(
-                    x=[real_images_A, real_images_B], y=target_data) # ToDo: add loss here
+                    x=[real_images_A, real_images_B], y=target_data)  # ToDo: add loss here
                 if self.generator_iterations > 1:
                     print('G_loss:', G_loss)
                     sys.stdout.flush()
@@ -286,24 +294,25 @@ class Trainer(object):
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
-                #if data.dim == '2D':
+                # if data.dim == '2D':
                 #    tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
-                #elif data.dim == '3D':
+                # elif data.dim == '3D':
                 model.save(self.result_path, model.D_A.model, epoch)
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
-                tester.testMIP(test_path='/home/peter/data/3d_filtered/', mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
+                tester.testMIP(test_path='/home/peter/data/3d_filtered/',
+                               mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
                 #pat_num = [int(data.A_train.shape[0]), int()]
-                tester.test_jpg(epoch=epoch, mode="forward",index=40, pat_num=[32, 5], mods=data.mods)
-            
+                tester.test_jpg(epoch=epoch, mode="forward",
+                                index=40, pat_num=[32, 5], mods=data.mods)
+
             """ if epoch % 20 == 0:
                 # self.saveModel(self.G_model)
                 model.save(self.result_path, model.D_A.model, epoch)
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch) """
-
 
             training_history = {
                 'DA_losses': DA_losses,
@@ -323,6 +332,21 @@ class Trainer(object):
 
 # ===============================================================================
 # Help functions
+
+    @staticmethod
+    def add_noise(array):
+        out = array.copy()
+        for i in range(array.shape[0]):
+            pic = array[i]
+            row,col,ch = pic.shape
+            mean = 0
+            var = 0.00001
+            sigma = var**0.5
+            gauss = np.random.normal(mean,sigma,(row,col, ch))
+            #gauss = gauss.reshape(row,col)
+            noisy = pic + gauss
+            out[i] = noisy
+        return out
 
 
     def get_lr_linear_decay_rate(self, lenA, lenB):
