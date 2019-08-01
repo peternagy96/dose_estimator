@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
-from keras.layers import Input, Conv2D, Conv3D, Activation, concatenate
+from keras.layers import Input, Conv2D, Conv3D, Conv2DTranspose, Activation, concatenate
 from keras.models import Model
 
 from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ck3D, c5Ak3D, dk3D, Rk3D, uk3D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
+from tensorpack import LinearWrap
 
 class Generator(object):
     def __init__(self, name, dim='2D', mode='basic', use_resize_convolution=False,
@@ -29,7 +30,7 @@ class Generator(object):
                     return self.basicGenerator()
                 elif dim == '3D':
                     return self.basic3DGenerator()
-        elif mode == 'pool':
+        elif mode == 'new':
             if dim == '2D':
                 return self.newGenerator()
             elif dim == '3D':
@@ -119,35 +120,36 @@ class Generator(object):
         return Model(inputs=input_img, outputs=x, name=self.name)
 
 
-    def newGenerator(self, img):
-        with argscope([Conv2D, Deconv2D],
-                      nl=INLReLU, kernel_shape=4, stride=2), \
-                argscope(Deconv2D, nl=INReLU):
+    def newGenerator(self, name=None):
+        def res_group(inp, name, depth, filters):
+            x = inp
+            for k in range(depth):
+                x0 = x
+                x = Conv2D(name=f"{name}_{k}0", filters=filters, strides=1, kernel_size=3, padding='same')(x)
+                x = Conv2D(name=f"{name}_{k}1", filters=filters, strides=1, kernel_size=3, padding='same')(x)
+                x = concatenate([x, x0], axis=1)
+                x = Conv2D(name=f"{name}_{k}2", filters=filters, strides=1, kernel_size=3, padding='same')(x)
+            return x
 
-            def res_group(input, name, depth, channels):
-                l = input
-                for k in range(depth):
-                  l = Model.build_res_block(l, name + ('/res%d' % k), channels,
-                          first=(k==0))
-                return l
-
-            subDepth = 3
-            conv0 = Conv2D('conv0', img, NF, nl=tf.nn.relu)
-            conv1 = Conv2D('conv1', conv0, NF * 2)
-            layer1 = res_group(conv1, 'layer1', subDepth, NF*2)
-            conv2 = Conv2D('conv2', layer1, NF * 4)
-            layer2 = res_group(conv2, 'layer2', subDepth, NF*4)
-            conv3 = Conv2D('conv3', layer2, NF * 8)
-            l = res_group(conv3, 'layer3', subDepth, NF*8)
-            deconv0 = Deconv2D('deconv0', l, NF * 4)
-            up1 = tf.concat([deconv0, layer2], axis=1)
-            b_layer_2 = res_group(up1, 'blayer2', subDepth, NF * 4)
-            deconv1 = Deconv2D('deconv1', b_layer_2, NF * 2)
-            up2 = tf.concat([deconv1, layer1], axis=1)
-            b_layer_1 = res_group(up2, 'blayer1', subDepth, NF * 2)
-            deconv2 = Deconv2D('deconv2', b_layer_1, NF * 1)
-            deconv3 = Deconv2D('deconv3', deconv2, 3, nl=tf.sigmoid)
-        return deconv3
+        NF = 64
+        subDepth = 3
+        input_img = Input(shape=self.img_shape)
+        conv0 = Conv2D(name='conv0', filters=NF, kernel_size=4, strides=2, padding='same', activation='relu')(input_img)
+        conv1 = Conv2D(name='conv1', filters=NF * 2, kernel_size=4, strides=2, padding='same')(conv0)
+        layer1 = res_group(conv1, 'layer1', subDepth, NF*2)
+        conv2 = Conv2D(name='conv2', filters=NF * 4, kernel_size=4, strides=2, padding='same')(layer1)
+        layer2 = res_group(conv2, 'layer2', subDepth, NF*4)
+        conv3 = Conv2D(name='conv3', filters=NF * 8, kernel_size=4, strides=2, padding='same')(layer2)
+        l = res_group(conv3, 'layer3', subDepth, NF*8)
+        deconv0 = Conv2DTranspose(name='deconv0', filters=NF * 4, kernel_size=4, strides=2, padding='same')(l)
+        up1 = concatenate([deconv0, layer2], axis=1)
+        b_layer_2 = res_group(up1, 'blayer2', subDepth, NF * 4)
+        deconv1 = Conv2DTranspose(name='deconv1', filters=NF * 2, kernel_size=4, strides=2, padding='same')(b_layer_2)
+        up2 = concatenate([deconv1, layer1], axis=1)
+        b_layer_1 = res_group(up2, 'blayer1', subDepth, NF * 2)
+        deconv2 = Conv2DTranspose(name='deconv2', filters=NF * 1, kernel_size=4, strides=2, padding='same')(b_layer_1)
+        deconv3 = Conv2DTranspose(name='deconv3', filters=3, kernel_size=4, strides=2, padding='same',activation='sigmoid')(deconv2)
+        return Model(inputs=input_img, outputs=deconv3, name=self.name)
 
 
     def styleGenerator(self):
