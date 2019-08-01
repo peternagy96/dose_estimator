@@ -29,6 +29,11 @@ class Generator(object):
                     return self.basicGenerator()
                 elif dim == '3D':
                     return self.basic3DGenerator()
+         elif mode == 'pool':
+            if dim == '2D':
+                return self.newGenerator()
+            elif dim == '3D':
+                raise NotImplementedError("3D new generator model not implemented!")            
         elif mode == 'pool':
             if dim == '2D':
                 return self.basicGenerator(pool=True)
@@ -112,6 +117,37 @@ class Generator(object):
         # They say they use Relu but really they do not
         x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)
+
+
+    def newGenerator(self, img):
+        with argscope([Conv2D, Deconv2D],
+                      nl=INLReLU, kernel_shape=4, stride=2), \
+                argscope(Deconv2D, nl=INReLU):
+
+            def res_group(input, name, depth, channels):
+                l = input
+                for k in range(depth):
+                  l = Model.build_res_block(l, name + ('/res%d' % k), channels,
+                          first=(k==0))
+                return l
+
+            subDepth = 3
+            conv0 = Conv2D('conv0', img, NF, nl=tf.nn.relu)
+            conv1 = Conv2D('conv1', conv0, NF * 2)
+            layer1 = res_group(conv1, 'layer1', subDepth, NF*2)
+            conv2 = Conv2D('conv2', layer1, NF * 4)
+            layer2 = res_group(conv2, 'layer2', subDepth, NF*4)
+            conv3 = Conv2D('conv3', layer2, NF * 8)
+            l = res_group(conv3, 'layer3', subDepth, NF*8)
+            deconv0 = Deconv2D('deconv0', l, NF * 4)
+            up1 = tf.concat([deconv0, layer2], axis=1)
+            b_layer_2 = res_group(up1, 'blayer2', subDepth, NF * 4)
+            deconv1 = Deconv2D('deconv1', b_layer_2, NF * 2)
+            up2 = tf.concat([deconv1, layer1], axis=1)
+            b_layer_1 = res_group(up2, 'blayer1', subDepth, NF * 2)
+            deconv2 = Deconv2D('deconv2', b_layer_1, NF * 1)
+            deconv3 = Deconv2D('deconv3', deconv2, 3, nl=tf.sigmoid)
+        return deconv3
 
 
     def styleGenerator(self):

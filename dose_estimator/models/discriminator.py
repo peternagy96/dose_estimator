@@ -42,6 +42,15 @@ class Discriminator(object):
                 #return self.basic3DDiscriminator()
                 return self.small3DDiscriminator()
 
+        if mode == 'new':
+            # 0.5 since we train on real and synthetic images
+            self.loss_weights = [0.5]
+            if dim == '2D':
+                return self.newDiscriminator()
+            elif dim == '3D':
+                #return self.basic3DDiscriminator()
+                raise NotImplementedError("2D new discriminator model not implemented!")
+
         elif mode == 'multiscale':
             # 0.5 since we train on real and synthetic images
             self.loss_weights = [0.5, 0.5]
@@ -115,6 +124,32 @@ class Discriminator(object):
             x = Dense(1)(x)
         x = Activation('sigmoid')(x)
         return Model(inputs=input_img, outputs=x, name=name)
+
+    
+    def newDiscriminator(self, img):
+            with argscope(Conv2D, nl=INLReLU, kernel_shape=4, stride=2):
+                l = Conv2D('conv0', img, NF*2, nl=tf.nn.relu)
+                relu1 = Conv2D('conv1', l, NF * 4)
+                relu2 = Conv2D('conv2', relu1, NF * 8)
+
+                relu3 = Conv2D('convf', relu2, NF*8, kernel_shape=3, stride=1)
+                atrous = tf.contrib.layers.conv2d(relu3, NF*8, kernel_size=3,
+                        data_format='NCHW', rate=2,
+                        activation_fn=INLReLU, biases_initializer=None)
+                atrous2 = tf.contrib.layers.conv2d(atrous, NF*8, kernel_size=3,
+                        data_format='NCHW', rate=4,
+                        activation_fn=INLReLU, biases_initializer=None)
+                atrous3 = tf.contrib.layers.conv2d(atrous2, NF*8, kernel_size=3,
+                        data_format='NCHW', rate=8,
+                        activation_fn=INLReLU, biases_initializer=None)
+                merge = tf.concat([relu3, atrous3], axis=1)
+                clean = Conv2D('mConv', merge, NF*8, kernel_shape=3, stride=1)
+                lsgan = Conv2D('lsconv', clean, 1, stride=1, nl=tf.identity,
+                        use_bias=False)
+
+
+            return lsgan, [relu1, relu2, relu3, atrous, atrous2, atrous3, clean]
+
 
     def small3DDiscriminator(self, name=None):
         # Specify input
