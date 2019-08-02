@@ -91,14 +91,15 @@ class Trainer(object):
 
         def run_training_iteration(loop_index, epoch_iterations):
             # ======= Discriminator training ==========
-                # Generate batch of synthetic images
-            # ToDo: add random noise generation here
-            if self.adv_training:
-                synthetic_images_B = model.G_A2B.model.predict(self.add_noise(real_images_A))
-                synthetic_images_A = model.G_B2A.model.predict(self.add_noise(real_images_B))
-            else:
-                synthetic_images_B = model.G_A2B.model.predict(real_images_A)
-                synthetic_images_A = model.G_B2A.model.predict(real_images_B)
+            # Generate batch of synthetic images
+            synthetic_images_B = model.G_A2B.model.predict(real_images_A)
+            synthetic_images_A = model.G_B2A.model.predict(real_images_B)
+
+            if model.style_loss:                
+                features_B = synthetic_images_B[1:10]
+                features_A = synthetic_images_A[1:10]
+                synthetic_images_B = synthetic_images_B[0]
+                synthetic_images_A = synthetic_images_A[0]
 
             synthetic_images_A = synthetic_pool_A.query(synthetic_images_A)
             synthetic_images_B = synthetic_pool_B.query(synthetic_images_B)
@@ -153,10 +154,14 @@ class Trainer(object):
 
             # Identity training
             if self.use_identity_learning and loop_index % self.identity_mapping_modulus == 0:
+                target_B = [real_images_B]
+                target_B.extend(features_B)
+                target_A = [real_images_A]
+                target_A.extend(features_A)
                 G_A2B_identity_loss = model.G_A2B.model.train_on_batch(
-                    x=real_images_B, y=real_images_B)  # ToDo: add loss here
+                    x=real_images_B, y=target_B)  # ToDo: add loss here
                 G_B2A_identity_loss = model.G_B2A.model.train_on_batch(
-                    x=real_images_A, y=real_images_A)  # ToDo: add loss here
+                    x=real_images_A, y=target_A)  # ToDo: add loss here
                 print('G_A2B_identity_loss:', G_A2B_identity_loss)
                 print('G_B2A_identity_loss:', G_B2A_identity_loss)
 
@@ -260,6 +265,10 @@ class Trainer(object):
                 sys.stdout.flush()
                 real_images_A = A_train[indexes_A]
                 real_images_B = B_train[indexes_B]
+
+                if self.adv_training:
+                    real_images_A = self.add_noise(real_images_A)
+                    real_images_B = self.add_noise(real_images_B)
 
                 # labels
                 if model.use_multiscale_discriminator:

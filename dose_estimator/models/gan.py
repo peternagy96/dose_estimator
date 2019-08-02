@@ -7,7 +7,7 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse, mae, cycle_loss, style_loss
+from .losses import lse, mae, mae_style, cycle_loss, style_loss, gm_loss
 
 
 class cycleGAN(object):
@@ -58,10 +58,11 @@ class cycleGAN(object):
                                loss=lse,
                                loss_weights=self.D_B.loss_weights)
 
-        if use_identity_learning:
-            if self.style_loss:
-                outputs_dict = dict([(layer.name, layer.output) for layer in self.model.layers])
-                identity_loss = [mae(alpha=self.ct_loss_weight), style_loss(gt_dict=gt_dict, gen_dict=gen_dict)]
+        if use_identity_learning:    
+            if self.style_loss:       
+                identity_loss = [mae(alpha=self.ct_loss_weight)]
+                for _ in range(4, 13):
+                    identity_loss.append(gm_loss)
             else:
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
             self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
@@ -69,18 +70,37 @@ class cycleGAN(object):
 
         real_A = Input(shape=self.img_shape, name='real_A')
         real_B = Input(shape=self.img_shape, name='real_B')
-        synthetic_B = self.G_A2B.model(real_A)
-        synthetic_A = self.G_B2A.model(real_B)
+        if self.style_loss:
+            synthetic_B = self.G_A2B.model(real_A)
+            synthetic_A = self.G_B2A.model(real_B)
+            features_B = synthetic_B[1:10]
+            features_A = synthetic_A[1:10]
+            synthetic_B = synthetic_B[0]
+            synthetic_A = synthetic_A[0]
+        else:
+            synthetic_B = self.G_A2B.model(real_A)
+            synthetic_A = self.G_B2A.model(real_B)
         dA_guess_synthetic = self.D_A.model_static(synthetic_A)
         dB_guess_synthetic = self.D_B.model_static(synthetic_B)
-        reconstructed_A = self.G_B2A.model(synthetic_B)
-        reconstructed_B = self.G_A2B.model(synthetic_A)
+        if self.style_loss:
+            reconstructed_A = self.G_B2A.model(synthetic_B)
+            reconstructed_B = self.G_A2B.model(synthetic_A)
+            reconstructed_feat_A = reconstructed_A[1:10]
+            reconstructed_feat_B = reconstructed_B[1:10]
+            reconstructed_A = reconstructed_A[0]
+            reconstructed_B = reconstructed_B[0]
+        else:
+            reconstructed_A = self.G_B2A.model(synthetic_B)
+            reconstructed_B = self.G_A2B.model(synthetic_A)
 
         model_outputs = [reconstructed_A, reconstructed_B]
+        
+        #identity_loss = [mae(alpha=self.ct_loss_weight), style_loss(gt_dict=gt_dict, gen_dict=gen_dict)]
+
         compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight),
-                          lse, lse]
+                            lse, lse]
         compile_weights = [self.lambda_1, self.lambda_2,
-                           self.lambda_D, self.lambda_D]
+                        self.lambda_D, self.lambda_D]
 
         if self.use_multiscale_discriminator:
             for _ in range(2):

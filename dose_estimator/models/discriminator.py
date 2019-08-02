@@ -129,7 +129,7 @@ class Discriminator(object):
 
     
     def newDiscriminator(self, name=None):
-        NF = 64  # channel size
+        NF = 32  # channel size
         input_img = Input(shape=self.img_shape)
         l = Conv2D(name='conv0', filters=NF*2, kernel_size=4, strides=2, padding='same')(input_img)
         relu0 = Activation('relu')(l)

@@ -39,18 +39,23 @@ def dk(norm, x, k, pool=False, name=''):
     return x
 
 
-def Rk(norm, x0, name=''):
+def Rk(norm, x0, name='', style=False):
     k = int(x0.shape[-1])
     # first layer
     x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same', name=f"{name}1")(x0)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
+    if style:
+        x1 = x
     # second layer
     x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same', name=f"{name}2")(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     # merge
     x = add([x, x0])
-    return x
+    if style:
+        return x, x1
+    else:
+        return x
 
 
 def uk(norm, resize, x, k, pool=False, name=''):
