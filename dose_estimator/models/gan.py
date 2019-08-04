@@ -102,6 +102,17 @@ class cycleGAN(object):
         compile_weights = [self.lambda_1, self.lambda_2,
                         self.lambda_D, self.lambda_D]
 
+        model_inputs = [real_A, real_B]
+
+        if self.style_loss:
+            model_inputs.append(features_A)
+            model_inputs.append(features_B)
+            model_outputs.append(reconstructed_feat_A)
+            model_outputs.append(reconstructed_feat_B)
+            for _ in range(1, 10):
+                compile_losses.append(gm_loss)
+                compile_weights.append(self.style_weight)
+
         if self.use_multiscale_discriminator:
             for _ in range(2):
                 compile_losses.append(lse)
@@ -114,7 +125,7 @@ class cycleGAN(object):
             model_outputs.append(dA_guess_synthetic)
             model_outputs.append(dB_guess_synthetic)
 
-        self.G_model = Model(inputs=[real_A, real_B],
+        self.G_model = Model(inputs=model_inputs,
                              outputs=model_outputs,
                              name='G_model')
 
