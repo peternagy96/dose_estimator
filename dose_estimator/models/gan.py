@@ -24,7 +24,7 @@ class cycleGAN(object):
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
         self.ct_loss_weight = ct_loss_weight
         self.style_loss = style_loss
-        self.style_weight = 1.0
+        self.style_weight = 0.000001
 
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True
@@ -70,48 +70,41 @@ class cycleGAN(object):
 
         real_A = Input(shape=self.img_shape, name='real_A')
         real_B = Input(shape=self.img_shape, name='real_B')
-        if self.style_loss:
-            synthetic_B = self.G_A2B.model(real_A)
-            synthetic_A = self.G_B2A.model(real_B)
-            features_B = synthetic_B[1:10]
-            features_A = synthetic_A[1:10]
-            synthetic_B = synthetic_B[0]
-            synthetic_A = synthetic_A[0]
-        else:
-            synthetic_B = self.G_A2B.model(real_A)
-            synthetic_A = self.G_B2A.model(real_B)
-        dA_guess_synthetic = self.D_A.model_static(synthetic_A)
-        dB_guess_synthetic = self.D_B.model_static(synthetic_B)
-        if self.style_loss:
-            reconstructed_A = self.G_B2A.model(synthetic_B)
-            reconstructed_B = self.G_A2B.model(synthetic_A)
-            reconstructed_feat_A = reconstructed_A[1:10]
-            reconstructed_feat_B = reconstructed_B[1:10]
-            reconstructed_A = reconstructed_A[0]
-            reconstructed_B = reconstructed_B[0]
-        else:
-            reconstructed_A = self.G_B2A.model(synthetic_B)
-            reconstructed_B = self.G_A2B.model(synthetic_A)
+        synthetic_B = self.G_A2B.model(real_A)
+        synthetic_A = self.G_B2A.model(real_B)
+        dA_guess_synthetic = self.D_A.model_static(synthetic_A[0])
+        dB_guess_synthetic = self.D_B.model_static(synthetic_B[0])
+        reconstructed_A = self.G_B2A.model(synthetic_B[0])
+        reconstructed_B = self.G_A2B.model(synthetic_A[0])
 
-        model_outputs = [reconstructed_A, reconstructed_B]
+        if self.style_loss:
+                model_outputs = reconstructed_A
+                model_outputs.extend(reconstructed_B)
+        else:
+            model_outputs = [reconstructed_A, reconstructed_B]
         
         #identity_loss = [mae(alpha=self.ct_loss_weight), style_loss(gt_dict=gt_dict, gen_dict=gen_dict)]
-
-        compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight),
-                            lse, lse]
-        compile_weights = [self.lambda_1, self.lambda_2,
-                        self.lambda_D, self.lambda_D]
 
         model_inputs = [real_A, real_B]
 
         if self.style_loss:
-            model_inputs.append(features_A)
-            model_inputs.append(features_B)
-            model_outputs.append(reconstructed_feat_A)
-            model_outputs.append(reconstructed_feat_B)
-            for _ in range(1, 10):
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight)]
+            compile_weights = [self.lambda_1]
+            for _ in range(4, 13):
                 compile_losses.append(gm_loss)
                 compile_weights.append(self.style_weight)
+            compile_losses.append(cycle_loss(alpha=self.ct_loss_weight))
+            compile_weights.append(self.lambda_2)
+            for _ in range(4, 13):
+                compile_losses.append(gm_loss)
+                compile_weights.append(self.style_weight)
+            compile_losses.extend([lse, lse])
+            compile_weights.extend([self.lambda_D, self.lambda_D])
+        else:
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight),
+                            lse, lse]
+            compile_weights = [self.lambda_1, self.lambda_2,
+                            self.lambda_D, self.lambda_D]
 
         if self.use_multiscale_discriminator:
             for _ in range(2):

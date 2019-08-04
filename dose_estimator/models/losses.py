@@ -49,7 +49,11 @@ def gm_loss(y_true, y_pred):
     S = gram_matrix(y_true)
     C = gram_matrix(y_pred)
     channels = 2
-    size = y_pred.get_shape().as_list()[1] * y_pred.get_shape().as_list()[2]
+    #print(y_pred.shape)
+    if y_pred.get_shape().as_list()[1] is None:
+        size = 40.0
+    else:
+        size = y_pred.get_shape().as_list()[1] * y_pred.get_shape().as_list()[2]
     return K.sum(K.square(S - C)) / (4.0 * (channels ** 2) * (size ** 2))
 
 # the 3rd loss function, total variation loss,

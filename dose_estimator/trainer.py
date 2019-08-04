@@ -131,7 +131,15 @@ class Trainer(object):
 
             # ======= Generator training ==========
             # Compare reconstructed images to real images
-            target_data = [real_images_A, real_images_B]
+            
+            if model.style_loss:
+                target_data = [real_images_A]
+                target_data.extend(features_A)
+                target_data.append(real_images_B)
+                target_data.extend(features_B)
+            else:
+                target_data = [real_images_A, real_images_B]
+
             if model.use_multiscale_discriminator:
                 for i in range(2):
                     target_data.append(ones[i])
@@ -155,9 +163,10 @@ class Trainer(object):
             # Identity training
             if self.use_identity_learning and loop_index % self.identity_mapping_modulus == 0:
                 target_B = [real_images_B]
-                target_B.extend(features_B)
                 target_A = [real_images_A]
-                target_A.extend(features_A)
+                if model.style_loss:
+                    target_B.extend(features_B)
+                    target_A.extend(features_A)
                 G_A2B_identity_loss = model.G_A2B.model.train_on_batch(
                     x=real_images_B, y=target_B)  # ToDo: add loss here
                 G_B2A_identity_loss = model.G_B2A.model.train_on_batch(
