@@ -72,10 +72,16 @@ class cycleGAN(object):
         real_B = Input(shape=self.img_shape, name='real_B')
         synthetic_B = self.G_A2B.model(real_A)
         synthetic_A = self.G_B2A.model(real_B)
-        dA_guess_synthetic = self.D_A.model_static(synthetic_A[0])
-        dB_guess_synthetic = self.D_B.model_static(synthetic_B[0])
-        reconstructed_A = self.G_B2A.model(synthetic_B[0])
-        reconstructed_B = self.G_A2B.model(synthetic_A[0])
+        if self.style_loss:
+            dA_guess_synthetic = self.D_A.model_static(synthetic_A[0])
+            dB_guess_synthetic = self.D_B.model_static(synthetic_B[0])
+            reconstructed_A = self.G_B2A.model(synthetic_B[0])
+            reconstructed_B = self.G_A2B.model(synthetic_A[0])
+        else:
+            dA_guess_synthetic = self.D_A.model_static(synthetic_A)
+            dB_guess_synthetic = self.D_B.model_static(synthetic_B)
+            reconstructed_A = self.G_B2A.model(synthetic_B)
+            reconstructed_B = self.G_A2B.model(synthetic_A)
 
         if self.style_loss:
                 model_outputs = reconstructed_A
