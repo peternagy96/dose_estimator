@@ -71,8 +71,8 @@ class cycleGAN(object):
                     else:
                         identity_loss.append(null_loss)
                         #identity_loss.append(gm_loss)
-        else:
-            identity_loss = [mae(alpha=self.ct_loss_weight)]
+            else:
+                identity_loss = [mae(alpha=self.ct_loss_weight)]
             self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
             self.G_B2A.model.compile(optimizer=opt_G, loss=identity_loss)
 
