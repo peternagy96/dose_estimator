@@ -74,4 +74,4 @@ def total_variation_loss(x):
     return K.sum(K.pow(a + b, 1.25))
 
 def null_loss(y_true, y_pred):
-    return 0.0
+    return tf.Variable(0.0)
