@@ -60,6 +60,7 @@ class cycleGAN(object):
                                loss=lse,
                                loss_weights=self.D_B.loss_weights)
 
+        """
         if use_identity_learning:    
             if self.style_loss:       
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
@@ -69,7 +70,8 @@ class cycleGAN(object):
                     else:
                         identity_loss.append(gm_loss)
             else:
-                identity_loss = [mae(alpha=self.ct_loss_weight)]
+            """
+            identity_loss = [mae(alpha=self.ct_loss_weight)]
             self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
             self.G_B2A.model.compile(optimizer=opt_G, loss=identity_loss)
 
