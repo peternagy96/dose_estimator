@@ -37,7 +37,7 @@ class Trainer(object):
             self.epochs = int(self.epochs + self.init_epoch)
         else:
             self.init_epoch = 1
-        self.save_interval = 50  # ! CHANGE
+        self.save_interval = 1  # ! CHANGE
         self.synthetic_pool_size = 25
 
         # Linear decay of learning rate, for both discriminators and generators

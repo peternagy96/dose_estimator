@@ -21,17 +21,13 @@ def cycle_loss(alpha=0.5): # size: (batch, 80, 80, 2)
         return alpha * tf.reduce_mean(tf.abs(y_pred[...,0] - y_true[...,0])) + (1-alpha) * tf.reduce_mean(tf.abs(y_pred[...,1] - y_true[...,1]))
     return loss
 
-def style_loss(gt=[], gen=[]):
-    def loss(y_true, y_pred):
-        total_variation_weight = 1.0
-        style_weight = 1.0
-        for layer_name in feature_layers:
-            gen_features = gen_dict[layer_name]
-            gt_features = gt_dict[layer_name]
-            sl = style_loss(gt_features, gen_features)
-            loss += (style_weight / len(feature_layers)) * sl
-        loss += total_variation_weight * total_variation_loss(combination_image)
-        return loss
+def style_loss(y_true, y_pred):
+    total_variation_weight = 1.0
+    gram_weight = 1.0
+    gm = gm_loss(y_true, y_pred)
+    loss = 0.0
+    loss += gram_weight  * gm
+    loss += total_variation_weight * total_variation_loss(y_pred)
     return loss
 
 def gram_matrix(x):

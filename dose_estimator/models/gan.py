@@ -12,7 +12,8 @@ from .losses import lse, mae, mae_style, cycle_loss, style_loss, gm_loss
 
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
-                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5, style_loss=False):
+                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5, 
+                 style_loss=False, tv_loss=False, style_weight=0.001):
 
         self.model_path = model_path
         self.dim = dim
@@ -24,7 +25,8 @@ class cycleGAN(object):
         self.lambda_D = 1.0  # Weight for loss from discriminator guess on synthetic images
         self.ct_loss_weight = ct_loss_weight
         self.style_loss = style_loss
-        self.style_weight = 0.000001
+        self.tv_loss = tv_loss
+        self.style_weight = style_weight
 
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True

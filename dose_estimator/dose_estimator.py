@@ -61,13 +61,16 @@ if __name__ == '__main__':
             elif settings['Dim'] == '3D':
                 image_shape = data.A_train.shape[-4:] 
             style_loss = False
-            if settings['Style loss'] == 'Y':
+            if settings['Style Loss'] == 'Y':
                 style_loss = True
+            tv_loss = False
+            if settings['TV Loss'] == 'Y':
+                tv_loss = True
             model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=model_path,
                            image_shape=image_shape, ct_loss_weight=settings['CT Weight'],
-                           style_loss=style_loss)
+                           style_loss=style_loss, tv_loss=tv_loss, style_weight=settings['Style Weight'])
 
             # load trainer
             adv_loss = False
