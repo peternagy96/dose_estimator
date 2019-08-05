@@ -191,6 +191,8 @@ class Tester(object):
         # used for pic with all test MIP images
         collage_gt = []
         collage_pred = []
+        collage_rmse = []
+        collage_psnr = []
 
         if epoch == '':
             if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
