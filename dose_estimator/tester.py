@@ -311,26 +311,25 @@ class Tester(object):
             border = np.ones((s, 10)) * 255
             final_img = np.hstack(
                 (mip_ct, border, mip_pet, border, mip_orig, border, mip_pred, border, error))
-            footer = np.ones((20, final_img.shape[1])) * 255
+            footer = np.ones((25, final_img.shape[1])) * 255
             final_img = np.vstack((final_img, footer))
 
             final_img = cv2.cvtColor(final_img.astype(np.float32), cv2.COLOR_GRAY2BGR)
 
             font = cv2.FONT_HERSHEY_SIMPLEX
             final_img = cv2.putText(
-                final_img, f"CT", (int(s2*0.37), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"CT", (int(s2*0.37), s+17), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"PET", (int(s2*1.33), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"PET", (int(s2*1.33), s+17), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"GT SPECT", (int(2.1*s2), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"GT SPECT", (int(2.1*s2), s+17), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"Gen SPECT", (int(3.1*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-            #final_img = cv2.putText(
-            #    final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"Gen SPECT", (int(3.1*s2), s+17), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)#final_img = cv2.putText(
+                        #    final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"RMSE: {np.around(rmse,4)}", (int(4*s2), s+8), font, 0.28, (0, 0, 255), 1, cv2.LINE_AA)
+                final_img, f"RMSE: {np.around(rmse,4)}", (int(4*s2), s+8), font, 0.35, (0, 0, 255), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"PSNR: {np.around(psnr,2)}", (int(4*s2), s+17), font, 0.28, (0, 0, 255), 1, cv2.LINE_AA)
+                final_img, f"PSNR: {np.around(psnr,2)}", (int(4*s2), s+20), font, 0.35, (0, 0, 255), 1, cv2.LINE_AA)
             if idx+1 > testlen:
                 addition = 'train'
             else:
