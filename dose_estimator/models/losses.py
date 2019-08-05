@@ -72,3 +72,6 @@ def total_variation_loss(x):
         b = K.square(
             x[:, :img_nrows - 1, :img_ncols - 1, :] - x[:, :img_nrows - 1, 1:, :])
     return K.sum(K.pow(a + b, 1.25))
+
+def null_loss(y_true, y_pred):
+    return 0.0
