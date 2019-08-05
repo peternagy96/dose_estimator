@@ -180,6 +180,18 @@ class Tester(object):
         testlen = len(indices)
         indices.extend(train_file.read().splitlines())
 
+        # initalize variable used for average error calculations
+        count_train = 0
+        count_test = 0
+        avg_rmse_train = 0
+        avg_psnr_train = 0
+        avg_rmse_test = 0
+        avg_psnr_test = 0
+
+        # used for pic with all test MIP images
+        collage_gt = []
+        collage_pred = []
+
         if epoch == '':
             if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
                 os.makedirs(os.path.join(self.result_path, 'MIP'))
@@ -303,7 +315,7 @@ class Tester(object):
             mip_pred = (255 - np.max(self.rescale_mip(pred_B), axis=1))
             error = np.abs(mip_pred - mip_orig)
             rmse = self.rmse(nifti_in_B, pred_B)
-            psnr = self.psnr(nifti_in_B, pred_B)
+            psnr = self.psnr(nifti_in_B, pred_B)           
 
             # create plot
             s = error.shape[0]
@@ -332,8 +344,18 @@ class Tester(object):
                 final_img, f"PSNR: {np.around(psnr,2)}", (int(4*s2), s+20), font, 0.35, (0, 0, 255), 1, cv2.LINE_AA)
             if idx+1 > testlen:
                 addition = 'train'
+                count_train += 1
+                avg_rmse_train += rmse
+                avg_psnr_train += psnr
             else:
                 addition = 'test'
+                count_test += 1
+                avg_rmse_test += rmse
+                avg_psnr_test += psnr
+                collage_gt.append(mip_orig)
+                collage_pred.append(mip_pred)
+                collage_rmse.append(rmse)
+                collage_psnr.append(psnr)
             if epoch != '':
                 path_out = f"{self.result_path}/epoch_{epoch}/MIP/{addition}_{i}.png"
             else:
@@ -341,6 +363,51 @@ class Tester(object):
             #im = Image.fromarray(final_img).convert("L")
             #im.save(path_out)
             cv2.imwrite(path_out,final_img)
+
+        # calculate train and test avg error and save them to file
+        avg_rmse_train /= train_count
+        avg_psnr_train /= train_count
+        avg_rmse_test /= test_count
+        avg_psnr_test /= test_count
+        with open(f"{self.result_path}/epoch_{epoch}/MIP/error.txt", 'w') as f:
+            f.write(f"Train avg RMSE: {np.around(avg_rmse_train, 4)}")
+            f.write(f"Train avg PSNR: {np.around(avg_psnr_train, 4)}")
+            f.write(f"Test avg RMSE: {np.around(avg_rmse_test, 4)}")
+            f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}")
+
+        # create test set collage
+        self.createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr)
+
+
+# Create collage of test MIP images
+
+    @staticmethod
+    def createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr):
+        border = np.ones((collage_gt[0].shape[0], 10)) * 255
+        small_footer = np.ones((25, collage_gt[0].shape[1])) * 255
+        img_height = collage_gt[0].shape[0]
+        img_width = collage_gt[0].shape[1]       
+        for i in range(len(collage_gt)):
+            # put the vertical image together
+            vertical_img = np.empty(())
+            vertical_img = np.vstack((collage_gt[i], small_footer, collage_pred[i], small_footer))
+            vertical_img = cv2.putText(vertical_img, f"RMSE: {np.around(collage_rmse[i], 4)}", (1, int(img_height*2.45)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+            vertical_img = cv2.putText(vertical_img, f"PSNR: {np.around(collage_psnr[i], 4)}", (1, int(img_height*2.6)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+            
+            # add it to the final image
+            border = np.ones((vertical_img.shape[0], 10)) * 255
+            if i == 0:
+                final_img = vertical_img
+            else:
+                final_img = np.hstack((final_img, border,vertical_img))
+                
+        final_img = cv2.putText(
+                final_img, f"Ground Truth", (int((final_img.shape[1]/2.5)), int(final_img.shape[0]/2.15)), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+        if epoch != '':
+                path_out = f"{self.result_path}/epoch_{epoch}/MIP/MIP_test.png"
+        else:
+            path_out = f"{self.result_path}/MIP_test.png"
+        cv2.imwrite(path_out,final_img)
 
 
 # Test and return 3D NIFTI images ==============================================
