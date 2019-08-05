@@ -36,28 +36,46 @@ class Tester(object):
             # process training images
             for idx in np.arange(index, num_train_samples, pat_num[0]):
                 if self.model.dim == '2D':
-                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :]).squeeze()
+                    if self.model.style_loss:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :])[0].squeeze()
+                    else:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :]).squeeze()
                     self.save_basic_plot(self.data.A_train[idx], pred, self.data.B_train[idx], f"{path_name}/train_{idx}.png", mods)
                 elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:
                     pad_l = int((depth-1)/2)
-                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :]).squeeze()[pad_l]
+                    if self.model.style_loss:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :])[0].squeeze()[pad_l]
+                    else:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :]).squeeze()[pad_l]
                     self.save_basic_plot(self.data.A_train[idx,pad_l], pred, self.data.B_train[idx,pad_l], f"{path_name}/train_{idx}.png", mods)
                 else: # full 3D model
-                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
+                    if self.model.style_loss:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[20]
+                    else:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
                     self.save_basic_plot(self.data.A_train[idx,20], pred, self.data.B_train[idx,20], f"{path_name}/train_{idx}.png", mods)
 
 
             # process test images
             for idx in np.arange(index, num_test_samples, pat_num[1]):
                 if self.model.dim == '2D':
-                    pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :]).squeeze()
+                    if self.model.style_loss:
+                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :])[0].squeeze()
+                    else:
+                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :]).squeeze()
                     self.save_basic_plot(self.data.A_test[idx], pred, self.data.B_test[idx], f"{path_name}/test_{idx}.png", mods)
                 elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:
                     pad_l = int((depth-1)/2)
-                    pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :]).squeeze()[pad_l]
+                    if self.model.style_loss:
+                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :])[0].squeeze()[pad_l]
+                    else:
+                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :]).squeeze()[pad_l]
                     self.save_basic_plot(self.data.A_test[idx,pad_l], pred, self.data.B_test[idx,pad_l], f"{path_name}/test_{idx}.png", mods)
                 else:
-                    pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
+                    if self.model.style_loss:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[20]
+                    else:
+                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
                     self.save_basic_plot(self.data.A_test[idx,20], pred, self.data.B_test[idx,20], f"{path_name}/test_{idx}.png", mods)
                 
         elif mode == 'backward':
@@ -236,18 +254,34 @@ class Tester(object):
             if self.model.dim == '2D':
                 for j in range(nifti_in_B.shape[0]):
                     if view == 'front':
-                        pred_B[:,j,:] = self.model.G_A2B.model.predict(np.stack((in1[:,j,:], in2[:,j,:]), axis=2)[
+                        if self.model.style_loss:
+                            pred_B[:,j,:] = self.model.G_A2B.model.predict(np.stack((in1[:,j,:], in2[:,j,:]), axis=2)[
+                                                                        np.newaxis, :, :, :])[0].squeeze()[:, :, 0]  # .reshape((256,128))
+                        else:
+                            pred_B[:,j,:] = self.model.G_A2B.model.predict(np.stack((in1[:,j,:], in2[:,j,:]), axis=2)[
                                                                     np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
                     elif view == 'top':
-                        pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
+                        if self.model.style_loss:
+                            pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
+                                                                    np.newaxis, :, :, :])[0].squeeze()[:, :, 0]  # .reshape((256,128))
+                        else:
+                            pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
                                                                 np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
             elif self.model.dim == '3D' and self.model.img_shape[0] < 40:               
                 max_depth = nifti_in_B.shape[0]
                 for j in range(0, max_depth, 1):
-                    pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
-                                                            np.newaxis, :, :, :, :]).squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))        
+                    if self.model.style_loss:
+                        pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
+                                                                np.newaxis, :, :, :, :])[0].squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))   
+                    else:
+                        pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
+                                                            np.newaxis, :, :, :, :]).squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))
             else:
-                pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
+                if self.model.style_loss:
+                    pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
+                                                                np.newaxis, :, :, :, :])[0].squeeze()[:, :, :, 0]
+                else:
+                    pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
                                                             np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]
                 
             # TODO: fix histogram matching
@@ -355,17 +389,24 @@ class Tester(object):
         pred = np.empty(array.shape)
         if direction == "A2B":
             for i in range(array.shape[0]):
-                pred[i] = self.model.G_A2B.predict(
-                    array[np.newaxis, i, :, :, np.newaxis]).squeeze()
+                if self.model.style_loss:
+                    pred[i] = self.model.G_A2B.predict(
+                        array[np.newaxis, i, :, :, np.newaxis])[0].squeeze()
+                else:
+                    pred[i] = self.model.G_A2B.predict(
+                        array[np.newaxis, i, :, :, np.newaxis]).squeeze()
                 #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
                 pred[i] = self.hist_match(pred[0], pred[i])
         else:
             for i in range(array.shape[0]):
-                pred[i] = self.model.G_B2A.predict(
-                    array[np.newaxis, i, :, :, np.newaxis]).squeeze()
+                if self.model.style_loss:
+                    pred[i] = self.model.G_B2A.predict(
+                        array[np.newaxis, i, :, :, np.newaxis])[0].squeeze()
+                else:
+                    pred[i] = self.model.G_B2A.predict(
+                        array[np.newaxis, i, :, :, np.newaxis]).squeeze()
                 #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
                 pred[i] = self.hist_match(pred[0], pred[i])
-
         return pred
 
     def write_nifti(self, image, i: str, mod: str):
