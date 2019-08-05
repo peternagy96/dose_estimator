@@ -7,7 +7,7 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse, mae, mae_style, cycle_loss, style_loss, gm_loss
+from .losses import lse, mae, mae_style, cycle_loss, s_loss, gm_loss
 
 
 class cycleGAN(object):
@@ -64,7 +64,10 @@ class cycleGAN(object):
             if self.style_loss:       
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
                 for _ in range(4, 13):
-                    identity_loss.append(gm_loss)
+                    if self.tv_loss:
+                        identity_loss.append(s_loss)
+                    else:
+                        identity_loss.append(gm_loss)
             else:
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
             self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
@@ -99,12 +102,18 @@ class cycleGAN(object):
             compile_losses = [cycle_loss(alpha=self.ct_loss_weight)]
             compile_weights = [self.lambda_1]
             for _ in range(4, 13):
-                compile_losses.append(gm_loss)
+                if self.tv_loss:
+                    compile_losses.append(s_loss)
+                else:
+                    compile_losses.append(gm_loss)
                 compile_weights.append(self.style_weight)
             compile_losses.append(cycle_loss(alpha=self.ct_loss_weight))
             compile_weights.append(self.lambda_2)
             for _ in range(4, 13):
-                compile_losses.append(gm_loss)
+                if self.tv_loss:
+                    compile_losses.append(s_loss)
+                else:
+                    compile_losses.append(gm_loss)
                 compile_weights.append(self.style_weight)
             compile_losses.extend([lse, lse])
             compile_weights.extend([self.lambda_D, self.lambda_D])

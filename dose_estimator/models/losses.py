@@ -21,12 +21,11 @@ def cycle_loss(alpha=0.5): # size: (batch, 80, 80, 2)
         return alpha * tf.reduce_mean(tf.abs(y_pred[...,0] - y_true[...,0])) + (1-alpha) * tf.reduce_mean(tf.abs(y_pred[...,1] - y_true[...,1]))
     return loss
 
-def style_loss(y_true, y_pred):
+def s_loss(y_true, y_pred):
     total_variation_weight = 1.0
     gram_weight = 1.0
     gm = gm_loss(y_true, y_pred)
-    loss = 0.0
-    loss += gram_weight  * gm
+    loss = gram_weight  * gm
     loss += total_variation_weight * total_variation_loss(y_pred)
     return loss
 
@@ -47,7 +46,7 @@ def gm_loss(y_true, y_pred):
     channels = 2
     #print(y_pred.shape)
     if y_pred.get_shape().as_list()[1] is None:
-        size = 40.0
+        size = 400.0
     else:
         size = y_pred.get_shape().as_list()[1] * y_pred.get_shape().as_list()[2]
     return K.sum(K.square(S - C)) / (4.0 * (channels ** 2) * (size ** 2))
@@ -56,6 +55,12 @@ def gm_loss(y_true, y_pred):
 # designed to keep the generated image locally coherent
 def total_variation_loss(x):
     assert K.ndim(x) == 4
+    if x.get_shape().as_list()[1] is None:
+        img_nrows = 20
+        img_ncols = 20
+    else:
+        img_nrows = int(x.get_shape().as_list()[1])
+        img_ncols = int(x.get_shape().as_list()[2])
     if K.image_data_format() == 'channels_first':
         a = K.square(
             x[:, :, :img_nrows - 1, :img_ncols - 1] - x[:, :, 1:, :img_ncols - 1])
