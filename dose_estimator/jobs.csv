@@ -4,10 +4,11 @@ Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment
 2D_top_ganimorph,train,2D,new,0.0003,0.0003,,200,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_top_adv,train,2D,basic,0.0003,0.0003,,200,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,,N,Y,N,,3d_filtered,x,x
 2D_top_gram,train,2D,basic,0.0003,0.0003,,100,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,Y,N,1E-06,N,N,N,,3d_filtered,x,
-2D_top style,train,2D,basic,0.0003,0.0003,,100,10,"CT, PET, dose",Y,Y,top,Y,0.5,1,Y,Y,1E-06,N,N,N,,3d_filtered,x,
+2D_top style,train,2D,basic,0.0003,0.0003,,100,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,Y,Y,1E-06,N,N,N,,3d_filtered,x,
 3D,train,3D,basic,0.0003,0.0003,,200,5,"CT, PET, dose",Y,Y,top,N,0.5,1,N,N,,N,N,N,5,3d_filtered,x,x
 MIP_top,test_mip,2D,basic,0.0003,0.0003,200,200,10,"CT, PET, dose",Y,N,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,2D_top,x
 plot,plot,2D,new,0.0003,0.0003,,200,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_batch40,train,2D,basic,0.0003,0.0003,,100,40,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,,N,N,N,,3d_filtered,x,
 2D_top_gramadv,train,2D,basic,0.0003,0.0003,,100,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,Y,N,,N,Y,N,,3d_filtered,x,
 2D_front_gram,train,2D,basic,0.0003,0.0003,,100,20,"CT, PET, dose",Y,Y,front,Y,0.2,1,Y,N,,N,N,N,,3d_filtered,x,
+2D_top_gram0001,train,2D,basic,0.0003,0.0003,,100,20,"CT, PET, dose",Y,Y,top,Y,0.2,1,Y,N,0.0001,N,N,N,,3d_filtered,x,
