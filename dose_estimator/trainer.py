@@ -144,6 +144,9 @@ class Trainer(object):
                 for i in range(2):
                     target_data.append(ones[i])
                     target_data.append(ones[i])
+            elif model.D_A.mode == 'new':
+                target_data.extend(ones_A)
+                target_data.extend(ones_B)
             else:
                 target_data.append(ones_A)
                 target_data.append(ones_B)
@@ -296,19 +299,28 @@ class Trainer(object):
                     zeros = [zeros1, zeros2]  # , zeros4]
                 else:
                     if model.D_A.mode == 'new':
-                        label_shape_A = (len(real_images_A),) + \
-                            model.D_A.model.output_shape[0][1:]
-                        label_shape_B = (len(real_images_B),) + \
-                            model.D_B.model.output_shape[0][1:]
+                        ones_A = []
+                        ones_B = []
+                        zeros_A = []
+                        zeros_B = []
+                        for i in range(len(model.D_A.model.output_shape)):
+                            label_shape_A = (len(real_images_A),) + \
+                                model.D_A.model.output_shape[i][1:]
+                            label_shape_B = (len(real_images_B),) + \
+                                model.D_B.model.output_shape[i][1:]
+                            ones_A.append(np.ones(shape=label_shape_A) * self.REAL_LABEL)
+                            ones_B.append(np.ones(shape=label_shape_B) * self.REAL_LABEL)                        
+                            zeros_A.append(np.zeros(shape=label_shape_A) * self.REAL_LABEL)
+                            zeros_B.append(np.zeros(shape=label_shape_B) * self.REAL_LABEL)
                     else:
                         label_shape_A = (len(real_images_A),) + \
                             model.D_A.model.output_shape[1:]
                         label_shape_B = (len(real_images_B),) + \
                             model.D_B.model.output_shape[1:]
-                    ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
-                    ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
-                    zeros_A = ones_A * 0
-                    zeros_B = ones_B * 0
+                        ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
+                        ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
+                        zeros_A = ones_A * 0
+                        zeros_B = ones_B * 0
 
                 # Run all training steps
                 run_training_iteration(loop_index, epoch_iterations)
