@@ -22,9 +22,9 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=FutureWarning)
 
 #if len(device_lib.list_local_devices()) > 1:
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-tf.config.set_soft_device_placement(True)
-tf.logging.set_verbosity(tf.logging.ERROR)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#tf.config.set_soft_device_placement(True)
+#tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 

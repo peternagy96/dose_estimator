@@ -367,10 +367,10 @@ class Tester(object):
             cv2.imwrite(path_out,final_img)
 
         # calculate train and test avg error and save them to file
-        avg_rmse_train /= train_count
-        avg_psnr_train /= train_count
-        avg_rmse_test /= test_count
-        avg_psnr_test /= test_count
+        avg_rmse_train /= count_train
+        avg_psnr_train /= count_train
+        avg_rmse_test /= count_test
+        avg_psnr_test /= count_test
         with open(f"{self.result_path}/epoch_{epoch}/MIP/error.txt", 'w') as f:
             f.write(f"Train avg RMSE: {np.around(avg_rmse_train, 4)}")
             f.write(f"Train avg PSNR: {np.around(avg_psnr_train, 4)}")
@@ -378,13 +378,14 @@ class Tester(object):
             f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}")
 
         # create test set collage
-        self.createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr)
+        self.createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, self.result_path, epoch)
 
 
 # Create collage of test MIP images
 
     @staticmethod
-    def createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr):
+    def createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, result_path, epoch):
+        font = cv2.FONT_HERSHEY_SIMPLEX
         border = np.ones((collage_gt[0].shape[0], 10)) * 255
         small_footer = np.ones((25, collage_gt[0].shape[1])) * 255
         img_height = collage_gt[0].shape[0]
@@ -406,9 +407,9 @@ class Tester(object):
         final_img = cv2.putText(
                 final_img, f"Ground Truth", (int((final_img.shape[1]/2.5)), int(final_img.shape[0]/2.15)), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
         if epoch != '':
-                path_out = f"{self.result_path}/epoch_{epoch}/MIP/MIP_test.png"
+                path_out = f"{result_path}/epoch_{epoch}/MIP/MIP_test.png"
         else:
-            path_out = f"{self.result_path}/MIP_test.png"
+            path_out = f"{result_path}/MIP_test.png"
         cv2.imwrite(path_out,final_img)
 
 
