@@ -75,3 +75,9 @@ def total_variation_loss(x):
 
 def null_loss(y_true, y_pred):
     return tf.Variable(0.0)
+
+def feature_match_loss(y_true, y_pred):
+    loss = tf.reduce_mean(tf.squared_difference(
+        tf.reduce_mean(y_true, 0),
+        tf.reduce_mean(y_pred, 0)))
+    return loss

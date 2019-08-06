@@ -7,7 +7,7 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse, mae, mae_style, cycle_loss, s_loss, gm_loss, null_loss
+from .losses import lse, mae, mae_style, cycle_loss, s_loss, gm_loss, null_loss, feature_match_loss
 
 
 class cycleGAN(object):
@@ -53,11 +53,17 @@ class cycleGAN(object):
                                use_identity_learning=True, img_shape=img_shape, style_loss=self.style_loss)
 
     def compile(self, opt_G, opt_D, use_identity_learning, style_loss=False):
+        if self.D_A.mode == 'new':
+            d_loss = [lse]
+            for _ in range(7):
+                d_loss.append(feature_match_loss)
+        else:
+            d_loss = lse
         self.D_A.model.compile(optimizer=opt_D,
-                               loss=lse,
+                               loss=d_loss,
                                loss_weights=self.D_A.loss_weights)
         self.D_B.model.compile(optimizer=opt_D,
-                               loss=lse,
+                               loss=d_loss,
                                loss_weights=self.D_B.loss_weights)
 
         
@@ -118,13 +124,10 @@ class cycleGAN(object):
                 else:
                     compile_losses.append(gm_loss)
                 compile_weights.append(self.style_weight)
-            compile_losses.extend([lse, lse])
-            compile_weights.extend([self.lambda_D, self.lambda_D])
+            
         else:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight),
-                            lse, lse]
-            compile_weights = [self.lambda_1, self.lambda_2,
-                            self.lambda_D, self.lambda_D]
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight)]
+            compile_weights = [self.lambda_1, self.lambda_2]
 
         if self.use_multiscale_discriminator:
             for _ in range(2):
@@ -134,11 +137,25 @@ class cycleGAN(object):
             for i in range(2):
                 model_outputs.append(dA_guess_synthetic[i])
                 model_outputs.append(dB_guess_synthetic[i])
+
+        if self.D_A.mode == 'new':
+            model_outputs.extend(dA_guess_synthetic)
+            compile_weights.append(self.lambda_D)
+            compile_losses.append(lse)
+            for _ in range(7):
+                compile_weights.append(self.lambda_D)
+                compile_losses.append(feature_match_loss)
+            model_outputs.extend(dB_guess_synthetic)
+            compile_weights.append(self.lambda_D)
+            compile_losses.append(lse)
+            for _ in range(7):
+                compile_weights.append(self.lambda_D)
+                compile_losses.append(feature_match_loss)
         else:
             model_outputs.append(dA_guess_synthetic)
             model_outputs.append(dB_guess_synthetic)
-
-        self.saveSummary()
+            compile_weights.extend([self.lambda_D, self.lambda_D])
+            compile_losses.extend([lse, lse])
         self.G_model = Model(inputs=model_inputs,
                              outputs=model_outputs,
                              name='G_model')

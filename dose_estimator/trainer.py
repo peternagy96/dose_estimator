@@ -295,10 +295,16 @@ class Trainer(object):
                     # zeros4 = ones4 * 0
                     zeros = [zeros1, zeros2]  # , zeros4]
                 else:
-                    label_shape_A = (len(real_images_A),) + \
-                        model.D_A.model.output_shape[1:]
-                    label_shape_B = (len(real_images_B),) + \
-                        model.D_B.model.output_shape[1:]
+                    if model.D_A.mode == 'new':
+                        label_shape_A = (len(real_images_A),) + \
+                            model.D_A.model.output_shape[0][1:]
+                        label_shape_B = (len(real_images_B),) + \
+                            model.D_B.model.output_shape[0][1:]
+                    else:
+                        label_shape_A = (len(real_images_A),) + \
+                            model.D_A.model.output_shape[1:]
+                        label_shape_B = (len(real_images_B),) + \
+                            model.D_B.model.output_shape[1:]
                     ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
                     ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
                     zeros_A = ones_A * 0
