@@ -127,11 +127,11 @@ class Generator(object):
                 x0 = x
                 x = Conv2D(name=f"{name}_{k}0", filters=filters, strides=1, kernel_size=3, padding='same')(x)
                 x = Conv2D(name=f"{name}_{k}1", filters=filters, strides=1, kernel_size=3, padding='same')(x)
-                x = concatenate([x, x0], axis=1)
+                x = concatenate([x, x0], axis=3)
                 x = Conv2D(name=f"{name}_{k}2", filters=filters, strides=1, kernel_size=3, padding='same')(x)
             return x
 
-        NF = 64
+        NF = 32
         subDepth = 3
         input_img = Input(shape=self.img_shape)
         conv0 = Conv2D(name='conv0', filters=NF, kernel_size=4, strides=2, padding='same', activation='relu')(input_img)
@@ -142,13 +142,13 @@ class Generator(object):
         conv3 = Conv2D(name='conv3', filters=NF * 8, kernel_size=4, strides=2, padding='same')(layer2)
         l = res_group(conv3, 'layer3', subDepth, NF*8)
         deconv0 = Conv2DTranspose(name='deconv0', filters=NF * 4, kernel_size=4, strides=2, padding='same')(l)
-        up1 = concatenate([deconv0, layer2], axis=1)
+        up1 = concatenate([deconv0, layer2], axis=3)
         b_layer_2 = res_group(up1, 'blayer2', subDepth, NF * 4)
         deconv1 = Conv2DTranspose(name='deconv1', filters=NF * 2, kernel_size=4, strides=2, padding='same')(b_layer_2)
-        up2 = concatenate([deconv1, layer1], axis=1)
+        up2 = concatenate([deconv1, layer1], axis=3)
         b_layer_1 = res_group(up2, 'blayer1', subDepth, NF * 2)
         deconv2 = Conv2DTranspose(name='deconv2', filters=NF * 1, kernel_size=4, strides=2, padding='same')(b_layer_1)
-        deconv3 = Conv2DTranspose(name='deconv3', filters=3, kernel_size=4, strides=2, padding='same',activation='sigmoid')(deconv2)
+        deconv3 = Conv2DTranspose(name='deconv3', filters=self.img_shape[-1], kernel_size=4, strides=2, padding='same',activation='sigmoid')(deconv2)
         return Model(inputs=input_img, outputs=deconv3, name=self.name)
 
 

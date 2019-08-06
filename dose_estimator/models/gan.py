@@ -138,6 +138,7 @@ class cycleGAN(object):
             model_outputs.append(dA_guess_synthetic)
             model_outputs.append(dB_guess_synthetic)
 
+        self.saveSummary()
         self.G_model = Model(inputs=model_inputs,
                              outputs=model_outputs,
                              name='G_model')

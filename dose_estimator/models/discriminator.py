@@ -145,7 +145,7 @@ class Discriminator(object):
         atrous2 = INLReLU(atrous2, self.normalization)
         atrous3 = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=8, padding='same')(atrous2)
         atrous3 = INLReLU(atrous3, self.normalization)
-        merge = concatenate([relu3, atrous3], axis=1)
+        merge = concatenate([relu3, atrous3], axis=3)
         clean = Conv2D(name='mConv', filters=NF*8, kernel_size=3, strides=1, padding='same')(merge)
         lsgan = Conv2D(name='lsconv', filters=1, kernel_size=4, strides=1,
                 use_bias=False, padding='same')(clean)
