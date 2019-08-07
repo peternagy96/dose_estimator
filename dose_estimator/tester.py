@@ -372,10 +372,10 @@ class Tester(object):
         avg_rmse_test /= count_test
         avg_psnr_test /= count_test
         with open(f"{self.result_path}/epoch_{epoch}/MIP/error.txt", 'w') as f:
-            f.write(f"Train avg RMSE: {np.around(avg_rmse_train, 4)}")
-            f.write(f"Train avg PSNR: {np.around(avg_psnr_train, 4)}")
-            f.write(f"Test avg RMSE: {np.around(avg_rmse_test, 4)}")
-            f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}")
+            f.write(f"Train avg RMSE: {np.around(avg_rmse_train, 4)}\n")
+            f.write(f"Train avg PSNR: {np.around(avg_psnr_train, 4)}\n")
+            f.write(f"Test avg RMSE: {np.around(avg_rmse_test, 4)}\n")
+            f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}\n")
 
         # create test set collage
         self.createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, self.result_path, epoch)
