@@ -66,11 +66,15 @@ if __name__ == '__main__':
             tv_loss = False
             if settings['TV Loss'] == 'Y':
                 tv_loss = True
+            ssim_loss = False
+            if settings['Structure Loss'] == 'Y':
+                ssim_loss = True
             model_path = os.path.join('/home/peter/saved_models/', settings['Model Path'])
             gan = cycleGAN(dim=settings['Dim'], mode_G=settings['Generator'],
                            mode_D='basic', model_path=model_path,
                            image_shape=image_shape, ct_loss_weight=settings['CT Weight'],
-                           style_loss=style_loss, tv_loss=tv_loss, style_weight=settings['Style Weight'])
+                           style_loss=style_loss, tv_loss=tv_loss, ssim_loss = ssim_loss, 
+                           style_weight=settings['Style Weight'])
 
             # load trainer
             adv_loss = False

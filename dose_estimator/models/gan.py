@@ -13,7 +13,7 @@ from .losses import lse, mae, mae_style, cycle_loss, s_loss, gm_loss, null_loss,
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
                  model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5, 
-                 style_loss=False, tv_loss=False, style_weight=0.001):
+                 style_loss=False, tv_loss=False, ssim_loss=False, style_weight=0.001):
 
         self.model_path = model_path
         self.dim = dim
@@ -26,6 +26,7 @@ class cycleGAN(object):
         self.ct_loss_weight = ct_loss_weight
         self.style_loss = style_loss
         self.tv_loss = tv_loss
+        self.ssim_loss = ssim_loss
         self.style_weight = style_weight
 
         # PatchGAN - if false the discriminator learning rate should be decreased
@@ -108,7 +109,7 @@ class cycleGAN(object):
         model_inputs = [real_A, real_B]
 
         if self.style_loss:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight)]
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss)]
             compile_weights = [self.lambda_1]
             for _ in range(4, 13):
                 if self.tv_loss:
@@ -116,7 +117,7 @@ class cycleGAN(object):
                 else:
                     compile_losses.append(gm_loss)
                 compile_weights.append(self.style_weight)
-            compile_losses.append(cycle_loss(alpha=self.ct_loss_weight))
+            compile_losses.append(cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss))
             compile_weights.append(self.lambda_2)
             for _ in range(4, 13):
                 if self.tv_loss:
@@ -126,7 +127,7 @@ class cycleGAN(object):
                 compile_weights.append(self.style_weight)
             
         else:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight), cycle_loss(alpha=self.ct_loss_weight)]
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss), cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss)]
             compile_weights = [self.lambda_1, self.lambda_2]
 
         if self.use_multiscale_discriminator:
