@@ -1,9 +1,7 @@
 import tensorflow as tf
 from keras import backend as K
 import keras_contrib.backend as KC
-from keras.layers import Input, Conv2D
-from keras_contrib.losses import DSSIMObjective
-import numpy as np
+from keras.layers import Conv2D
 
 
 def lse(y_true, y_pred): # size: (batch, 5, 5, 1)
