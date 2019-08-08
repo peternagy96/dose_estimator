@@ -27,8 +27,8 @@ def cycle_loss(alpha=0.5, ssim=False): # size: (batch, 80, 80, 2)
     return loss
 
 def s_loss(y_true, y_pred):
-    total_variation_weight = 1.0
-    gram_weight = 1.0
+    total_variation_weight = 0.5
+    gram_weight = 0.5
     gm = gm_loss(y_true, y_pred)
     loss = gram_weight  * gm
     loss += total_variation_weight * total_variation_loss(y_pred)
