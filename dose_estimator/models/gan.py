@@ -39,7 +39,7 @@ class cycleGAN(object):
         self.use_resize_convolution = False
 
         if mode_G == 'new':
-            mode_G == 'basic'
+            #mode_G == 'basic'
             mode_D = 'new'
 
         self.build(dim=dim, mode_G=mode_G, mode_D=mode_D, img_shape=self.img_shape)
