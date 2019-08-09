@@ -113,7 +113,7 @@ class Trainer(object):
                     x=synthetic_images_A, y=zeros_A)
                 DB_loss_synthetic = model.D_B.model.train_on_batch(
                     x=synthetic_images_B, y=zeros_B)
-                if model.use_multiscale_discriminator:
+                if model.D_A.mode == 'new':
                     DA_loss = sum(DA_loss_real) + sum(DA_loss_synthetic)
                     DB_loss = sum(DB_loss_real) + sum(DB_loss_synthetic)
                     print('DA_losses: ', np.add(
