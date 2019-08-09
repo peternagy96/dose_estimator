@@ -1,4 +1,4 @@
-from keras.layers import Layer, Input, Conv2D, Conv3D, Activation, MaxPool2D, add, UpSampling2D, UpSampling3D, Conv2DTranspose, Conv3DTranspose
+from keras.layers import Layer, Input, Conv2D, Conv2DTranspose, Conv3D, Activation, MaxPool2D, add, UpSampling2D, UpSampling3D, Conv2DTranspose, Conv3DTranspose
 from keras.layers.advanced_activations import LeakyReLU
 from keras_contrib.layers.normalization.instancenormalization import InputSpec
 import tensorflow as tf
@@ -18,6 +18,24 @@ def ck(norm, x, k, use_normalization):
         x = norm(axis=3, center=True,
                  epsilon=1e-5)(x, training=True)
     x = LeakyReLU(alpha=0.2)(x)
+    return x
+
+def ck_rl(norm, x, k, use_normalization):
+    x = Conv2D(filters=k, kernel_size=4, strides=2, padding='same')(x)
+    # Normalization is not done on the first discriminator layer
+    if use_normalization:
+        x = norm(axis=3, center=True,
+                 epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
+    return x
+
+def dck(norm, x, k, use_normalization):
+    x = Conv2DTranspose(filters=k, kernel_size=4, strides=2, padding='same')(x)
+    # Normalization is not done on the first discriminator layer
+    if use_normalization:
+        x = norm(axis=3, center=True,
+                 epsilon=1e-5)(x, training=True)
+    x = Activation('relu')(x)
     return x
 
 
