@@ -6,7 +6,7 @@ from keras.engine.topology import Network
 from keras.layers.core import Dense
 from keras.models import Model
 
-from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, IN_LeakyRelu, INLReLU
+from .layers import ck, c7Ak, dk, Rk, uk, ReflectionPadding2D, IN_LeakyRelu, INLReLU, INLeakyReLU
 
 import tensorflow as tf
 
@@ -134,21 +134,22 @@ class Discriminator(object):
         l = Conv2D(name='conv0', filters=NF*2, kernel_size=4, strides=2, padding='same')(input_img)
         relu0 = Activation('relu')(l)
         relu1 = Conv2D(name='conv1', filters=NF * 4, kernel_size=4, strides=2, padding='same')(relu0)
-        relu1 = INLReLU(relu1, self.normalization)
+        relu1 = INLeakyReLU(relu1, self.normalization)
         relu2 = Conv2D(name='conv2', filters=NF * 8, kernel_size=4, strides=2, padding='same')(relu1)
-        relu2 = INLReLU(relu2, self.normalization)
+        relu2 = INLeakyReLU(relu2, self.normalization)
 
         relu3 = Conv2D(name='convf', filters=NF*8, kernel_size=3, strides=1, padding='same')(relu2)
         atrous = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=2, padding='same')(relu3)
-        atrous = INLReLU(atrous, self.normalization)
+        atrous = INLeakyReLU(atrous, self.normalization)
         atrous2 = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=4, padding='same')(atrous)
-        atrous2 = INLReLU(atrous2, self.normalization)
+        atrous2 = INLeakyReLU(atrous2, self.normalization)
         atrous3 = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=8, padding='same')(atrous2)
-        atrous3 = INLReLU(atrous3, self.normalization)
+        atrous3 = INLeakyReLU(atrous3, self.normalization)
         merge = concatenate([relu3, atrous3], axis=3)
         clean = Conv2D(name='mConv', filters=NF*8, kernel_size=3, strides=1, padding='same')(merge)
         lsgan = Conv2D(name='lsconv', filters=1, kernel_size=4, strides=1,
                 use_bias=False, padding='same')(clean)
+        lsgan = Activation('sigmoid')(lsgan)
 
         return Model(inputs=input_img, outputs=[lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean], name=name) # [lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean]
 

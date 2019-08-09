@@ -10,6 +10,10 @@ def INLReLU(x, norm):
     x = Activation('relu')(x)
     return x
 
+def INLeakyReLU(x, norm):
+    x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
+    x = LeakyReLU(alpha=0.2)(x)
+    return x
 
 def ck(norm, x, k, use_normalization):
     x = Conv2D(filters=k, kernel_size=4, strides=2, padding='same')(x)

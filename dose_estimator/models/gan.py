@@ -38,9 +38,9 @@ class cycleGAN(object):
         # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
         self.use_resize_convolution = False
 
-        #if mode_G == 'new':
+        if mode_G == 'new':
         #    mode_G == 'basic'
-        #    mode_D = 'new'
+            mode_D = 'new'
 
         self.build(dim=dim, mode_G=mode_G, mode_D=mode_D, img_shape=self.img_shape)
 
