@@ -147,6 +147,7 @@ class Discriminator(object):
         atrous3 = INLeakyReLU(atrous3, self.normalization)
         merge = concatenate([relu3, atrous3], axis=3)
         clean = Conv2D(name='mConv', filters=NF*8, kernel_size=3, strides=1, padding='same')(merge)
+        clean = INLeakyReLU(clean, self.normalization)
         lsgan = Conv2D(name='lsconv', filters=1, kernel_size=4, strides=1,
                 padding='same')(clean) # use_bias=False,
         lsgan = Activation('sigmoid')(lsgan)
