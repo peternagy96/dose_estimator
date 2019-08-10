@@ -148,7 +148,7 @@ class Discriminator(object):
         merge = concatenate([relu3, atrous3], axis=3)
         clean = Conv2D(name='mConv', filters=NF*8, kernel_size=3, strides=1, padding='same')(merge)
         lsgan = Conv2D(name='lsconv', filters=1, kernel_size=4, strides=1,
-                use_bias=False, padding='same')(clean)
+                padding='same')(clean) # use_bias=False,
         lsgan = Activation('sigmoid')(lsgan)
 
         return Model(inputs=input_img, outputs=[lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean], name=name) # [lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean]
