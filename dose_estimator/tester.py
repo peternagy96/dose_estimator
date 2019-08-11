@@ -29,9 +29,9 @@ class Tester(object):
         if mode == 'forward':
             num_train_samples = self.data.A_train.shape[0]
             num_test_samples = self.data.A_test.shape[0]  
-            if self.model.dim == '3D' and self.model.img_shape[0] != 81:
-                pat_num = [1,1]
-                index = 0
+            #if self.model.dim == '3D' and self.model.img_shape[0] != 81:
+             #   pat_num = [1,1]
+             #   index = 0
 
             # process training images
             for idx in np.arange(index, num_train_samples, pat_num[0]):
@@ -41,7 +41,7 @@ class Tester(object):
                     else:
                         pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :]).squeeze()
                     self.save_basic_plot(self.data.A_train[idx], pred, self.data.B_train[idx], f"{path_name}/train_{idx}.png", mods)
-                elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:
+                elif self.model.dim == '3D' and self.model.img_shape[-2] > 40:
                     pad_l = int((depth-1)/2)
                     if self.model.style_loss:
                         pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :])[0].squeeze()[pad_l]
@@ -64,7 +64,7 @@ class Tester(object):
                     else:
                         pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :]).squeeze()
                     self.save_basic_plot(self.data.A_test[idx], pred, self.data.B_test[idx], f"{path_name}/test_{idx}.png", mods)
-                elif self.model.dim == '3D' and self.model.img_shape[-2] == 128:
+                elif self.model.dim == '3D' and self.model.img_shape[-2] > 40:
                     pad_l = int((depth-1)/2)
                     if self.model.style_loss:
                         pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :])[0].squeeze()[pad_l]
