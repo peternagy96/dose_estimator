@@ -77,7 +77,7 @@ if __name__ == '__main__':
                            mode_D='basic', model_path=model_path,
                            image_shape=image_shape, ct_loss_weight=settings['CT Weight'],
                            style_loss=style_loss, tv_loss=tv_loss, ssim_loss = ssim_loss, 
-                           style_weight=settings['Style Weight'])
+                           style_weight=settings['Style Weight'], crop=crop)
 
             # load trainer
             adv_loss = False

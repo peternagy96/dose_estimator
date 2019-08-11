@@ -122,18 +122,23 @@ def dk3D(norm, x, k):
     return x
 
 
-def Rk3D(norm, x0):
+def Rk3D(norm, x0, style=False):
     k = int(x0.shape[-1])
     # first layer
     x = Conv3D(filters=k, kernel_size=3, strides=1, padding='same')(x0)
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
+    if style:
+        x1 = x
     # second layer
     x = Conv3D(filters=k, kernel_size=3, strides=1, padding='same')(x)
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     # merge
     x = add([x, x0])
-    return x
+    if style:
+        return x, x1
+    else:
+        return x
 
 
 def uk3D(norm, resize, x, k):

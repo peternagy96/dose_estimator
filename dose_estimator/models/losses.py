@@ -18,20 +18,22 @@ def mae_style(alpha=0.5): # size: (batch, 80, 80, 2)
         return alpha * tf.reduce_mean(tf.abs(y_pred[...,0] - y_true[...,0])) + (1-alpha) * tf.reduce_mean(tf.abs(y_pred[...,1] - y_true[...,1]))
     return loss
 
-def cycle_loss(alpha=0.5, ssim=False): # size: (batch, 80, 80, 2)
+def cycle_loss(alpha=0.5, ssim=False, crop=True): # size: (batch, 80, 80, 2)
     def loss(y_true, y_pred):
         x =  alpha * tf.reduce_mean(tf.abs(y_pred[...,0] - y_true[...,0])) + (1-alpha) * tf.reduce_mean(tf.abs(y_pred[...,1] - y_true[...,1]))
         if ssim:
-            x += dssim(y_true, y_pred)
+            x += dssim(y_true, y_pred, crop)
         return x
     return loss
 
-def s_loss(y_true, y_pred):
-    total_variation_weight = 0.5
-    gram_weight = 0.5
-    gm = gm_loss(y_true, y_pred)
-    loss = gram_weight  * gm
-    loss += total_variation_weight * total_variation_loss(y_pred)
+def s_loss(crop=True):
+    def loss(y_true, y_pred):
+        total_variation_weight = 0.5
+        gram_weight = 0.5
+        gm = gm_loss(y_true, y_pred, crop)
+        l = gram_weight  * gm
+        l += total_variation_weight * total_variation_loss(y_pred, crop)
+        return l
     return loss
 
 def gram_matrix(x):
@@ -43,22 +45,36 @@ def gram_matrix(x):
     gram = K.dot(features, K.transpose(features))
     return gram
 
-def gm_loss(y_true, y_pred):
-    assert K.ndim(y_true) == 4
-    assert K.ndim(y_pred) == 4
-    S = gram_matrix(y_true)
-    C = gram_matrix(y_pred)
-    channels = 2
-    #print(y_pred.shape)
-    if y_pred.get_shape().as_list()[1] is None:
-        size = 400.0
-    else:
-        size = y_pred.get_shape().as_list()[1] * y_pred.get_shape().as_list()[2]
-    return K.sum(K.square(S - C)) / (4.0 * (channels ** 2) * (size ** 2))
+def gm_loss(crop=True):
+    def loss(y_true, y_pred):
+        if K.ndim(y_true) == 5:
+            if crop:
+                y_true = K.reshape(y_true, [-1,80,80,2])
+                y_pred = K.reshape(y_pred, [-1,80,80,2])
+            else:
+                y_true = K.reshape(y_true, [-1,128,128,2])
+                y_pred = K.reshape(y_pred, [-1,128,128,2])
+        assert K.ndim(y_true) == 4
+        assert K.ndim(y_pred) == 4
+        S = gram_matrix(y_true)
+        C = gram_matrix(y_pred)
+        channels = 2
+        #print(y_pred.shape)
+        if y_pred.get_shape().as_list()[1] is None:
+            size = 400.0
+        else:
+            size = y_pred.get_shape().as_list()[1] * y_pred.get_shape().as_list()[2]
+        return K.sum(K.square(S - C)) / (4.0 * (channels ** 2) * (size ** 2))
+    return loss
 
 # the 3rd loss function, total variation loss,
 # designed to keep the generated image locally coherent
-def total_variation_loss(x):
+def total_variation_loss(x, crop):
+    if K.ndim(x) == 5:
+        if crop:
+            x = K.reshape(x, [-1,80,80,2])
+        else:
+            x = K.reshape(x, [-1,128,128,2])
     assert K.ndim(x) == 4
     if x.get_shape().as_list()[1] is None:
         img_nrows = 20
@@ -87,10 +103,14 @@ def feature_match_loss(y_true, y_pred):
         tf.reduce_mean(y_pred, 0)))
     return loss
 
-def dssim(y_true, y_pred):
+def dssim(y_true, y_pred, crop):
     if len(K.int_shape(y_true)) == 5:
-        y_true = K.reshape(y_true, [-1,80,80,2])
-        y_pred = K.reshape(y_pred, [-1,80,80,2])
+        if crop:
+            y_true = K.reshape(y_true, [-1,80,80,2])
+            y_pred = K.reshape(y_pred, [-1,80,80,2])
+        else:
+            y_true = K.reshape(y_true, [-1,128,128,2])
+            y_pred = K.reshape(y_pred, [-1,128,128,2])
     kernel_size = 3
     k1 = 0.01
     k2 = 0.03

@@ -13,11 +13,12 @@ from .losses import lse, mae, mae_style, cycle_loss, s_loss, gm_loss, null_loss,
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
                  model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5, 
-                 style_loss=False, tv_loss=False, ssim_loss=False, style_weight=0.001):
+                 style_loss=False, tv_loss=False, ssim_loss=False, style_weight=0.001, crop=True):
 
         self.model_path = model_path
         self.dim = dim
         self.img_shape = image_shape
+        self.crop = crop
 
         # Hyper parameters
         self.lambda_1 = 8.0  # Cyclic loss weight A_2_B
@@ -72,7 +73,11 @@ class cycleGAN(object):
         if use_identity_learning:    
             if self.style_loss:       
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
-                for _ in range(4, 13):
+                if self.dim == '2D':
+                    res_len = 13
+                elif self.dim == '3D':
+                    res_len = 9
+                for _ in range(4, res_len):
                     if self.tv_loss:
                         identity_loss.append(null_loss)
                         #identity_loss.append(s_loss)
@@ -110,25 +115,25 @@ class cycleGAN(object):
         model_inputs = [real_A, real_B]
 
         if self.style_loss:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss)]
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop)]
             compile_weights = [self.lambda_1]
-            for _ in range(4, 13):
+            for _ in range(4, res_len):
                 if self.tv_loss:
-                    compile_losses.append(s_loss)
+                    compile_losses.append(s_loss(self.crop))
                 else:
-                    compile_losses.append(gm_loss)
+                    compile_losses.append(gm_loss(self.crop))
                 compile_weights.append(self.style_weight)
-            compile_losses.append(cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss))
+            compile_losses.append(cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop))
             compile_weights.append(self.lambda_2)
-            for _ in range(4, 13):
+            for _ in range(4, res_len):
                 if self.tv_loss:
-                    compile_losses.append(s_loss)
+                    compile_losses.append(s_loss(self.crop))
                 else:
-                    compile_losses.append(gm_loss)
+                    compile_losses.append(gm_loss(self.crop))
                 compile_weights.append(self.style_weight)
             
         else:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss), cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss)]
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop), cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop)]
             compile_weights = [self.lambda_1, self.lambda_2]
 
         if self.use_multiscale_discriminator:
