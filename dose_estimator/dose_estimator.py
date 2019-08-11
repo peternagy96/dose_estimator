@@ -50,8 +50,11 @@ if __name__ == '__main__':
             down = False
             if settings['Full 3D'] == 'Y' and settings['Dim'] == '3D':
                 down = True
+            crop = False
+            if settings['Crop'] == 'Y':
+                crop = True
             data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
-                        view =settings['View'], norm=settings['Norm'], aug=settings['Augment'], down=down)
+                        view =settings['View'], norm=settings['Norm'], aug=settings['Augment'], down=down, crop=crop)
             data.load_data()
             
 

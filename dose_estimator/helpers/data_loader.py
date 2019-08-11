@@ -9,7 +9,7 @@ from scipy.ndimage import zoom
 
 class Data(object):
     def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
-                 view='top', norm=True, aug=False, down=False, depth=5, step_size=1):
+                 view='top', norm=True, aug=False, down=False, crop=True, depth=5, step_size=1):
         self.subfolder = subfolder
         self.dim = dim
         self.view = view
@@ -23,7 +23,7 @@ class Data(object):
             self.depth = 39
             self.step_size = 39
 
-        self.crop = True
+        self.crop = crop
 
     def load_data(self):
         train_images = {}
