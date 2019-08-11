@@ -88,6 +88,9 @@ def feature_match_loss(y_true, y_pred):
     return loss
 
 def dssim(y_true, y_pred):
+    if len(K.int_shape(y_true)) == 5:
+        y_true = K.reshape(y_true, [-1,80,80,2])
+        y_pred = K.reshape(y_pred, [-1,80,80,2])
     kernel_size = 3
     k1 = 0.01
     k2 = 0.03

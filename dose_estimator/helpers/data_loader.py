@@ -115,8 +115,12 @@ class Data(object):
         if self.dim == '3D':
             print("Converting data to the 3D format...")
             for key in train_images.items():
-                train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 128, 128))
-                test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 128, 128))
+                if self.crop:
+                    train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 80, 80))
+                    test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 80, 80))
+                else:
+                    train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 128, 128))
+                    test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 128, 128))
                 if self.down:
                     train_images[key[0]] = zoom(train_images[key[0]], (1, 0.5, 1,1))
                     test_images[key[0]] = zoom(test_images[key[0]], (1, 0.5, 1,1))
