@@ -211,13 +211,15 @@ class Tester(object):
                 in2 = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
                 if self.model.dim == '3D' and self.model.img_shape[0] != 81:
-                    in1 = zoom(in1, (0.5, 1, 1))
-                    in2 = zoom(in2, (0.5, 1, 1))
+                    pass#in1 = zoom(in1, (0.5, 1, 1))
+                    #in2 = zoom(in2, (0.5, 1, 1))
                 if crop:
                     #if self.data.view == 'front':
                     #    pred_B = np.empty((128, 80, 80))
                     #elif self.data.view == 'top':
                     pred_B = np.empty((80, 80, 80))
+                    in1 = in1[:80,24:104,24:104]
+                    in2 = in2[:80,24:104,24:104]
                 else:
                     pred_B = np.empty(in1.shape)
                 # pad input when using a 3D model
@@ -240,8 +242,8 @@ class Tester(object):
 
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
                 self.read_nifti(test_path, i, mod_B)), mod_B)
-            if self.model.dim == '3D' and self.model.img_shape[0] != 81:
-                nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
+            if self.model.dim == '3D' and self.model.img_shape[0] < 80:
+                pass#nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
             """
             if view == 'front':
                 if self.model.dim == '3D' and self.model.img_shape[0] != 81:
@@ -252,16 +254,8 @@ class Tester(object):
                     in2 = np.swapaxes(in2,0,1)
                 nifti_in_B = np.swapaxes(nifti_in_B,0,1)
             """
-                
-            
+                           
             if crop:
-                #if view == 'front':
-                #    in1 = in1[:,:80,24:104]
-                #    in2 = in2[:,:80,24:104]
-                #    nifti_in_B = nifti_in_B[:,:80,24:104]
-                #elif view == 'top':
-                in1 = in1[:80,24:104,24:104]
-                in2 = in2[:80,24:104,24:104]
                 nifti_in_B = nifti_in_B[:80,24:104,24:104]
 
             # predict output modality
