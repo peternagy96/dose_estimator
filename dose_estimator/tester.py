@@ -155,12 +155,17 @@ class Tester(object):
     def normalize(self, inp, mod=''):
         array = inp.copy()
         if self.data.norm:
-            for i in range(array.shape[0]):
-                pic = array[i, :, :]
-                mi = pic.min()
-                ma = pic.max()
-                pic = ((2 * (pic - mi)) / (ma - mi)) - 1
-                array[i:(i+1), :, :] = pic
+            if self.data.per_patient:
+                mi = inp.min()
+                ma = inp.max()
+                array = ((2 * (inp - mi)) / (ma - mi)) - 1
+            else:
+                for i in range(array.shape[0]):
+                    pic = array[i, :, :]
+                    mi = pic.min()
+                    ma = pic.max()
+                    pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+                    array[i:(i+1), :, :] = pic
         else:
             if mod == 'CT':
                array = array/1024.0123291015625
@@ -240,8 +245,9 @@ class Tester(object):
                     
 
 
-            nifti_in_B = self.normalize(sitk.GetArrayFromImage(
-                self.read_nifti(test_path, i, mod_B)), mod_B)
+            ref_volume = sitk.GetArrayFromImage(
+                self.read_nifti(test_path, i, mod_B))
+            nifti_in_B = self.normalize(ref_volume, mod_B)
             if self.model.dim == '3D' and self.model.img_shape[0] < 80:
                 pass#nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
             """
@@ -293,7 +299,7 @@ class Tester(object):
                                                             np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]
                 
             # TODO: fix histogram matching
-            # pred_B[j] = self.hist_match(pred_B[0], pred_B[j])
+            pred_B = self.matchHistVolume(pred_B, nifti_in_B)
             
             """
             if view == 'front':
@@ -365,7 +371,11 @@ class Tester(object):
         avg_psnr_train /= count_train
         avg_rmse_test /= count_test
         avg_psnr_test /= count_test
-        with open(f"{self.result_path}/epoch_{epoch}/MIP/error.txt", 'w') as f:
+        if epoch == '':
+            error_path = f"{self.result_path}/error.txt"
+        else:
+            error_path = f"{self.result_path}/epoch_{epoch}/MIP/error.txt"
+        with open(error_path, 'w') as f:
             f.write(f"Train avg RMSE: {np.around(avg_rmse_train, 4)}\n")
             f.write(f"Train avg PSNR: {np.around(avg_psnr_train, 4)}\n")
             f.write(f"Test avg RMSE: {np.around(avg_rmse_test, 4)}\n")
@@ -459,7 +469,7 @@ class Tester(object):
                     pred[i] = self.model.G_A2B.predict(
                         array[np.newaxis, i, :, :, np.newaxis]).squeeze()
                 #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
-                pred[i] = self.hist_match(pred[0], pred[i])
+                #pred[i] = self.hist_match(pred[0], pred[i])
         else:
             for i in range(array.shape[0]):
                 if self.model.style_loss:
@@ -469,7 +479,7 @@ class Tester(object):
                     pred[i] = self.model.G_B2A.predict(
                         array[np.newaxis, i, :, :, np.newaxis]).squeeze()
                 #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
-                pred[i] = self.hist_match(pred[0], pred[i])
+                #pred[i] = self.hist_match(pred[0], pred[i])
         return pred
 
     def write_nifti(self, image, i: str, mod: str):
@@ -491,6 +501,12 @@ class Tester(object):
             # pic[mask] = (pic[mask] - pic.mean()) / pic.std()
             array[i:(i + 1), :, :] = pic
         return array
+
+    def matchHistVolume(self, syntheticVolume, referenceVolume):
+        for kkk in range(np.shape(referenceVolume)[0]):
+            matched = self.hist_match(syntheticVolume[kkk, ...], referenceVolume[kkk, ...])
+            syntheticVolume[kkk, ...] = matched
+        return syntheticVolume
 
     @staticmethod
     def hist_match(source, template):
