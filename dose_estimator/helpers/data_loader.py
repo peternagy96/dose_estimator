@@ -52,7 +52,7 @@ class Data(object):
         test_image_names = test_file.read().splitlines()
 
         # normalize
-        per_patient = True # ! POSSIBLY CHANGE - was true till now
+        per_patient = True # * when set to false then loss goes to NaN
         self.per_patient = per_patient
         step2 = False
         if self.norm == 'Y':
