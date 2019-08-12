@@ -199,6 +199,9 @@ class Tester(object):
         collage_rmse = []
         collage_psnr = []
 
+        # reference volume for histogram matching
+        ref_volume = sitk.GetArrayFromImage(self.read_nifti(test_path, '05z2', mod_B))
+
         if epoch == '':
             if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
                 os.makedirs(os.path.join(self.result_path, 'MIP'))
@@ -242,12 +245,9 @@ class Tester(object):
                 if self.model.dim == '3D':
                     pad_l = int((depth-1)/2)
                     nifti_in_A = np.pad(nifti_in_A, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
-                    
-
-
-            ref_volume = sitk.GetArrayFromImage(
-                self.read_nifti(test_path, i, mod_B))
-            nifti_in_B = self.normalize(ref_volume, mod_B)
+                                
+            nifti_in_B = self.normalize(sitk.GetArrayFromImage(
+                self.read_nifti(test_path, i, mod_B)), mod_B)
             if self.model.dim == '3D' and self.model.img_shape[0] < 80:
                 pass#nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
             """
