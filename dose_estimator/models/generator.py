@@ -102,7 +102,7 @@ class Generator(object):
             x = dk3D(self.normalization, x, 256)
 
         # Layer 4-12: Residual layer
-        for _ in range(4, 9):
+        for _ in range(4, 13):
             x = Rk3D(self.normalization, x, style=False)
 
         if self.mode == 'multiscale':
