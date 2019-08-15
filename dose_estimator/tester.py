@@ -1,12 +1,16 @@
 import os
 import sys
 import math
+import json
 
 import cv2
 import numpy as np
 import SimpleITK as sitk
 from PIL import Image
 from scipy.ndimage import zoom
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
 
 class Tester(object):
@@ -186,10 +190,11 @@ class Tester(object):
         indices.extend(train_file.read().splitlines())
 
         # test and train RMSE values saved for model comparison
-        rmse_test = []
-        rmse_train = []
-        psnr_test = []
-        psnr_train = []
+        stats = {}
+        stats['Train RMSE'] = []
+        stats['Test RMSE'] = []
+        stats['Train PSNR'] = []
+        stats['Test PSNR'] = []
 
         # initalize variable used for average error calculations
         count_train = 0
@@ -206,11 +211,11 @@ class Tester(object):
         collage_psnr = []
 
         # used for pic with all the train MIP images
-        train_collage_idx = ['12z1', '13z1', '14z1', '05z3', '10z1']
-        train_collage_gt.append(mip_orig)
-        train_collage_pred.append(mip_pred)
-        train_collage_rmse.append(rmse)
-        train_collage_psnr.append(psnr)
+        train_collage_idx = ['12z1', '13z1', '14z1', '05z3', '10z1'] # last to patients are worde than avg
+        train_collage_gt = []
+        train_collage_pred = []
+        train_collage_rmse = []
+        train_collage_psnr = []
 
         # reference volume for histogram matching
         ref_volume = sitk.GetArrayFromImage(self.read_nifti(test_path, '05z2', mod_B))
@@ -362,9 +367,9 @@ class Tester(object):
                 count_train += 1
                 avg_rmse_train += rmse
                 avg_psnr_train += psnr
-                rmse_train.append(rmse)
-                psnr_train.append(psnr)
-                if i is in train_collage_idx:
+                stats['Train RMSE'].append(rmse)
+                stats['Train PSNR'].append(psnr)
+                if i in train_collage_idx:
                     train_collage_gt.append(mip_orig)
                     train_collage_pred.append(mip_pred)
                     train_collage_rmse.append(rmse)
@@ -378,6 +383,8 @@ class Tester(object):
                 collage_pred.append(mip_pred)
                 collage_rmse.append(rmse)
                 collage_psnr.append(psnr)
+                stats['Test RMSE'].append(rmse)
+                stats['Test PSNR'].append(psnr)
             if epoch != '':
                 path_out = f"{self.result_path}/epoch_{epoch}/MIP/{addition}_{i}.png"
             else:
@@ -393,8 +400,10 @@ class Tester(object):
         avg_psnr_test /= count_test
         if epoch == '':
             error_path = f"{self.result_path}/error.txt"
+            stats_path = f"{self.result_path}/stats.json"
         else:
             error_path = f"{self.result_path}/epoch_{epoch}/MIP/error.txt"
+            stats_path = f"{self.result_path}/epoch_{epoch}/MIP/stats.json"
         with open(error_path, 'w') as f:
             f.write(f"Train avg RMSE: {np.around(avg_rmse_train, 4)}\n")
             f.write(f"Train avg PSNR: {np.around(avg_psnr_train, 4)}\n")
@@ -402,14 +411,43 @@ class Tester(object):
             f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}\n")
 
         # create test and train set collage
-        self.createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, self.result_path, epoch)
-        self.createTestCollage(train_collage_gt, train_collage_pred, train_collage_rmse, train_collage_psnr, self.result_path, epoch, train=True)
+        self.createCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, self.result_path, epoch)
+        self.createCollage(train_collage_gt, train_collage_pred, train_collage_rmse, train_collage_psnr, self.result_path, epoch, train=True)
 
+        # save stats file
+        with open(stats_path, 'w') as fp:
+            json.dump(stats, fp)
 
-# Create collage of test MIP images
+        # create RMSE/PSNR box plot
+        self.createModelBoxplot(stats, self.result_path, epoch)
 
     @staticmethod
-    def createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, result_path, epoch, train=False):
+    def createModelBoxplot(stats, result_path, epoch):
+        if epoch != '':
+            path_out_rmse = f"{result_path}/epoch_{epoch}/MIP/stats_rmse.png"
+            path_out_psnr = f"{result_path}/epoch_{epoch}/Mpsnr.png"
+        else:
+            path_out_rmse = f"{result_path}/stats_rmse.png"
+            path_out_psnr = f"{result_path}/stats_psnr.png"
+
+        data_rmse = [np.array(stats['Train RMSE']), np.array(stats['Test RMSE'])]
+        data_psnr = [np.array(stats['Train PSNR']), np.array(stats['Test PSNR'])]
+
+        plt.figure()
+        rmse = sns.boxplot(data=data_rmse)
+        rmse = sns.swarmplot(data=data_rmse, color=".25")
+        rmse.set(xticklabels=['Train', 'Test'])
+        rmse.figure.savefig(path_out_rmse)
+
+        plt.figure()
+        psnr = sns.boxplot(data=data_psnr)
+        psnr = sns.swarmplot(data=data_psnr, color=".25")
+        psnr.set(xticklabels=['Train', 'Test'])       
+        psnr.figure.savefig(path_out_psnr)
+
+    # Create collage of test MIP images
+    @staticmethod
+    def createCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, result_path, epoch, train=False):
         font = cv2.FONT_HERSHEY_SIMPLEX
         border = np.ones((collage_gt[0].shape[0], 10)) * 255
         small_footer = np.ones((25, collage_gt[0].shape[1])) * 255
@@ -427,7 +465,7 @@ class Tester(object):
             border = np.ones((vertical_img.shape[0], 10)) * 255
             if i == 0:
                 final_img = vertical_img
-                final_pure = pure_img
+                pure_final = pure_img
             else:
                 final_img = np.hstack((final_img, border,vertical_img))
                 pure_final = np.hstack((pure_final, border,pure_img))
