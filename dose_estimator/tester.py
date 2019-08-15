@@ -185,6 +185,12 @@ class Tester(object):
         testlen = len(indices)
         indices.extend(train_file.read().splitlines())
 
+        # test and train RMSE values saved for model comparison
+        rmse_test = []
+        rmse_train = []
+        psnr_test = []
+        psnr_train = []
+
         # initalize variable used for average error calculations
         count_train = 0
         count_test = 0
@@ -198,6 +204,13 @@ class Tester(object):
         collage_pred = []
         collage_rmse = []
         collage_psnr = []
+
+        # used for pic with all the train MIP images
+        train_collage_idx = ['12z1', '13z1', '14z1', '05z3', '10z1']
+        train_collage_gt.append(mip_orig)
+        train_collage_pred.append(mip_pred)
+        train_collage_rmse.append(rmse)
+        train_collage_psnr.append(psnr)
 
         # reference volume for histogram matching
         ref_volume = sitk.GetArrayFromImage(self.read_nifti(test_path, '05z2', mod_B))
@@ -297,8 +310,8 @@ class Tester(object):
                 else:
                     pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
                                                             np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]
-                
-            # TODO: fix histogram matching
+            
+            # the image is histogram matched to a pre-selected training image
             pred_B = self.matchHistVolume(pred_B, nifti_in_B)
             
             """
@@ -349,6 +362,13 @@ class Tester(object):
                 count_train += 1
                 avg_rmse_train += rmse
                 avg_psnr_train += psnr
+                rmse_train.append(rmse)
+                psnr_train.append(psnr)
+                if i is in train_collage_idx:
+                    train_collage_gt.append(mip_orig)
+                    train_collage_pred.append(mip_pred)
+                    train_collage_rmse.append(rmse)
+                    train_collage_psnr.append(psnr)
             else:
                 addition = 'test'
                 count_test += 1
@@ -381,14 +401,15 @@ class Tester(object):
             f.write(f"Test avg RMSE: {np.around(avg_rmse_test, 4)}\n")
             f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}\n")
 
-        # create test set collage
+        # create test and train set collage
         self.createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, self.result_path, epoch)
+        self.createTestCollage(train_collage_gt, train_collage_pred, train_collage_rmse, train_collage_psnr, self.result_path, epoch, train=True)
 
 
 # Create collage of test MIP images
 
     @staticmethod
-    def createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, result_path, epoch):
+    def createTestCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, result_path, epoch, train=False):
         font = cv2.FONT_HERSHEY_SIMPLEX
         border = np.ones((collage_gt[0].shape[0], 10)) * 255
         small_footer = np.ones((25, collage_gt[0].shape[1])) * 255
@@ -398,6 +419,7 @@ class Tester(object):
             # put the vertical image together
             vertical_img = np.empty(())
             vertical_img = np.vstack((collage_gt[i], small_footer, collage_pred[i], small_footer))
+            pure_img = vertical_img
             vertical_img = cv2.putText(vertical_img, f"RMSE: {np.around(collage_rmse[i], 4)}", (1, int(img_height*2.45)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             vertical_img = cv2.putText(vertical_img, f"PSNR: {np.around(collage_psnr[i], 4)}", (1, int(img_height*2.6)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             
@@ -405,16 +427,25 @@ class Tester(object):
             border = np.ones((vertical_img.shape[0], 10)) * 255
             if i == 0:
                 final_img = vertical_img
+                final_pure = pure_img
             else:
                 final_img = np.hstack((final_img, border,vertical_img))
+                pure_final = np.hstack((pure_final, border,pure_img))
                 
         final_img = cv2.putText(
                 final_img, f"Ground Truth", (int((final_img.shape[1]/2.5)), int(final_img.shape[0]/2.15)), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-        if epoch != '':
-                path_out = f"{result_path}/epoch_{epoch}/MIP/MIP_test.png"
+        if train:
+            addition = 'train'
         else:
-            path_out = f"{result_path}/MIP_test.png"
+            addition = 'test'
+        if epoch != '':
+            path_out = f"{result_path}/epoch_{epoch}/MIP/MIP_{addition}.png"
+            path_out_notext = f"{result_path}/epoch_{epoch}/MIP/MIP_{addition}_notext.png"
+        else:
+            path_out = f"{result_path}/MIP_{addition}.png"
+            path_out_notext = f"{result_path}/MIP_{addition}_notext.png"
         cv2.imwrite(path_out,final_img)
+        cv2.imwrite(path_out_notext,pure_final)
 
 
 # Test and return 3D NIFTI images ==============================================
