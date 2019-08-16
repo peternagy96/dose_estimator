@@ -29,7 +29,7 @@ def s_loss(crop=True):
     def loss(y_true, y_pred):
         total_variation_weight = 0.5
         gram_weight = 0.5
-        gm = gm_loss(y_true, y_pred, crop)
+        gm = gm_loss(crop)
         l = gram_weight * gm
         l += total_variation_weight * total_variation_loss(y_pred, crop)
         return l
