@@ -52,7 +52,7 @@ class Data(object):
         test_image_names = test_file.read().splitlines()
 
         # normalize
-        per_patient = True # * when set to false then loss goes to NaN
+        per_patient = True  # * when set to false then loss goes to NaN
         self.per_patient = per_patient
         step2 = False
         if self.norm == 'Y':
@@ -73,11 +73,15 @@ class Data(object):
 
         if self.view == 'front':
             for key in train_images.items():
-                train_images[key[0]] = train_images[key[0]].reshape(-1, 81, 128, 128)
-                train_images[key[0]] = np.swapaxes(train_images[key[0]],1,2).reshape(-1,81,128)
-                test_images[key[0]] = test_images[key[0]].reshape(-1, 81, 128, 128)
-                test_images[key[0]] = np.swapaxes(test_images[key[0]],1,2).reshape(-1,81,128)
-            
+                train_images[key[0]] = train_images[key[0]
+                                                    ].reshape(-1, 81, 128, 128)
+                train_images[key[0]] = np.swapaxes(
+                    train_images[key[0]], 1, 2).reshape(-1, 81, 128)
+                test_images[key[0]] = test_images[key[0]
+                                                  ].reshape(-1, 81, 128, 128)
+                test_images[key[0]] = np.swapaxes(
+                    test_images[key[0]], 1, 2).reshape(-1, 81, 128)
+
             # filter zeros
             train_ct = []
             train_pet = []
@@ -106,29 +110,38 @@ class Data(object):
         if self.crop:
             if self.view == 'front':
                 for key in train_images.items():
-                    train_images[key[0]] = train_images[key[0]][:,:80,24:104]
-                    test_images[key[0]] = test_images[key[0]][:,:80,24:104]
+                    train_images[key[0]] = train_images[key[0]][:, :80, 24:104]
+                    test_images[key[0]] = test_images[key[0]][:, :80, 24:104]
             elif self.view == 'top':
                 for key in train_images.items():
-                    train_images[key[0]] = train_images[key[0]][:,24:104,24:104]
-                    test_images[key[0]] = test_images[key[0]][:,24:104,24:104]
+                    train_images[key[0]] = train_images[key[0]
+                                                        ][:, 24:104, 24:104]
+                    test_images[key[0]] = test_images[key[0]
+                                                      ][:, 24:104, 24:104]
 
         if self.dim == '3D':
             print("Converting data to the 3D format...")
             for key in train_images.items():
                 if self.crop:
-                    train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 80, 80))
-                    test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 80, 80))
+                    train_images[key[0]] = train_images[key[0]
+                                                        ].reshape((-1, 81, 80, 80))
+                    test_images[key[0]] = test_images[key[0]
+                                                      ].reshape((-1, 81, 80, 80))
                 else:
-                    train_images[key[0]] = train_images[key[0]].reshape((-1, 81, 128, 128))
-                    test_images[key[0]] = test_images[key[0]].reshape((-1, 81, 128, 128))
+                    train_images[key[0]] = train_images[key[0]
+                                                        ].reshape((-1, 81, 128, 128))
+                    test_images[key[0]] = test_images[key[0]
+                                                      ].reshape((-1, 81, 128, 128))
                 if self.down:
-                    train_images[key[0]] = zoom(train_images[key[0]], (1, 0.5, 1,1))
-                    test_images[key[0]] = zoom(test_images[key[0]], (1, 0.5, 1,1))
+                    train_images[key[0]] = zoom(
+                        train_images[key[0]], (1, 0.5, 1, 1))
+                    test_images[key[0]] = zoom(
+                        test_images[key[0]], (1, 0.5, 1, 1))
                 else:
-                    train_images[key[0]] = self.convertTo3D(train_images[key[0]], depth=self.depth, step=self.step_size)
-                    test_images[key[0]] = self.convertTo3D(test_images[key[0]], depth=self.depth, step=self.step_size)
-                
+                    train_images[key[0]] = self.convertTo3D(
+                        train_images[key[0]], depth=self.depth, step=self.step_size)
+                    test_images[key[0]] = self.convertTo3D(
+                        test_images[key[0]], depth=self.depth, step=self.step_size)
 
         # augment
         if self.aug == 'Y':

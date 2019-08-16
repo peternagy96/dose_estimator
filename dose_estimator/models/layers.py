@@ -3,17 +3,18 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras_contrib.layers.normalization.instancenormalization import InputSpec
 import tensorflow as tf
 
-# Architecture functions
 
 def INLReLU(x, norm):
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
 
+
 def INLeakyReLU(x, norm):
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = LeakyReLU(alpha=0.2)(x)
     return x
+
 
 def ck(norm, x, k, use_normalization):
     x = Conv2D(filters=k, kernel_size=4, strides=2, padding='same')(x)
@@ -24,6 +25,7 @@ def ck(norm, x, k, use_normalization):
     x = LeakyReLU(alpha=0.2)(x)
     return x
 
+
 def ck_rl(norm, x, k, use_normalization):
     x = Conv2D(filters=k, kernel_size=4, strides=2, padding='same')(x)
     # Normalization is not done on the first discriminator layer
@@ -32,6 +34,7 @@ def ck_rl(norm, x, k, use_normalization):
                  epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
+
 
 def dck(norm, x, k, use_normalization):
     x = Conv2DTranspose(filters=k, kernel_size=4, strides=2, padding='same')(x)
@@ -44,7 +47,8 @@ def dck(norm, x, k, use_normalization):
 
 
 def c7Ak(norm, x, k, name=''):
-    x = Conv2D(filters=k, kernel_size=7, strides=1, padding='valid', name=name)(x)
+    x = Conv2D(filters=k, kernel_size=7, strides=1,
+               padding='valid', name=name)(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
@@ -53,9 +57,10 @@ def c7Ak(norm, x, k, name=''):
 def dk(norm, x, k, pool=False, name=''):
     if pool:
         x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same')(x)
-        x = MaxPool2D(pool_size=(2,2), padding='same')(x)
+        x = MaxPool2D(pool_size=(2, 2), padding='same')(x)
     else:
-        x = Conv2D(filters=k, kernel_size=3, strides=2, padding='same', name=name)(x)
+        x = Conv2D(filters=k, kernel_size=3, strides=2,
+                   padding='same', name=name)(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
@@ -64,13 +69,15 @@ def dk(norm, x, k, pool=False, name=''):
 def Rk(norm, x0, name='', style=False):
     k = int(x0.shape[-1])
     # first layer
-    x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same', name=f"{name}1")(x0)
+    x = Conv2D(filters=k, kernel_size=3, strides=1,
+               padding='same', name=f"{name}1")(x0)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     if style:
         x1 = x
     # second layer
-    x = Conv2D(filters=k, kernel_size=3, strides=1, padding='same', name=f"{name}2")(x)
+    x = Conv2D(filters=k, kernel_size=3, strides=1,
+               padding='same', name=f"{name}2")(x)
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     # merge
     x = add([x, x0])
@@ -88,18 +95,21 @@ def uk(norm, resize, x, k, pool=False, name=''):
         x = Conv2D(filters=k, kernel_size=3, strides=1, padding='valid')(x)
     else:
         if pool:
-            x = Conv2DTranspose(filters=k, kernel_size=3, strides=1, padding='same')(x)
-            x = MaxPool2D(pool_size=(2,2), padding='same')(x)
+            x = Conv2DTranspose(filters=k, kernel_size=3,
+                                strides=1, padding='same')(x)
+            x = MaxPool2D(pool_size=(2, 2), padding='same')(x)
         else:
-            x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same', name=name)(x)  # this matches fractionally stided with stride 1/2
+            x = Conv2DTranspose(filters=k, kernel_size=3, strides=2, padding='same', name=name)(
+                x)  # this matches fractionally stided with stride 1/2
     x = norm(axis=3, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
 
 # 3D basic layers -----------------------------------------------------------
 
+
 def ck3D(norm, x, k, use_normalization):
-    x = Conv3D(filters=k, kernel_size=3, strides=(1,2,2), padding='same')(x)
+    x = Conv3D(filters=k, kernel_size=3, strides=(1, 2, 2), padding='same')(x)
     # Normalization is not done on the first discriminator layer
     if use_normalization:
         x = norm(axis=4, center=True,
@@ -116,7 +126,7 @@ def c5Ak3D(norm, x, k):
 
 
 def dk3D(norm, x, k):
-    x = Conv3D(filters=k, kernel_size=3, strides=(1,2,2), padding='same')(x)
+    x = Conv3D(filters=k, kernel_size=3, strides=(1, 2, 2), padding='same')(x)
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
@@ -148,13 +158,14 @@ def uk3D(norm, resize, x, k):
         x = ReflectionPadding3D((1, 1, 1))(x)
         x = Conv3D(filters=k, kernel_size=3, strides=1, padding='valid')(x)
     else:
-        x = Conv3DTranspose(filters=k, kernel_size=3, strides=(1,2,2), padding='same')(
+        x = Conv3DTranspose(filters=k, kernel_size=3, strides=(1, 2, 2), padding='same')(
             x)  # this matches fractionally stided with stride 1/2
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
 
 # 3D Unet layers ------------------------------------------------------------
+
 
 def Upsample3D(x):
     return UpSampling3D(size=(2, 2, 2))(x)
@@ -163,16 +174,18 @@ def Upsample3D(x):
 def UnetUpsample(x, num_filters, norm):
     x = Upsample3D(x)
     x = Conv3D(filters=num_filters,
-                         kernel_size=(3, 3, 3),
-                         strides=1,
-                         padding='same')(x)
+               kernel_size=(3, 3, 3),
+               strides=1,
+               padding='same')(x)
     x = IN_Relu(x, norm)
     return x
+
 
 def IN_Relu(x, norm):
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
     x = Activation('relu')(x)
     return x
+
 
 def IN_LeakyRelu(x, norm):
     x = norm(axis=4, center=True, epsilon=1e-5)(x, training=True)
@@ -222,4 +235,4 @@ class ReflectionPadding3D(Layer):
 
     def call(self, x, mask=None):
         w_pad, h_pad, d_pad = self.padding
-        return tf.pad(x, [[0, 0], [ h_pad, h_pad], [w_pad, w_pad], [d_pad, d_pad], [0, 0]], 'REFLECT')
+        return tf.pad(x, [[0, 0], [h_pad, h_pad], [w_pad, w_pad], [d_pad, d_pad], [0, 0]], 'REFLECT')

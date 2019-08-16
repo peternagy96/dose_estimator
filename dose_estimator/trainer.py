@@ -22,15 +22,12 @@ class Trainer(object):
     def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10, gen_iter=2, adv_training=False):
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
-        # Number of generator training iterations in each training loop
         self.generator_iterations = gen_iter
-        # Number of discriminator training iterations in each training loop
         self.discriminator_iterations = 1
         self.adv_training = adv_training
         self.beta_1 = 0.5
         self.beta_2 = 0.999
         self.batch_size = int(batch_size)
-        # choose multiples of 25 since the models are save each 25th epoch
         self.epochs = int(epochs)
         if not math.isnan(init_epoch):
             self.init_epoch = int(init_epoch)
@@ -95,7 +92,7 @@ class Trainer(object):
             synthetic_images_B = model.G_A2B.model.predict(real_images_A)
             synthetic_images_A = model.G_B2A.model.predict(real_images_B)
 
-            if model.style_loss:                
+            if model.style_loss:
                 features_B = synthetic_images_B[1:10]
                 features_A = synthetic_images_A[1:10]
                 synthetic_images_B = synthetic_images_B[0]
@@ -131,7 +128,7 @@ class Trainer(object):
 
             # ======= Generator training ==========
             # Compare reconstructed images to real images
-            
+
             if model.style_loss:
                 target_data = [real_images_A]
                 target_data.extend(features_A)
@@ -140,11 +137,7 @@ class Trainer(object):
             else:
                 target_data = [real_images_A, real_images_B]
 
-            if model.use_multiscale_discriminator:
-                for i in range(2):
-                    target_data.append(ones[i])
-                    target_data.append(ones[i])
-            elif model.D_A.mode == 'new':
+            if model.D_A.mode == 'new':
                 target_data.extend(ones_A)
                 target_data.extend(ones_B)
             else:
@@ -283,44 +276,33 @@ class Trainer(object):
                     real_images_B = self.add_noise(real_images_B)
 
                 # labels
-                if model.use_multiscale_discriminator:
-                    label_shape1 = (len(real_images_A),) + \
-                        model.D_A.model.output_shape[0][1:]
-                    label_shape2 = (len(real_images_B),) + \
-                        model.D_B.model.output_shape[0][1:]
-                    # label_shape4 = (batch_size,) + self.D_A.output_shape[2][1:]
-                    ones1 = np.ones(shape=label_shape1) * self.REAL_LABEL
-                    ones2 = np.ones(shape=label_shape2) * self.REAL_LABEL
-                    # ones4 = np.ones(shape=label_shape4) * self.REAL_LABEL
-                    ones = [ones1, ones2]  # , ones4]
-                    zeros1 = ones1 * 0
-                    zeros2 = ones2 * 0
-                    # zeros4 = ones4 * 0
-                    zeros = [zeros1, zeros2]  # , zeros4]
-                else:
-                    if model.D_A.mode == 'new':
-                        ones_A = []
-                        ones_B = []
-                        zeros_A = []
-                        zeros_B = []
-                        for i in range(len(model.D_A.model.output_shape)):
-                            label_shape_A = (len(real_images_A),) + \
-                                model.D_A.model.output_shape[i][1:]
-                            label_shape_B = (len(real_images_B),) + \
-                                model.D_B.model.output_shape[i][1:]
-                            ones_A.append(np.ones(shape=label_shape_A) * self.REAL_LABEL)
-                            ones_B.append(np.ones(shape=label_shape_B) * self.REAL_LABEL)                        
-                            zeros_A.append(np.zeros(shape=label_shape_A) * self.REAL_LABEL)
-                            zeros_B.append(np.zeros(shape=label_shape_B) * self.REAL_LABEL)
-                    else:
+                if model.D_A.mode == 'new':
+                    ones_A = []
+                    ones_B = []
+                    zeros_A = []
+                    zeros_B = []
+                    for i in range(len(model.D_A.model.output_shape)):
                         label_shape_A = (len(real_images_A),) + \
-                            model.D_A.model.output_shape[1:]
+                            model.D_A.model.output_shape[i][1:]
                         label_shape_B = (len(real_images_B),) + \
-                            model.D_B.model.output_shape[1:]
-                        ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
-                        ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
-                        zeros_A = ones_A * 0
-                        zeros_B = ones_B * 0
+                            model.D_B.model.output_shape[i][1:]
+                        ones_A.append(
+                            np.ones(shape=label_shape_A) * self.REAL_LABEL)
+                        ones_B.append(
+                            np.ones(shape=label_shape_B) * self.REAL_LABEL)
+                        zeros_A.append(
+                            np.zeros(shape=label_shape_A) * self.REAL_LABEL)
+                        zeros_B.append(
+                            np.zeros(shape=label_shape_B) * self.REAL_LABEL)
+                else:
+                    label_shape_A = (len(real_images_A),) + \
+                        model.D_A.model.output_shape[1:]
+                    label_shape_B = (len(real_images_B),) + \
+                        model.D_B.model.output_shape[1:]
+                    ones_A = np.ones(shape=label_shape_A) * self.REAL_LABEL
+                    ones_B = np.ones(shape=label_shape_B) * self.REAL_LABEL
+                    zeros_A = ones_A * 0
+                    zeros_B = ones_B * 0
 
                 # Run all training steps
                 run_training_iteration(loop_index, epoch_iterations)
@@ -330,9 +312,6 @@ class Trainer(object):
             if epoch % save_interval == 0:
                 print('\n', '\n', '-------------------------Saving images for epoch',
                       epoch, '-------------------------', '\n', '\n')
-                # if data.dim == '2D':
-                #    tester.test_jpg(epoch=epoch, mode="forward", index=40, pat_num=[32,5], mods=data.mods)
-                # elif data.dim == '3D':
                 model.save(self.result_path, model.D_A.model, epoch)
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
@@ -340,15 +319,8 @@ class Trainer(object):
                 tester.testMIP(test_path='/home/peter/data/3d_filtered/',
                                mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
                 #pat_num = [int(data.A_train.shape[0]), int()]
-                tester.test_jpg(epoch=epoch, mode="forward",
-                                index=40, pat_num=[32, 5], mods=data.mods)
-
-            """ if epoch % 20 == 0:
-                # self.saveModel(self.G_model)
-                model.save(self.result_path, model.D_A.model, epoch)
-                model.save(self.result_path, model.D_B.model, epoch)
-                model.save(self.result_path, model.G_A2B.model, epoch)
-                model.save(self.result_path, model.G_B2A.model, epoch) """
+                tester.test_jpg(epoch=epoch, index=40, pat_num=[
+                                32, 5], mods=data.mods)
 
             training_history = {
                 'DA_losses': DA_losses,
@@ -367,23 +339,21 @@ class Trainer(object):
 
 
 # ===============================================================================
-# Help functions
+# Helper functions
 
     @staticmethod
     def add_noise(array):
         out = array.copy()
         for i in range(array.shape[0]):
             pic = array[i]
-            row,col,ch = pic.shape
+            row, col, ch = pic.shape
             mean = 0
             var = 0.00001
             sigma = var**0.5
-            gauss = np.random.normal(mean,sigma,(row,col, ch))
-            #gauss = gauss.reshape(row,col)
+            gauss = np.random.normal(mean, sigma, (row, col, ch))
             noisy = pic + gauss
             out[i] = noisy
         return out
-
 
     def get_lr_linear_decay_rate(self, lenA, lenB):
         # Calculate decay rates
@@ -425,6 +395,7 @@ class Trainer(object):
 # ===============================================================================
 # Save and load
 
+
     def writeLossDataToFile(self, history):
         keys = sorted(history.keys())
         with open('{}/loss_output.csv'.format(self.result_path), 'w') as csv_file:
@@ -454,7 +425,6 @@ class Trainer(object):
             'learning rate G': self.learning_rate_G,
             'epochs': self.epochs,
             'use linear decay on learning rates': self.use_linear_decay,
-            'use multiscale discriminator': model.use_multiscale_discriminator,
             'epoch where learning rate linear decay is initialized (if use_linear_decay)': self.decay_epoch,
             'generator iterations': self.generator_iterations,
             'discriminator iterations': self.discriminator_iterations,

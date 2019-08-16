@@ -19,9 +19,10 @@ MIP_top,test_mip,2D,basic,0.0003,0.0003,200,200,10,"CT, PET, dose",Y,N,top,Y,0.5
 3D_ssim_allres,train,3D,basic,0.0003,0.0003,,100,8,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,1E-07,Y,N,N,5,3d_filtered,x,x
 MIP_2Dssid,test_mip,2D,basic,0.0003,0.0003,100,200,10,"CT, PET, dose",Y,N,top,Y,0.2,1,N,N,,Y,N,N,,3d_filtered,2D_ssim,x
 MIP_3D,test_mip,3D,basic,0.0003,0.0003,59,200,10,"CT, PET, dose",Y,N,top,Y,0.2,1,N,N,,Y,N,N,,3d_filtered,3Dtest,x
-2D_02,train,2D,basic,0.0003,0.0003,,100,16,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,,N,N,N,,3d_filtered,x,
-2D_05,train,2D,basic,0.0003,0.0003,,100,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,
-2D_08,train,2D,basic,0.0003,0.0003,,100,16,"CT, PET, dose",Y,Y,top,Y,0.8,1,N,N,,N,N,N,,3d_filtered,x,
+2D_04,train,2D,basic,0.0003,0.0003,,100,16,"CT, PET, dose",Y,Y,top,Y,0.4,1,N,N,,N,N,N,,3d_filtered,x,
+2D_03,train,2D,basic,0.0003,0.0003,,100,16,"CT, PET, dose",Y,Y,top,Y,0.3,1,N,N,,N,N,N,,3d_filtered,x,
+2D_05_32batch,train,2D,basic,0.0003,0.0003,,100,32,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,
+2D_05_doubleLR,train,2D,basic,0.0006,0.0006,,100,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,
 2D_front_02,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,front,Y,0.2,1,N,N,,N,Y,N,,3d_filtered,x,x
 2D_front_05,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,front,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_front_08,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,front,Y,0.8,1,N,N,,N,N,N,,3d_filtered,x,x

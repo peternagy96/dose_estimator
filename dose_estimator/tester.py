@@ -19,8 +19,7 @@ class Tester(object):
         self.data = data
         self.model = model
 
-    # Return a generated slice from all train and test images
-    def test_jpg(self, epoch: int = '', mode: str = 'forward', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'dose'], depth: int = 5):
+    def test_jpg(self, epoch: int = '', index: int = 40, pat_num: list = [32, 5], mods: list = ['CT', 'PET', 'dose'], depth: int = 5):
 
         # create output folders
         if epoch == '':
@@ -30,73 +29,70 @@ class Tester(object):
         if not os.path.exists(path_name):
             os.makedirs(path_name)
 
-        if mode == 'forward':
-            num_train_samples = self.data.A_train.shape[0]
-            num_test_samples = self.data.A_test.shape[0]  
-            #if self.model.dim == '3D' and self.model.img_shape[0] != 81:
-             #   pat_num = [1,1]
-             #   index = 0
+        num_train_samples = self.data.A_train.shape[0]
+        num_test_samples = self.data.A_test.shape[0]
 
-            # process training images
-            for idx in np.arange(index, num_train_samples, pat_num[0]):
-                if self.model.dim == '2D':
-                    if self.model.style_loss:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :])[0].squeeze()
-                    else:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :]).squeeze()
-                    self.save_basic_plot(self.data.A_train[idx], pred, self.data.B_train[idx], f"{path_name}/train_{idx}.png", mods)
-                elif self.model.dim == '3D' and self.model.img_shape[-2] > 40:
-                    pad_l = int((depth-1)/2)
-                    if self.model.style_loss:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :])[0].squeeze()[pad_l]
-                    else:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :,  :, :]).squeeze()[pad_l]
-                    self.save_basic_plot(self.data.A_train[idx,pad_l], pred, self.data.B_train[idx,pad_l], f"{path_name}/train_{idx}.png", mods)
-                else: # full 3D model
-                    if self.model.style_loss:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[20]
-                    else:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
-                    self.save_basic_plot(self.data.A_train[idx,20], pred, self.data.B_train[idx,20], f"{path_name}/train_{idx}.png", mods)
-
-
-            # process test images
-            for idx in np.arange(index, num_test_samples, pat_num[1]):
-                if self.model.dim == '2D':
-                    if self.model.style_loss:
-                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :])[0].squeeze()
-                    else:
-                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :]).squeeze()
-                    self.save_basic_plot(self.data.A_test[idx], pred, self.data.B_test[idx], f"{path_name}/test_{idx}.png", mods)
-                elif self.model.dim == '3D' and self.model.img_shape[-2] > 40:
-                    pad_l = int((depth-1)/2)
-                    if self.model.style_loss:
-                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :])[0].squeeze()[pad_l]
-                    else:
-                        pred = self.model.G_A2B.model.predict(self.data.A_test[np.newaxis, idx, :, :, :]).squeeze()[pad_l]
-                    self.save_basic_plot(self.data.A_test[idx,pad_l], pred, self.data.B_test[idx,pad_l], f"{path_name}/test_{idx}.png", mods)
+        # process training images
+        for idx in np.arange(index, num_train_samples, pat_num[0]):
+            if self.model.dim == '2D':
+                if self.model.style_loss:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :])[0].squeeze()
                 else:
-                    if self.model.style_loss:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[20]
-                    else:
-                        pred = self.model.G_A2B.model.predict(self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
-                    self.save_basic_plot(self.data.A_test[idx,20], pred, self.data.B_test[idx,20], f"{path_name}/test_{idx}.png", mods)
-                
-        elif mode == 'backward':
-            num_train_samples = self.data.B_train.shape[0]
-            num_test_samples = self.data.B_test.shape[0]
-            # process training images
-            for idx in np.arange(index, num_train_samples, pat_num[0]):
-                pred = self.model.G_B2A.model.predict(
-                    self.data.B_train[np.newaxis, idx, :, :]).squeeze()
-                self.save_basic_plot(self.data.B_train[idx], pred, self.data.A_train[idx],
-                                     f"{path_name}/train_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
-            # process test images
-            for idx in np.arange(index, num_test_samples, pat_num[1]):
-                pred = self.model.G_B2A.model.predict(
-                    self.data.B_test[np.newaxis, idx, :, :]).squeeze()
-                self.save_basic_plot(self.data.B_test[idx], pred, self.data.A_test[idx],
-                                     f"{path_name}/test_{idx}.png", [mods[-1], mods[-1], f"{mods[0]/mods[1]}"])
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :]).squeeze()
+                self.save_basic_plot(
+                    self.data.A_train[idx], pred, self.data.B_train[idx], f"{path_name}/train_{idx}.png", mods)
+            elif self.model.dim == '3D' and self.model.img_shape[-2] > 40:
+                pad_l = int((depth-1)/2)
+                if self.model.style_loss:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[pad_l]
+                else:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[pad_l]
+                self.save_basic_plot(
+                    self.data.A_train[idx, pad_l], pred, self.data.B_train[idx, pad_l], f"{path_name}/train_{idx}.png", mods)
+            else:  # full 3D model
+                if self.model.style_loss:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[20]
+                else:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
+                self.save_basic_plot(
+                    self.data.A_train[idx, 20], pred, self.data.B_train[idx, 20], f"{path_name}/train_{idx}.png", mods)
+
+        # process test images
+        for idx in np.arange(index, num_test_samples, pat_num[1]):
+            if self.model.dim == '2D':
+                if self.model.style_loss:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_test[np.newaxis, idx, :, :])[0].squeeze()
+                else:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_test[np.newaxis, idx, :, :]).squeeze()
+                self.save_basic_plot(
+                    self.data.A_test[idx], pred, self.data.B_test[idx], f"{path_name}/test_{idx}.png", mods)
+            elif self.model.dim == '3D' and self.model.img_shape[-2] > 40:
+                pad_l = int((depth-1)/2)
+                if self.model.style_loss:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_test[np.newaxis, idx, :, :, :])[0].squeeze()[pad_l]
+                else:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_test[np.newaxis, idx, :, :, :]).squeeze()[pad_l]
+                self.save_basic_plot(
+                    self.data.A_test[idx, pad_l], pred, self.data.B_test[idx, pad_l], f"{path_name}/test_{idx}.png", mods)
+            else:
+                if self.model.style_loss:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :, :])[0].squeeze()[20]
+                else:
+                    pred = self.model.G_A2B.model.predict(
+                        self.data.A_train[np.newaxis, idx, :, :, :]).squeeze()[20]
+                self.save_basic_plot(
+                    self.data.A_test[idx, 20], pred, self.data.B_test[idx, 20], f"{path_name}/test_{idx}.png", mods)
 
     def save_basic_plot(self, orig, pred, gt, path_name, mods):
         if len(mods) == 2:
@@ -122,13 +118,17 @@ class Tester(object):
         final_img = np.vstack((final_img, footer))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        final_img = cv2.putText(final_img, f"Input", (int(s/2*0.37), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, f"Gen dose", (int(s/2*1.23), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, f"GT dose", (int(s/2*2.47), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-        final_img = cv2.putText(final_img, 'Error Map', (int(s/2*3.53), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"Input", (int(
+            s/2*0.37), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"Gen dose", (int(
+            s/2*1.23), s+14), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, f"GT dose", (int(
+            s/2*2.47), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+        final_img = cv2.putText(final_img, 'Error Map', (int(
+            s/2*3.53), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
         im = Image.fromarray(final_img).convert("L")
         im.save(path_name)
-        #cv2.imwrite(path_name,final_img)
+        # cv2.imwrite(path_name,final_img)
 
     @staticmethod
     def rescale(image):
@@ -172,17 +172,16 @@ class Tester(object):
                     array[i:(i+1), :, :] = pic
         else:
             if mod == 'CT':
-               array = array/1024.0123291015625
+                array = array/1024.0123291015625
             elif mod == 'PET':
                 array = array/10
         return array
 
 # Create MIP of prediction and ground truth for all patients from NIFTI
-
     def testMIP(self, test_path: str, mod_A, mod_B: str, epoch=''):
         crop = self.data.crop
         view = self.data.view
-     # load txt file of test file names
+        # load txt file of test file names
         test_file = open(f"{test_path}/numpy/test.txt", "r", encoding='utf8')
         train_file = open(f"{test_path}/numpy/train.txt", "r", encoding='utf8')
         indices = test_file.read().splitlines()
@@ -211,21 +210,24 @@ class Tester(object):
         collage_psnr = []
 
         # used for pic with all the train MIP images
-        train_collage_idx = ['12z1', '13z1', '14z1', '05z3', '10z1'] # last to patients are worde than avg
+        # last to patients are worde than avg
+        train_collage_idx = ['12z1', '13z1', '14z1', '05z3', '10z1']
         train_collage_gt = []
         train_collage_pred = []
         train_collage_rmse = []
         train_collage_psnr = []
 
         # reference volume for histogram matching
-        ref_volume = sitk.GetArrayFromImage(self.read_nifti(test_path, '05z2', mod_B))
+        ref_volume = sitk.GetArrayFromImage(
+            self.read_nifti(test_path, '05z2', mod_B))
 
         if epoch == '':
             if not os.path.exists(os.path.join(os.path.join(self.result_path, 'MIP'))):
                 os.makedirs(os.path.join(self.result_path, 'MIP'))
         else:
             if not os.path.exists(os.path.join(os.path.join(self.result_path, f"epoch_{epoch}", 'MIP'))):
-                os.makedirs(os.path.join(self.result_path, f"epoch_{epoch}", 'MIP'))
+                os.makedirs(os.path.join(
+                    self.result_path, f"epoch_{epoch}", 'MIP'))
 
         for idx, i in enumerate(indices):
             print(f"Processing {i}...")
@@ -236,24 +238,20 @@ class Tester(object):
                     self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
                 in2 = self.normalize(sitk.GetArrayFromImage(
                     self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
-                if self.model.dim == '3D' and self.model.img_shape[0] != 81:
-                    pass#in1 = zoom(in1, (0.5, 1, 1))
-                    #in2 = zoom(in2, (0.5, 1, 1))
                 if crop:
-                    #if self.data.view == 'front':
-                    #    pred_B = np.empty((128, 80, 80))
-                    #elif self.data.view == 'top':
                     pred_B = np.empty((80, 80, 80))
-                    in1 = in1[:80,24:104,24:104]
-                    in2 = in2[:80,24:104,24:104]
+                    in1 = in1[:80, 24:104, 24:104]
+                    in2 = in2[:80, 24:104, 24:104]
                 else:
                     pred_B = np.empty(in1.shape)
-                # pad input when using a 3D model
                 depth = self.model.img_shape[0]
+                # pad input when using a 3D model
                 if self.model.dim == '3D' and self.model.img_shape[0] != 81:
                     pad_l = int((depth-1)/2)
-                    in1_pad = np.pad(in1, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
-                    in2_pad = np.pad(in2, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
+                    in1_pad = np.pad(
+                        in1, ((pad_l, pad_l), (0, 0), (0, 0)), 'constant', constant_values=(0))
+                    in2_pad = np.pad(
+                        in2, ((pad_l, pad_l), (0, 0), (0, 0)), 'constant', constant_values=(0))
                     nifti_in_A = np.concatenate((in1_pad, in2_pad), axis=1)
                 else:
                     nifti_in_A = np.concatenate((in1, in2), axis=1)
@@ -262,71 +260,53 @@ class Tester(object):
                     self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
                 if self.model.dim == '3D':
                     pad_l = int((depth-1)/2)
-                    nifti_in_A = np.pad(nifti_in_A, ((pad_l, pad_l), (0,0), (0,0)), 'constant', constant_values=(0))
-                                
+                    nifti_in_A = np.pad(
+                        nifti_in_A, ((pad_l, pad_l), (0, 0), (0, 0)), 'constant', constant_values=(0))
+
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
                 self.read_nifti(test_path, i, mod_B)), mod_B)
             if self.model.dim == '3D' and self.model.img_shape[0] < 80:
-                pass#nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
-            """
-            if view == 'front':
-                if self.model.dim == '3D' and self.model.img_shape[0] != 81:
-                    in1_pad = np.swapaxes(in1_pad,0,1)
-                    in2_pad = np.swapaxes(in2_pad,0,1)
-                else:
-                    in1 = np.swapaxes(in1,0,1)
-                    in2 = np.swapaxes(in2,0,1)
-                nifti_in_B = np.swapaxes(nifti_in_B,0,1)
-            """
-                           
+                pass  # nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
+
             if crop:
-                nifti_in_B = nifti_in_B[:80,24:104,24:104]
+                nifti_in_B = nifti_in_B[:80, 24:104, 24:104]
 
             # predict output modality
             if self.model.dim == '2D':
                 for j in range(nifti_in_B.shape[0]):
                     if view == 'front':
                         if self.model.style_loss:
-                            pred_B[:,j,:] = self.model.G_A2B.model.predict(np.stack((in1[:,j,:], in2[:,j,:]), axis=2)[
-                                                                        np.newaxis, :, :, :])[0].squeeze()[:, :, 0]  # .reshape((256,128))
+                            pred_B[:, j, :] = self.model.G_A2B.model.predict(np.stack((in1[:, j, :], in2[:, j, :]), axis=2)[
+                                np.newaxis, :, :, :])[0].squeeze()[:, :, 0]  # .reshape((256,128))
                         else:
-                            pred_B[:,j,:] = self.model.G_A2B.model.predict(np.stack((in1[:,j,:], in2[:,j,:]), axis=2)[
-                                                                    np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
+                            pred_B[:, j, :] = self.model.G_A2B.model.predict(np.stack((in1[:, j, :], in2[:, j, :]), axis=2)[
+                                np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
                     elif view == 'top':
                         if self.model.style_loss:
                             pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
-                                                                    np.newaxis, :, :, :])[0].squeeze()[:, :, 0]  # .reshape((256,128))
+                                np.newaxis, :, :, :])[0].squeeze()[:, :, 0]  # .reshape((256,128))
                         else:
                             pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1[j], in2[j]), axis=2)[
-                                                                np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
-            elif self.model.dim == '3D' and self.model.img_shape[0] < 40:               
+                                np.newaxis, :, :, :]).squeeze()[:, :, 0]  # .reshape((256,128))
+            elif self.model.dim == '3D' and self.model.img_shape[0] < 40:
                 max_depth = nifti_in_B.shape[0]
                 for j in range(0, max_depth, 1):
                     if self.model.style_loss:
                         pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
-                                                                np.newaxis, :, :, :, :])[0].squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))   
+                            np.newaxis, :, :, :, :])[0].squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))
                     else:
                         pred_B[j] = self.model.G_A2B.model.predict(np.stack((in1_pad[j:j+depth], in2_pad[j:j+depth]), axis=3)[
-                                                            np.newaxis, :, :, :, :]).squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))
+                            np.newaxis, :, :, :, :]).squeeze()[int((depth-1)/2), :, :, 0]  # .reshape((256,128))
             else:
                 if self.model.style_loss:
                     pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
-                                                                np.newaxis, :, :, :, :])[0].squeeze()[:, :, :, 0]
+                        np.newaxis, :, :, :, :])[0].squeeze()[:, :, :, 0]
                 else:
                     pred_B = self.model.G_A2B.model.predict(np.stack((in1, in2), axis=3)[
                                                             np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]
-            
+
             # the image is histogram matched to a pre-selected training image
             pred_B = self.matchHistVolume(pred_B, nifti_in_B)
-            
-            """
-            if view == 'front':
-                in1 = np.swapaxes(in1,0,1)
-                in2 = np.swapaxes(in2,0,1)
-                pred_B = np.swapaxes(pred_B,0,1)
-                nifti_in_B = np.swapaxes(nifti_in_B,0,1)
-            """
-                
 
             # create MIP for all images
             mip_ct = (255 - np.max(self.rescale_mip(in1), axis=1))
@@ -335,7 +315,7 @@ class Tester(object):
             mip_pred = (255 - np.max(self.rescale_mip(pred_B), axis=1))
             error = np.abs(mip_pred - mip_orig)
             rmse = self.rmse(nifti_in_B, pred_B)
-            psnr = self.psnr(nifti_in_B, pred_B)           
+            psnr = self.psnr(nifti_in_B, pred_B)
 
             # create plot
             s = error.shape[0]
@@ -346,7 +326,8 @@ class Tester(object):
             footer = np.ones((25, final_img.shape[1])) * 255
             final_img = np.vstack((final_img, footer))
 
-            final_img = cv2.cvtColor(final_img.astype(np.float32), cv2.COLOR_GRAY2BGR)
+            final_img = cv2.cvtColor(final_img.astype(
+                np.float32), cv2.COLOR_GRAY2BGR)
 
             font = cv2.FONT_HERSHEY_SIMPLEX
             final_img = cv2.putText(
@@ -356,8 +337,8 @@ class Tester(object):
             final_img = cv2.putText(
                 final_img, f"GT SPECT", (int(2.1*s2), s+17), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
-                final_img, f"Gen SPECT", (int(3.1*s2), s+17), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)#final_img = cv2.putText(
-                        #    final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+                final_img, f"Gen SPECT", (int(3.1*s2), s+17), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)  # final_img = cv2.putText(
+            #    final_img, 'Error Map', (int(4.16*s2), s+14), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
             final_img = cv2.putText(
                 final_img, f"RMSE: {np.around(rmse,4)}", (int(4*s2), s+8), font, 0.35, (0, 0, 255), 1, cv2.LINE_AA)
             final_img = cv2.putText(
@@ -390,8 +371,8 @@ class Tester(object):
             else:
                 path_out = f"{self.result_path}/{addition}_{i}.png"
             #im = Image.fromarray(final_img).convert("L")
-            #im.save(path_out)
-            cv2.imwrite(path_out,final_img)
+            # im.save(path_out)
+            cv2.imwrite(path_out, final_img)
 
         # calculate train and test avg error and save them to file
         avg_rmse_train /= count_train
@@ -411,8 +392,10 @@ class Tester(object):
             f.write(f"Test avg PSNR: {np.around(avg_psnr_test, 4)}\n")
 
         # create test and train set collage
-        self.createCollage(collage_gt, collage_pred, collage_rmse, collage_psnr, self.result_path, epoch)
-        self.createCollage(train_collage_gt, train_collage_pred, train_collage_rmse, train_collage_psnr, self.result_path, epoch, train=True)
+        self.createCollage(collage_gt, collage_pred, collage_rmse,
+                           collage_psnr, self.result_path, epoch)
+        self.createCollage(train_collage_gt, train_collage_pred, train_collage_rmse,
+                           train_collage_psnr, self.result_path, epoch, train=True)
 
         # save stats file
         with open(stats_path, 'w') as fp:
@@ -425,13 +408,15 @@ class Tester(object):
     def createModelBoxplot(stats, result_path, epoch):
         if epoch != '':
             path_out_rmse = f"{result_path}/epoch_{epoch}/MIP/stats_rmse.png"
-            path_out_psnr = f"{result_path}/epoch_{epoch}/Mpsnr.png"
+            path_out_psnr = f"{result_path}/epoch_{epoch}/MIP/stats_psnr.png"
         else:
             path_out_rmse = f"{result_path}/stats_rmse.png"
             path_out_psnr = f"{result_path}/stats_psnr.png"
 
-        data_rmse = [np.array(stats['Train RMSE']), np.array(stats['Test RMSE'])]
-        data_psnr = [np.array(stats['Train PSNR']), np.array(stats['Test PSNR'])]
+        data_rmse = [np.array(stats['Train RMSE']),
+                     np.array(stats['Test RMSE'])]
+        data_psnr = [np.array(stats['Train PSNR']),
+                     np.array(stats['Test PSNR'])]
 
         plt.figure()
         rmse = sns.boxplot(data=data_rmse)
@@ -442,7 +427,7 @@ class Tester(object):
         plt.figure()
         psnr = sns.boxplot(data=data_psnr)
         psnr = sns.swarmplot(data=data_psnr, color=".25")
-        psnr.set(xticklabels=['Train', 'Test'])       
+        psnr.set(xticklabels=['Train', 'Test'])
         psnr.figure.savefig(path_out_psnr)
 
     # Create collage of test MIP images
@@ -452,26 +437,29 @@ class Tester(object):
         border = np.ones((collage_gt[0].shape[0], 10)) * 255
         small_footer = np.ones((25, collage_gt[0].shape[1])) * 255
         img_height = collage_gt[0].shape[0]
-        img_width = collage_gt[0].shape[1]       
+        img_width = collage_gt[0].shape[1]
         for i in range(len(collage_gt)):
             # put the vertical image together
             vertical_img = np.empty(())
-            vertical_img = np.vstack((collage_gt[i], small_footer, collage_pred[i], small_footer))
+            vertical_img = np.vstack(
+                (collage_gt[i], small_footer, collage_pred[i], small_footer))
             pure_img = vertical_img
-            vertical_img = cv2.putText(vertical_img, f"RMSE: {np.around(collage_rmse[i], 4)}", (1, int(img_height*2.45)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-            vertical_img = cv2.putText(vertical_img, f"PSNR: {np.around(collage_psnr[i], 4)}", (1, int(img_height*2.6)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
-            
+            vertical_img = cv2.putText(vertical_img, f"RMSE: {np.around(collage_rmse[i], 4)}", (1, int(
+                img_height*2.45)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+            vertical_img = cv2.putText(vertical_img, f"PSNR: {np.around(collage_psnr[i], 4)}", (1, int(
+                img_height*2.6)), font, 0.35, (0, 0, 0), 1, cv2.LINE_AA)
+
             # add it to the final image
             border = np.ones((vertical_img.shape[0], 10)) * 255
             if i == 0:
                 final_img = vertical_img
                 pure_final = pure_img
             else:
-                final_img = np.hstack((final_img, border,vertical_img))
-                pure_final = np.hstack((pure_final, border,pure_img))
-                
+                final_img = np.hstack((final_img, border, vertical_img))
+                pure_final = np.hstack((pure_final, border, pure_img))
+
         final_img = cv2.putText(
-                final_img, f"Ground Truth", (int((final_img.shape[1]/2.5)), int(final_img.shape[0]/2.15)), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            final_img, f"Ground Truth", (int((final_img.shape[1]/2.5)), int(final_img.shape[0]/2.15)), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
         if train:
             addition = 'train'
         else:
@@ -482,8 +470,8 @@ class Tester(object):
         else:
             path_out = f"{result_path}/MIP_{addition}.png"
             path_out_notext = f"{result_path}/MIP_{addition}_notext.png"
-        cv2.imwrite(path_out,final_img)
-        cv2.imwrite(path_out_notext,pure_final)
+        cv2.imwrite(path_out, final_img)
+        cv2.imwrite(path_out_notext, pure_final)
 
 
 # Test and return 3D NIFTI images ==============================================
@@ -547,8 +535,6 @@ class Tester(object):
                 else:
                     pred[i] = self.model.G_B2A.predict(
                         array[np.newaxis, i, :, :, np.newaxis]).squeeze()
-                #pred[i] = (255.0 / (pred[i].max() - pred[i].min()) * (pred[i] - pred[i].min())).astype(np.uint8)
-                #pred[i] = self.hist_match(pred[0], pred[i])
         return pred
 
     def write_nifti(self, image, i: str, mod: str):
@@ -573,7 +559,8 @@ class Tester(object):
 
     def matchHistVolume(self, syntheticVolume, referenceVolume):
         for kkk in range(np.shape(referenceVolume)[0]):
-            matched = self.hist_match(syntheticVolume[kkk, ...], referenceVolume[kkk, ...])
+            matched = self.hist_match(
+                syntheticVolume[kkk, ...], referenceVolume[kkk, ...])
             syntheticVolume[kkk, ...] = matched
         return syntheticVolume
 
@@ -603,7 +590,7 @@ class Tester(object):
 
     @staticmethod
     def psnr(img1, img2):
-        mse = np.mean( (img1 - img2) ** 2 )
+        mse = np.mean((img1 - img2) ** 2)
         if mse == 0:
             return 100
         PIXEL_MAX = 255.0

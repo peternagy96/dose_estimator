@@ -7,12 +7,12 @@ import time
 
 from .discriminator import Discriminator
 from .generator import Generator
-from .losses import lse, mae, mae_style, cycle_loss, s_loss, gm_loss, null_loss, feature_match_loss
+from .losses import lse, mae, cycle_loss, s_loss, gm_loss, null_loss, feature_match_loss
 
 
 class cycleGAN(object):
     def __init__(self, dim='2D', mode_G='basic', mode_D='basic',
-                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5, 
+                 model_path: str = None, image_shape: tuple = (128, 128, 2), ct_loss_weight=0.5,
                  style_loss=False, tv_loss=False, ssim_loss=False, style_weight=0.001, crop=True):
 
         self.model_path = model_path
@@ -33,17 +33,15 @@ class cycleGAN(object):
         # PatchGAN - if false the discriminator learning rate should be decreased
         self.use_patchgan = True
 
-        # Multi scale discriminator - if True the generator have an extra encoding/decoding step to match discriminator information access
-        self.use_multiscale_discriminator = False
-
         # Resize convolution - instead of transpose convolution in deconvolution layers (uk) - can reduce checkerboard artifacts but the blurring might affect the cycle-consistency
         self.use_resize_convolution = False
 
-        if mode_G == 'new':
-        #    mode_G == 'basic'
-            mode_D = 'new'
+        if mode_G == 'ganimorph':
+            #    mode_G == 'basic'
+            mode_D = 'ganimorph'
 
-        self.build(dim=dim, mode_G=mode_G, mode_D=mode_D, img_shape=self.img_shape)
+        self.build(dim=dim, mode_G=mode_G, mode_D=mode_D,
+                   img_shape=self.img_shape)
 
     def build(self, dim, mode_G, mode_D, img_shape):
         self.D_A = Discriminator(name='A', dim=dim, mode=mode_D, use_patchgan=True,
@@ -56,7 +54,7 @@ class cycleGAN(object):
                                use_identity_learning=True, img_shape=img_shape, style_loss=self.style_loss)
 
     def compile(self, opt_G, opt_D, use_identity_learning, style_loss=False):
-        if self.D_A.mode == 'new':
+        if self.D_A.mode == 'ganimorph':
             d_loss = [lse]
             for _ in range(7):
                 d_loss.append(feature_match_loss)
@@ -69,9 +67,8 @@ class cycleGAN(object):
                                loss=d_loss,
                                loss_weights=self.D_B.loss_weights)
 
-        
-        if use_identity_learning:    
-            if self.style_loss:       
+        if use_identity_learning:
+            if self.style_loss:
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
                 if self.dim == '2D':
                     res_len = 13
@@ -80,10 +77,10 @@ class cycleGAN(object):
                 for _ in range(4, res_len):
                     if self.tv_loss:
                         identity_loss.append(null_loss)
-                        #identity_loss.append(s_loss)
+                        # identity_loss.append(s_loss)
                     else:
                         identity_loss.append(null_loss)
-                        #identity_loss.append(gm_loss)
+                        # identity_loss.append(gm_loss)
             else:
                 identity_loss = [mae(alpha=self.ct_loss_weight)]
             self.G_A2B.model.compile(optimizer=opt_G, loss=identity_loss)
@@ -98,24 +95,20 @@ class cycleGAN(object):
             dB_guess_synthetic = self.D_B.model_static(synthetic_B[0])
             reconstructed_A = self.G_B2A.model(synthetic_B[0])
             reconstructed_B = self.G_A2B.model(synthetic_A[0])
+            model_outputs = reconstructed_A
+            model_outputs.extend(reconstructed_B)
         else:
             dA_guess_synthetic = self.D_A.model_static(synthetic_A)
             dB_guess_synthetic = self.D_B.model_static(synthetic_B)
             reconstructed_A = self.G_B2A.model(synthetic_B)
             reconstructed_B = self.G_A2B.model(synthetic_A)
-
-        if self.style_loss:
-                model_outputs = reconstructed_A
-                model_outputs.extend(reconstructed_B)
-        else:
             model_outputs = [reconstructed_A, reconstructed_B]
-        
-        #identity_loss = [mae(alpha=self.ct_loss_weight), style_loss(gt_dict=gt_dict, gen_dict=gen_dict)]
 
         model_inputs = [real_A, real_B]
 
         if self.style_loss:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop)]
+            compile_losses = [cycle_loss(
+                alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop)]
             compile_weights = [self.lambda_1]
             for _ in range(4, res_len):
                 if self.tv_loss:
@@ -123,7 +116,8 @@ class cycleGAN(object):
                 else:
                     compile_losses.append(gm_loss(self.crop))
                 compile_weights.append(self.style_weight)
-            compile_losses.append(cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop))
+            compile_losses.append(cycle_loss(
+                alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop))
             compile_weights.append(self.lambda_2)
             for _ in range(4, res_len):
                 if self.tv_loss:
@@ -131,21 +125,13 @@ class cycleGAN(object):
                 else:
                     compile_losses.append(gm_loss(self.crop))
                 compile_weights.append(self.style_weight)
-            
+
         else:
-            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop), cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop)]
+            compile_losses = [cycle_loss(alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop), cycle_loss(
+                alpha=self.ct_loss_weight, ssim=self.ssim_loss, crop=self.crop)]
             compile_weights = [self.lambda_1, self.lambda_2]
 
-        if self.use_multiscale_discriminator:
-            for _ in range(2):
-                compile_losses.append(lse)
-                # * 1e-3)  # Lower weight to regularize the model
-                compile_weights.append(self.lambda_D)
-            for i in range(2):
-                model_outputs.append(dA_guess_synthetic[i])
-                model_outputs.append(dB_guess_synthetic[i])
-
-        if self.D_A.mode == 'new':
+        if self.D_A.mode == 'ganimorph':
             model_outputs.extend(dA_guess_synthetic)
             compile_weights.append(self.lambda_D)
             compile_losses.append(lse)

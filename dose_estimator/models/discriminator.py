@@ -41,47 +41,18 @@ class Discriminator(object):
             if dim == '2D':
                 return self.basicDiscriminator()
             elif dim == '3D':
-                #return self.basic3DDiscriminator()
+                # return self.basic3DDiscriminator()
                 return self.small3DDiscriminator()
 
-        if mode == 'new':
+        if mode == 'ganimorph':
             # 0.5 since we train on real and synthetic images
-            self.loss_weights = [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]
+            self.loss_weights = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
             if dim == '2D':
-                return self.newDiscriminator()
+                return self.complexDiscriminator()
             elif dim == '3D':
-                #return self.basic3DDiscriminator()
-                raise NotImplementedError("2D new discriminator model not implemented!")
-
-        elif mode == 'multiscale':
-            # 0.5 since we train on real and synthetic images
-            self.loss_weights = [0.5, 0.5]
-            if dim == '2D':
-                return self.modelMultiScaleDiscriminator()
-            elif dim == '3D':
-                return self.model3DMultiScaleDiscriminator()
-
-    def modelMultiScaleDiscriminator(self, name=None):
-        x1 = Input(shape=self.img_shape)
-        x2 = AveragePooling2D(pool_size=(2, 2))(x1)
-        #x4 = AveragePooling2D(pool_size=(2, 2))(x2)
-
-        out_x1 = self.basicDiscriminator('D1')(x1)
-        out_x2 = self.basicDiscriminator('D2')(x2)
-        #out_x4 = self.modelDiscriminator('D4')(x4)
-
-        return Model(inputs=x1, outputs=[out_x1, out_x2], name=name)
-
-    def model3DMultiScaleDiscriminator(self, name=None):
-        x1 = Input(shape=self.img_shape)
-        x2 = AveragePooling3D(pool_size=(2, 2))(x1)
-        #x4 = AveragePooling2D(pool_size=(2, 2))(x2)
-
-        out_x1 = self.basic3DDiscriminator('D1')(x1)
-        out_x2 = self.basic3DDiscriminator('D2')(x2)
-        #out_x4 = self.modelDiscriminator('D4')(x4)
-
-        return Model(inputs=x1, outputs=[out_x1, out_x2], name=name)
+                # return self.basic3DDiscriminator()
+                raise NotImplementedError(
+                    "3D GaniMorph discriminator model not implemented!")
 
     def basicDiscriminator(self, name=None):
         # Specify input
@@ -107,7 +78,8 @@ class Discriminator(object):
         # Specify input
         input_img = Input(shape=self.img_shape)
         # Layer 1 (#Instance normalization is not used for this layer)
-        x = Conv3D(filters=64, kernel_size=3, strides=2, padding='same')(input_img)
+        x = Conv3D(filters=64, kernel_size=3,
+                   strides=2, padding='same')(input_img)
         x = LeakyReLU(alpha=0.2)(x)
         # Layer 2
         x = Conv3D(filters=128, kernel_size=3, strides=2, padding='same')(x)
@@ -127,39 +99,47 @@ class Discriminator(object):
         x = Activation('sigmoid')(x)
         return Model(inputs=input_img, outputs=x, name=name)
 
-    
-    def newDiscriminator(self, name=None):
+    def complexDiscriminator(self, name=None):
         NF = 32  # channel size
         input_img = Input(shape=self.img_shape)
-        l = Conv2D(name='conv0', filters=NF*2, kernel_size=4, strides=2, padding='same')(input_img)
+        l = Conv2D(name='conv0', filters=NF*2, kernel_size=4,
+                   strides=2, padding='same')(input_img)
         relu0 = Activation('relu')(l)
-        relu1 = Conv2D(name='conv1', filters=NF * 4, kernel_size=4, strides=2, padding='same')(relu0)
+        relu1 = Conv2D(name='conv1', filters=NF * 4,
+                       kernel_size=4, strides=2, padding='same')(relu0)
         relu1 = INLeakyReLU(relu1, self.normalization)
-        relu2 = Conv2D(name='conv2', filters=NF * 8, kernel_size=4, strides=2, padding='same')(relu1)
+        relu2 = Conv2D(name='conv2', filters=NF * 8,
+                       kernel_size=4, strides=2, padding='same')(relu1)
         relu2 = INLeakyReLU(relu2, self.normalization)
 
-        relu3 = Conv2D(name='convf', filters=NF*8, kernel_size=3, strides=1, padding='same')(relu2)
-        atrous = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=2, padding='same')(relu3)
+        relu3 = Conv2D(name='convf', filters=NF*8, kernel_size=3,
+                       strides=1, padding='same')(relu2)
+        atrous = Conv2D(filters=NF*8, kernel_size=3,
+                        dilation_rate=2, padding='same')(relu3)
         atrous = INLeakyReLU(atrous, self.normalization)
-        atrous2 = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=4, padding='same')(atrous)
+        atrous2 = Conv2D(filters=NF*8, kernel_size=3,
+                         dilation_rate=4, padding='same')(atrous)
         atrous2 = INLeakyReLU(atrous2, self.normalization)
-        atrous3 = Conv2D(filters=NF*8, kernel_size=3, dilation_rate=8, padding='same')(atrous2)
+        atrous3 = Conv2D(filters=NF*8, kernel_size=3,
+                         dilation_rate=8, padding='same')(atrous2)
         atrous3 = INLeakyReLU(atrous3, self.normalization)
         merge = concatenate([relu3, atrous3], axis=3)
-        clean = Conv2D(name='mConv', filters=NF*8, kernel_size=3, strides=1, padding='same')(merge)
+        clean = Conv2D(name='mConv', filters=NF*8, kernel_size=3,
+                       strides=1, padding='same')(merge)
         clean = INLeakyReLU(clean, self.normalization)
         lsgan = Conv2D(name='lsconv', filters=1, kernel_size=4, strides=1,
-                padding='same')(clean) # use_bias=False,
+                       padding='same')(clean)  # use_bias=False,
         lsgan = Activation('sigmoid')(lsgan)
 
-        return Model(inputs=input_img, outputs=[lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean], name=name) # [lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean]
-
+        # [lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean]
+        return Model(inputs=input_img, outputs=[lsgan, relu1, relu2, relu3, atrous, atrous2, atrous3, clean], name=name)
 
     def small3DDiscriminator(self, name=None):
         # Specify input
         input_img = Input(shape=self.img_shape)
         # Layer 1 (#Instance normalization is not used for this layer)
-        x = Conv3D(filters=32, kernel_size=3, strides=2, padding='same')(input_img)
+        x = Conv3D(filters=32, kernel_size=3,
+                   strides=2, padding='same')(input_img)
         x = LeakyReLU(alpha=0.2)(x)
         # Layer 2
         x = Conv3D(filters=64, kernel_size=3, strides=2, padding='same')(x)
