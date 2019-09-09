@@ -82,6 +82,7 @@ class Data(object):
                 test_images[key[0]] = np.swapaxes(
                     test_images[key[0]], 1, 2).reshape(-1, 81, 128)
 
+            """
             # filter zeros
             train_ct = []
             train_pet = []
@@ -105,6 +106,7 @@ class Data(object):
             test_images['CT'] = np.array(train_ct)
             test_images['PET'] = np.array(train_pet)
             test_images['dose'] = np.array(train_dose)
+            """
 
         # crop the images into a square shape
         if self.crop:
