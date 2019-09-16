@@ -58,36 +58,37 @@ class Data(object):
         test_images['dose'] = self.HPF(test_images['dose'], thresh=0.001)
 
         # filter  black slices
-        train_ct = []
-        train_pet = []
-        train_dose = []
-        test_ct = []
-        test_pet = []
-        test_dose = []
-        count_train = 0
-        count_test = 0
-        for i in range(train_images['PET'].shape[0]):
-            if train_images['PET'][i].mean() != 0:
-                train_ct.append(train_images['CT'][i])
-                train_pet.append(train_images['PET'][i])
-                train_dose.append(train_images['dose'][i])
-            else:
-                count_train += 1
-        for i in range(test_images['dose'].shape[0]):
-            if test_images['PET'][i].mean() != 0:
-                test_ct.append(test_images['CT'][i])
-                test_pet.append(test_images['PET'][i])
-                test_dose.append(test_images['dose'][i])
-            else:
-                count_test += 1
-        train_images['CT'] = np.array(train_ct)
-        train_images['PET'] = np.array(train_pet)
-        train_images['dose'] = np.array(train_dose)
-        test_images['CT'] = np.array(test_ct)
-        test_images['PET'] = np.array(test_pet)
-        test_images['dose'] = np.array(test_dose)
-        print(f"Removed {count_train} black training slices. ")
-        print(f"Removed {count_test} black test slices. ")
+        if self.dim != '3D':
+            train_ct = []
+            train_pet = []
+            train_dose = []
+            test_ct = []
+            test_pet = []
+            test_dose = []
+            count_train = 0
+            count_test = 0
+            for i in range(train_images['PET'].shape[0]):
+                if train_images['PET'][i].mean() != 0:
+                    train_ct.append(train_images['CT'][i])
+                    train_pet.append(train_images['PET'][i])
+                    train_dose.append(train_images['dose'][i])
+                else:
+                    count_train += 1
+            for i in range(test_images['dose'].shape[0]):
+                if test_images['PET'][i].mean() != 0:
+                    test_ct.append(test_images['CT'][i])
+                    test_pet.append(test_images['PET'][i])
+                    test_dose.append(test_images['dose'][i])
+                else:
+                    count_test += 1
+            train_images['CT'] = np.array(train_ct)
+            train_images['PET'] = np.array(train_pet)
+            train_images['dose'] = np.array(train_dose)
+            test_images['CT'] = np.array(test_ct)
+            test_images['PET'] = np.array(test_pet)
+            test_images['dose'] = np.array(test_dose)
+            print(f"Removed {count_train} black training slices. ")
+            print(f"Removed {count_test} black test slices. ")
 
         # normalize
         per_patient = True  # * when set to false then loss goes to NaN
