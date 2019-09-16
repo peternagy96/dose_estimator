@@ -51,25 +51,56 @@ class Data(object):
                          "r", encoding='utf8')
         test_image_names = test_file.read().splitlines()
 
+        # high pass filter over PET and dose images
+        train_images['PET'] = self.HPF(train_images['PET'], thresh=0.1)
+        test_images['PET'] = self.HPF(test_images['PET'], thresh=0.1)
+        train_images['dose'] = self.HPF(train_images['dose'], thresh=0.001)
+        test_images['dose'] = self.HPF(test_images['dose'], thresh=0.001)
+
+        # filter  black slices
+        train_ct = []
+        train_pet = []
+        train_dose = []
+        test_ct = []
+        test_pet = []
+        test_dose = []
+        count_train = 0
+        count_test = 0
+        for i in range(train_images['PET'].shape[0]):
+            if train_images['PET'][i].mean() != 0:
+                train_ct.append(train_images['CT'][i])
+                train_pet.append(train_images['PET'][i])
+                train_dose.append(train_images['dose'][i])
+            else:
+                count_train += 1
+        for i in range(test_images['dose'].shape[0]):
+            if test_images['PET'][i].mean() != 0:
+                test_ct.append(test_images['CT'][i])
+                test_pet.append(test_images['PET'][i])
+                test_dose.append(test_images['dose'][i])
+            else:
+                count_test += 1
+        train_images['CT'] = np.array(train_ct)
+        train_images['PET'] = np.array(train_pet)
+        train_images['dose'] = np.array(train_dose)
+        test_images['CT'] = np.array(test_ct)
+        test_images['PET'] = np.array(test_pet)
+        test_images['dose'] = np.array(test_dose)
+        print(f"Removed {count_train} black training slices. ")
+        print(f"Removed {count_test} black test slices. ")
+
         # normalize
         per_patient = True  # * when set to false then loss goes to NaN
         self.per_patient = per_patient
-        step2 = False
+        self.step2 = False
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
-                train_images[key[0]] = self.normalize_array(
-                    train_images[key[0]], per_patient=per_patient, step2=step2)
-                test_images[key[0]] = self.normalize_array(
-                    test_images[key[0]], per_patient=per_patient, step2=step2)
-        else:
-            for key in train_images.items():
-                if key[0] == 'CT':
-                    train_images[key[0]] = self.normCT(train_images[key[0]])
-                    test_images[key[0]] = self.normCT(test_images[key[0]])
-                elif key[0] == 'PET':
-                    train_images[key[0]] = self.normPET(train_images[key[0]])
-                    test_images[key[0]] = self.normPET(test_images[key[0]])
+                train_images[key[0]] = self.normalize(
+                    train_images[key[0]], mod=key[0], per_patient=per_patient, step2=self.step2)
+                test_images[key[0]] = self.normalize(
+                    test_images[key[0]], mod=key[0], per_patient=per_patient, step2=self.step2)
+
 
         if self.view == 'front':
             for key in train_images.items():
@@ -82,31 +113,6 @@ class Data(object):
                 test_images[key[0]] = np.swapaxes(
                     test_images[key[0]], 1, 2).reshape(-1, 81, 128)
 
-            """
-            # filter zeros
-            train_ct = []
-            train_pet = []
-            train_dose = []
-            test_ct = []
-            test_pet = []
-            test_dose = []
-            for i in range(train_images['dose'].shape[0]):
-                if train_images['dose'][i].mean() != -1:
-                    train_ct.append(train_images['CT'][i])
-                    train_pet.append(train_images['PET'][i])
-                    train_dose.append(train_images['dose'][i])
-            for i in range(test_images['dose'].shape[0]):
-                if test_images['dose'][i].mean() != -1:
-                    test_ct.append(test_images['CT'][i])
-                    test_pet.append(test_images['PET'][i])
-                    test_dose.append(test_images['dose'][i])
-            train_images['CT'] = np.array(train_ct)
-            train_images['PET'] = np.array(train_pet)
-            train_images['dose'] = np.array(train_dose)
-            test_images['CT'] = np.array(train_ct)
-            test_images['PET'] = np.array(train_pet)
-            test_images['dose'] = np.array(train_dose)
-            """
 
         # crop the images into a square shape
         if self.crop:
@@ -173,45 +179,35 @@ class Data(object):
         print('Data has been loaded')
 
     @staticmethod
-    def normCT(array):
-        return array/1024.0123291015625
+    def HPF(image, thresh=0.2):
+        array = image.copy()
+        mask = image < thresh
+        array[mask] = array.min()
+        return array
 
     @staticmethod
-    def normPET(array):
-        return array/10
-
-    @staticmethod
-    def normalize_array(inp, per_patient=False, step2=False):
+    def normalize(inp, mod, per_patient=True, step2=False):
         # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
-        if step2:
-            inp = (inp - inp.mean()) / (inp.std())
-        if per_patient:
-            mi = inp.min()
-            ma = inp.max()
-            array = ((2 * (inp - mi)) / (ma - mi)) - 1
-        else:
-            array = inp.copy()
-            for i in range(array.shape[0]):
-                pic = array[i, :, :]
-                mi = pic.min()
-                ma = pic.max()
-                pic = ((2 * (pic - mi)) / (ma - mi)) - 1
-                array[i:(i+1), :, :] = pic
-        return array
-
-    @staticmethod
-    def normalize(inp, step2=True):
-        array = inp.copy()
-        for i in range(array.shape[0]):
-            pic = array[i, :, :]
-            mask = pic > pic.mean()
+        if mod == 'PET':
+            return inp/10
+        elif mod == 'CT': # CT images are normalized non-linearly
             if step2:
-                pic = (pic - pic[mask].mean()) / (pic[mask].std())
-            mi = pic.min()
-            ma = pic.max()
-            pic = ((2 * (pic - mi)) / (ma - mi)) - 1
-            array[i, :, :] = pic
-        return array
+                inp = (inp - inp.mean()) / (inp.std())
+            if per_patient:
+                mi = inp.min()
+                ma = inp.max()
+                array = ((2 * (inp - mi)) / (ma - mi)) - 1
+            else:
+                array = inp.copy()
+                for i in range(array.shape[0]):
+                    pic = array[i, :, :]
+                    mi = pic.min()
+                    ma = pic.max()
+                    pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+                    array[i:(i+1), :, :] = pic
+            return array
+        else: # dose images do not need to be normalized
+            return inp
 
     @staticmethod
     def augment2D(images):
