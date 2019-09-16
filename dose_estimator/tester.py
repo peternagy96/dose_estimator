@@ -148,33 +148,9 @@ class Tester(object):
     @staticmethod
     def rescale_mip(image):
         array = image.copy()
-        for i in range(array.shape[0]):
-            pic = array[i, :, :]
-            mi = pic.min()
-            ma = pic.max()
-            pic = (255.0 / (ma - mi) * (pic - mi))  # .astype(np.uint8)
-            array[i:(i+1), :, :] = pic
-        return array
-
-    def normalize(self, inp, mod=''):
-        array = inp.copy()
-        if self.data.norm:
-            if self.data.per_patient:
-                mi = inp.min()
-                ma = inp.max()
-                array = ((2 * (inp - mi)) / (ma - mi)) - 1
-            else:
-                for i in range(array.shape[0]):
-                    pic = array[i, :, :]
-                    mi = pic.min()
-                    ma = pic.max()
-                    pic = ((2 * (pic - mi)) / (ma - mi)) - 1
-                    array[i:(i+1), :, :] = pic
-        else:
-            if mod == 'CT':
-                array = array/1024.0123291015625
-            elif mod == 'PET':
-                array = array/10
+        mi = array.min()
+        ma = array.max()
+        array = (255.0 / (ma - mi) * (array - mi))  # .astype(np.uint8)
         return array
 
 # Create MIP of prediction and ground truth for all patients from NIFTI
@@ -234,10 +210,11 @@ class Tester(object):
 
             # load NIFTI files
             if len(mod_A) == 2:
-                in1 = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
-                in2 = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[1])), mod_A[1])
+                if self.data.norm:
+                    in1 = self.normalize(sitk.GetArrayFromImage(
+                        self.read_nifti(test_path, i, mod_A[0])), mod_A[0], per_patient=self.data.per_patient, step2=self.data.step2)
+                    in2 = self.normalize(sitk.GetArrayFromImage(
+                        self.read_nifti(test_path, i, mod_A[1])), mod_A[1], per_patient=self.data.per_patient, step2=self.data.step2)
                 if crop:
                     pred_B = np.empty((80, 80, 80))
                     in1 = in1[:80, 24:104, 24:104]
@@ -257,14 +234,14 @@ class Tester(object):
                     nifti_in_A = np.concatenate((in1, in2), axis=1)
             else:
                 nifti_in_A = self.normalize(sitk.GetArrayFromImage(
-                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0])
+                    self.read_nifti(test_path, i, mod_A[0])), mod_A[0], per_patient=self.data.per_patient, step2=self.data.step2)
                 if self.model.dim == '3D':
                     pad_l = int((depth-1)/2)
                     nifti_in_A = np.pad(
                         nifti_in_A, ((pad_l, pad_l), (0, 0), (0, 0)), 'constant', constant_values=(0))
 
             nifti_in_B = self.normalize(sitk.GetArrayFromImage(
-                self.read_nifti(test_path, i, mod_B)), mod_B)
+                self.read_nifti(test_path, i, mod_B)), mod_B, per_patient=self.data.per_patient, step2=self.data.step2)
             if self.model.dim == '3D' and self.model.img_shape[0] < 80:
                 pass  # nifti_in_B = zoom(nifti_in_B, (0.5, 1, 1))
 
@@ -306,7 +283,7 @@ class Tester(object):
                                                             np.newaxis, :, :, :, :]).squeeze()[:, :, :, 0]
 
             # the image is histogram matched to a pre-selected training image
-            pred_B = self.matchHistVolume(pred_B, nifti_in_B)
+            #pred_B = self.matchHistVolume(pred_B, nifti_in_B)
 
             # create MIP for all images
             mip_ct = (255 - np.max(self.rescale_mip(in1), axis=1))
@@ -490,8 +467,8 @@ class Tester(object):
             nifti_in_B = self.read_nifti(test_path, i, mod_B)
 
             # predict output modality
-            pred_A = self.predict_nifti(nifti_in_B, direction='B2A')
-            pred_B = self.predict_nifti(nifti_in_A, direction='A2B')
+            pred_A = self.predict_nifti(nifti_in_B, mod_A, direction='B2A')
+            pred_B = self.predict_nifti(nifti_in_A, mod_B, direction='A2B')
 
             # copy old NIFTI metadata
             nifti_out_A = sitk.GetImageFromArray(pred_A, isVector=False)
@@ -513,9 +490,9 @@ class Tester(object):
                 path, f"{idx}_{mod.lower()}.nii.gz"))
         return nifti_in
 
-    def predict_nifti(self, image, direction):
+    def predict_nifti(self, image, mod, direction):
         array = sitk.GetArrayFromImage(image)
-        array = self.normalize_array(array)
+        array = self.normalize(array, mod, per_patient=self.data.per_patient, step2=self.data.step2)
         pred = np.empty(array.shape)
         if direction == "A2B":
             for i in range(array.shape[0]):
@@ -546,16 +523,28 @@ class Tester(object):
                 self.result_path, 'nifti', f"{i}_{mod}_pred.nii"), True)
 
     @staticmethod
-    def normalize_array(inp):
-        array = inp.copy()
-        for i in range(array.shape[0]):
-            pic = array[i:(i + 1), :, :]
-            mask = (pic != 0.0)
-            # pic / np.linalg.norm(pic) -1
-            pic[mask] = ((pic[mask] - pic.min()) / (pic.max() - pic.min()))
-            # pic[mask] = (pic[mask] - pic.mean()) / pic.std()
-            array[i:(i + 1), :, :] = pic
-        return array
+    def normalize(inp, mod, per_patient=True, step2=False):
+        # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
+        if mod == 'PET':
+            return inp/10
+        elif mod == 'CT': # CT images are normalized non-linearly
+            if step2:
+                inp = (inp - inp.mean()) / (inp.std())
+            if per_patient:
+                mi = inp.min()
+                ma = inp.max()
+                array = ((2 * (inp - mi)) / (ma - mi)) - 1
+            else:
+                array = inp.copy()
+                for i in range(array.shape[0]):
+                    pic = array[i, :, :]
+                    mi = pic.min()
+                    ma = pic.max()
+                    pic = ((2 * (pic - mi)) / (ma - mi)) - 1
+                    array[i:(i+1), :, :] = pic
+            return array
+        else: # dose images do not need to be normalized
+            return inp
 
     def matchHistVolume(self, syntheticVolume, referenceVolume):
         for kkk in range(np.shape(referenceVolume)[0]):
