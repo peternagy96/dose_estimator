@@ -69,8 +69,7 @@ class cycleGAN(object):
 
         if use_identity_learning:
             if self.style_loss:
-                #identity_loss = [mae(alpha=self.ct_loss_weight)]
-                identity_loss = 'MAE'
+                identity_loss = [mae(alpha=self.ct_loss_weight)]
                 if self.dim == '2D':
                     res_len = 13
                 elif self.dim == '3D':
