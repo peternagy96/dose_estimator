@@ -105,14 +105,14 @@ class Data(object):
 
         if self.view == 'front':
             for key in train_images.items():
-                train_images[key[0]] = train_images[key[0]
-                                                    ].reshape(-1, 81, 128, 128)
+                #train_images[key[0]] = train_images[key[0]
+                #                                    ].reshape(-1, 81, 128, 128)
                 train_images[key[0]] = np.swapaxes(
-                    train_images[key[0]], 1, 2).reshape(-1, 81, 128)
-                test_images[key[0]] = test_images[key[0]
-                                                  ].reshape(-1, 81, 128, 128)
+                    train_images[key[0]], 1, 2)#.reshape(-1, 81, 128)
+                #test_images[key[0]] = test_images[key[0]
+                #                                  ].reshape(-1, 81, 128, 128)
                 test_images[key[0]] = np.swapaxes(
-                    test_images[key[0]], 1, 2).reshape(-1, 81, 128)
+                    test_images[key[0]], 1, 2)#.reshape(-1, 81, 128)
 
 
         # crop the images into a square shape
