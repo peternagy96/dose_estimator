@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.layers import Input, Conv2D, Conv3D, Conv2DTranspose, Activation, concatenate
+from keras.layers.advanced_activations import LeakyReLU
 from keras.models import Model
 
 from .layers import ck, ck_rl, dck, c7Ak, dk, Rk, uk, ReflectionPadding2D, ck3D, c5Ak3D, dk3D, Rk3D, uk3D, ReflectionPadding3D, UnetUpsample, IN_Relu, Unet3dBlock
@@ -63,7 +64,8 @@ class Generator(object):
         x = Conv2D(self.img_shape[-1], kernel_size=7,
                    strides=1, name='final')(x)
         # They say they use Relu but really they do not
-        x = Activation('tanh')(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        #x = Activation('tanh')(x)
         return Model(inputs=input_img, outputs=x, name=self.name)
 
     def basic3DGenerator(self):
