@@ -1,17 +1,17 @@
 Name,Mode,Dim,Generator,G LR,D LR,Init Epoch,Epochs,Batch Size,Mods,Norm,Augment,View,Crop,CT Weight,Gen Iter,Style Loss,TV Loss,Style Weight,Structure Loss,Adversarial Loss,Full 3D,SW Depth,Subfolder,Model Path,Done
 MIP_2D,test_mip,2D,basic,0.0003,0.0003,200,200,10,"CT, PET, dose",Y,N,top,Y,0.2,1,N,N,,Y,N,N,,3d_filtered,2D_05,x
 MIP_3D,test_mip,3D,small,0.0003,0.0003,200,200,10,"CT, PET, dose",Y,N,top,Y,0.2,1,N,N,,N,N,N,,3d_filtered,3D_full,x
-2D_05,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,
-2D_08,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.8,1,N,N,,N,N,N,,3d_filtered,x,
+2D_05,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,x
+2D_08,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.8,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_05_32batch,train,2D,basic,0.0003,0.0003,,100,32,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_05_doubleLR,train,2D,basic,0.0006,0.0006,,100,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_front_02,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,front,Y,0.2,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_front_05,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,front,Y,0.5,1,N,N,,N,N,N,,3d_filtered,x,x
-2D_front_08,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,front,Y,0.8,1,N,N,,N,N,N,,3d_filtered,x,x
+2D_front_08,train,2D,basic,0.0003,0.0003,200,200,16,"CT, PET, dose",Y,Y,front,Y,0.8,1,N,N,,N,N,N,,3d_filtered,2D_front,
 2D_nocrop,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,N,0.2,1,N,N,,N,N,N,,3d_filtered,x,x
 2D_batch8,train,2D,basic,0.0003,0.0003,,200,8,"CT, PET, dose",Y,Y,top,Y,0.2,1,N,N,,N,N,N,,3d_filtered,x,x
-2D_ssid,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,Y,N,N,,3d_filtered,x,
-2D_gram,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,Y,N,1E-07,N,N,N,,3d_filtered,x,
+2D_ssid,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,N,N,,Y,N,N,,3d_filtered,x,x
+2D_gram,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,Y,N,1E-07,N,N,N,,3d_filtered,x,x
 2D_gram2,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,Y,N,1E-06,N,N,N,,3d_filtered,x,x
 2D_gram4,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,Y,N,1E-05,N,N,N,,3d_filtered,x,x
 2D_gram_ssid,train,2D,basic,0.0003,0.0003,,200,16,"CT, PET, dose",Y,Y,top,Y,0.5,1,Y,N,1E-07,Y,N,N,,3d_filtered,x,x
