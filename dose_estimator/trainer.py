@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from comet_ml import Experiment
+
 import os
 import tensorflow as tf
 import keras.backend as K
@@ -19,7 +21,9 @@ from tester import Tester
 
 
 class Trainer(object):
-    def __init__(self, result_name, model, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10, gen_iter=2, adv_training=False):
+    def __init__(self, result_name, model, experiment, init_epoch=math.nan, epochs=200, lr_D=3e-4, lr_G=3e-4, batch_size=10, gen_iter=2, adv_training=False):
+        self.experiment = experiment
+        
         self.learning_rate_D = lr_D
         self.learning_rate_G = lr_G
         self.generator_iterations = gen_iter
@@ -50,8 +54,7 @@ class Trainer(object):
         self.REAL_LABEL = 0.95  # Use e.g. 0.9 to avoid training the discriminators to zero loss
 
         # Used as storage folder name
-        self.result_name = result_name + '_' + \
-            time.strftime('%Y%m%d-%H%M%S', time.localtime())
+        self.result_name = result_name
         self.result_path = os.path.join(
             os.getcwd(), 'results', self.result_name)
 
@@ -232,6 +235,10 @@ class Trainer(object):
         if self.use_linear_decay:
             decay_D, decay_G = self.get_lr_linear_decay_rate(
                 len(data.A_train), len(data.B_train))
+
+        # Update experiment values
+        self.experiment.log_parameters(self.get_params(model, data))
+        self.experiment.log_dataset_hash(data.A_train)
 
         # Start stopwatch for ETAs
         start_time = time.time()
@@ -446,3 +453,46 @@ class Trainer(object):
 
         with open('{}/meta_data.json'.format(self.result_path), 'w') as outfile:
             json.dump(data, outfile, sort_keys=True)
+
+    def get_params(self, model, data_orig):
+        data = {}
+        data['meta_data'] = []
+        data['meta_data'].append({
+            'img shape: height,width,channels': model.img_shape,
+            'Image view': data_orig.view,
+            'data subfolder': data_orig.subfolder,
+            'batch size': self.batch_size,
+            'save interval': self.save_interval,
+            'lambda_1': model.lambda_1,
+            'lambda_2': model.lambda_2,
+            'lambda_d': model.lambda_D,
+            'Style loss': model.style_loss,
+            'TV Loss': model.tv_loss,
+            'SSIM Loss': model.ssim_loss,
+            'Adv Training': self.adv_training,
+            'Style weight': model.style_weight,
+            'CT loss weight': model.ct_loss_weight,
+            'learning_rate_D': self.learning_rate_D,
+            'learning rate G': self.learning_rate_G,
+            'epochs': self.epochs,
+            'use linear decay on learning rates': self.use_linear_decay,
+            'epoch where learning rate linear decay is initialized (if use_linear_decay)': self.decay_epoch,
+            'generator iterations': self.generator_iterations,
+            'discriminator iterations': self.discriminator_iterations,
+            'use patchGan in discriminator': model.use_patchgan,
+            'beta 1': self.beta_1,
+            'beta 2': self.beta_2,
+            'REAL_LABEL': self.REAL_LABEL,
+            'data normalized': str(data_orig.norm),
+            'data augmented': str(data_orig.aug),
+            '3D window size': str(data_orig.depth),
+            '3D step size': str(data_orig.step_size),
+            'data downsampled': str(data_orig.down),
+            'resize convolution': str(model.use_resize_convolution),
+            'number of A train examples': len(data_orig.A_train),
+            'number of B train examples': len(data_orig.B_train),
+            'number of A test examples': len(data_orig.A_test),
+            'number of B test examples': len(data_orig.B_test),
+        })
+
+        return data

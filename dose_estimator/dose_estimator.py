@@ -1,4 +1,6 @@
 # !/usr/bin/env python3
+from comet_ml import Experiment
+
 import os
 import sys
 import time
@@ -56,6 +58,14 @@ if __name__ == '__main__':
             data = Data(subfolder=settings['Subfolder'], dim=settings['Dim'], mods=mods,
                         view =settings['View'], norm=settings['Norm'], aug=settings['Augment'], down=down, crop=crop)
             data.load_data()
+
+
+            # setup experiment
+            result_name = settings['Name'] + '_' + \
+                          time.strftime('%Y%m%d-%H%M%S', time.localtime())
+            experiment = Experiment(api_key="9JGbEhq0SvYqJZEhdnTk3hV0b",
+                        project_name="dose map prediction", workspace="peternagy96")
+            experiment.set_name(f"{result_name}")
             
 
             # import model
@@ -83,7 +93,7 @@ if __name__ == '__main__':
             adv_loss = False
             if settings['Adversarial Loss'] == 'Y':
                 adv_loss = True
-            trainer = Trainer(result_name=settings['Name'], model=gan,
+            trainer = Trainer(result_name=result_name, model=gan, experiment=experiment,
                                 init_epoch=settings['Init Epoch'],
                                 epochs=settings['Epochs'],
                                 lr_D=settings['D LR'], lr_G=settings['G LR'],
