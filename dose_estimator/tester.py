@@ -523,7 +523,7 @@ class Tester(object):
                 self.result_path, 'nifti', f"{i}_{mod}_pred.nii"), True)
 
     @staticmethod
-    def normalize(, mod, per_patient=True, step2=False):
+    def normalize(inp, mod, per_patient=True, step2=False):
         return inp/inp.max()
 
     """
