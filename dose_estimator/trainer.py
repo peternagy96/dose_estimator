@@ -323,7 +323,7 @@ class Trainer(object):
                 model.save(self.result_path, model.D_B.model, epoch)
                 model.save(self.result_path, model.G_A2B.model, epoch)
                 model.save(self.result_path, model.G_B2A.model, epoch)
-                tester.testMIP(test_path='/home/peter/data/3d_filtered/',
+                tester.testMIP(test_path='/home/peter/data/data_final/',
                                mod_A=data.mods[:-1], mod_B=data.mods[-1], epoch=epoch)
                 #pat_num = [int(data.A_train.shape[0]), int()]
                 tester.test_jpg(epoch=epoch, index=40, pat_num=[
