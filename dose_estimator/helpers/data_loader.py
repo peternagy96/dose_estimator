@@ -97,10 +97,8 @@ class Data(object):
         if self.norm == 'Y':
             print("Normalizing data...")
             for key in train_images.items():
-                train_images[key[0]] = self.normalize(
-                    train_images[key[0]], mod=key[0], per_patient=per_patient, step2=self.step2)
-                test_images[key[0]] = self.normalize(
-                    test_images[key[0]], mod=key[0], per_patient=per_patient, step2=self.step2)
+                train_images[key[0]] = self.normalize([key[0]])#, mod=key[0], per_patient=per_patient, step2=self.step2)
+                test_images[key[0]] = self.normalize([key[0]])#, mod=key[0], per_patient=per_patient, step2=self.step2)
 
 
         if self.view == 'front':
@@ -187,6 +185,11 @@ class Data(object):
         return array
 
     @staticmethod
+    def normalize(inp):
+        return inp/inp.max()
+
+    """
+    @staticmethod
     def normalize(inp, mod, per_patient=True, step2=False):
         # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
         if mod == 'PET':
@@ -208,7 +211,8 @@ class Data(object):
                     array[i:(i+1), :, :] = pic
             return array
         else: # dose images do not need to be normalized
-            return inp
+            return 
+    """
 
     @staticmethod
     def augment2D(images):
