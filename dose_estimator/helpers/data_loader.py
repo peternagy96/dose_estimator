@@ -8,7 +8,7 @@ from scipy.ndimage import zoom
 
 
 class Data(object):
-    def __init__(self, subfolder='data_corrected', dim='2D', mods=['CT', 'PET', 'dose'],
+    def __init__(self, subfolder='data_final', dim='2D', mods=['CT', 'PET', 'dose'],
                  view='top', norm=True, aug=False, down=False, crop=True, depth=5, step_size=1):
         self.subfolder = subfolder
         self.dim = dim
@@ -28,6 +28,7 @@ class Data(object):
     def load_data(self):
         train_images = {}
         test_images = {}
+        print(self.subfolder)
         if len(device_lib.list_local_devices()) > 1:
             folder = os.path.join('/home/peter/data', self.subfolder, 'numpy')
         else:
@@ -175,6 +176,7 @@ class Data(object):
         self.train_image_names = train_image_names
         self.test_image_names = test_image_names
         print(self.A_train.shape)
+        print(self.A_test.shape)
         print('Data has been loaded')
 
     @staticmethod
