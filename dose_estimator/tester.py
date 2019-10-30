@@ -523,6 +523,11 @@ class Tester(object):
                 self.result_path, 'nifti', f"{i}_{mod}_pred.nii"), True)
 
     @staticmethod
+    def normalize(, mod, per_patient=True, step2=False):
+        return inp/inp.max()
+
+    """
+    @staticmethod
     def normalize(inp, mod, per_patient=True, step2=False):
         # * If using 16 bit depth images, use the formula 'array = array / 32767.5 - 1' instead normalize between 0 and 1
         if mod == 'PET':
@@ -545,6 +550,7 @@ class Tester(object):
             return array
         else: # dose images do not need to be normalized
             return inp
+    """
 
     def matchHistVolume(self, syntheticVolume, referenceVolume):
         for kkk in range(np.shape(referenceVolume)[0]):
