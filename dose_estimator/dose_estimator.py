@@ -36,9 +36,9 @@ np.random.seed(seed=12345)
 if __name__ == '__main__':
     # import settings from file
     if len(device_lib.list_local_devices()) > 1:
-        jobsPath = '/home/peter/code/dose_estimator/jobs.csv'
+        jobsPath = '/home/peter/code_old/dose_estimator/jobs.csv'
     else:
-        jobsPath = '/home/peter/code/dose_estimator/jobs.csv'
+        jobsPath = '/home/peter/code_old/dose_estimator/jobs.csv'
         #jobsPath = os.path.join(os.getcwd(), 'dose_estimator', 'jobs.csv')
     jobs = pd.read_csv(jobsPath)
 
